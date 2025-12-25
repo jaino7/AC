@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Creatrix — Age Gate</title>
+    <meta
+      name="description"
+      content="Age verification gate for Creatrix. CONTENT WARNING: ADULT MATERIAL."
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { primary: '#14b8a6' }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="antialiased bg-white text-slate-900">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary"
+    >
+      Skip to content
+    </a>
+
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useEffect, useMemo, useRef, useState } = React;
+
+      const Container = ({ children, as: As = 'div' }) => (
+        <As className="mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8">{children}</As>
+      );
+
+      const DummySite = ({ ariaHidden }) => (
+        <div id="site-content" aria-hidden={ariaHidden ? 'true' : 'false'}>
+          <header className="border-b border-slate-200 bg-white">
+            <Container>
+              <div className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <svg
+                    className="h-8 w-8"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    role="img"
+                    aria-label="Creatrix logo"
+                  >
+                    <defs>
+                      <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+                        <stop offset="0%" stopColor="#14b8a6" />
+                        <stop offset="100%" stopColor="#0f766e" />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="24" cy="24" r="22" stroke="url(#g)" strokeWidth="4" />
+                    <path
+                      d="M31 18c-2-2.2-4.7-3.2-7.6-3.2-6.2 0-10.9 4.7-10.9 10.9s4.7 10.9 10.9 10.9c2.8 0 5.4-1.1 7.4-3.1"
+                      stroke="url(#g)"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="text-lg font-semibold tracking-tight">Creatrix</span>
+                </div>
+                <nav className="hidden gap-6 sm:flex" aria-label="Primary">
+                  <a
+                    href="#"
+                    className="rounded text-sm font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    Home
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded text-sm text-slate-700 transition hover:text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    Plans
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded text-sm text-slate-700 transition hover:text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    Content
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded text-sm text-slate-700 transition hover:text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    About
+                  </a>
+                </nav>
+              </div>
+            </Container>
+          </header>
+
+          <main id="main" className="py-10 md:py-16">
+            <section className="relative">
+              <div className="aspect-video w-full overflow-hidden bg-slate-900">
+                <img
+                  src="https://images.unsplash.com/photo-1508057198894-247b23fe5ade?q=80&w=1600"
+                  alt="Neon city skyline at night"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+                      Unlock Your Imagination.
+                    </h1>
+                    <p className="mt-3 text-white/90">Join the Journey — creative futures</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="py-10 md:py-16">
+              <Container>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {[1, 2, 3].map((i) => (
+                    <article
+                      key={i}
+                      className="rounded-2xl bg-white p-6 shadow-lg transition hover:shadow-xl"
+                    >
+                      <h3 className="text-lg font-semibold">Preview Card {i}</h3>
+                      <p className="mt-2 text-sm text-slate-600">
+                        Placeholder content to simulate a landing page behind the age gate.
+                      </p>
+                      <a
+                        href="#"
+                        className="mt-4 inline-flex items-center rounded-xl border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                      >
+                        Learn more
+                      </a>
+                    </article>
+                  ))}
+                </div>
+              </Container>
+            </section>
+          </main>
+
+          <footer className="bg-slate-800 py-6 text-slate-300">
+            <Container>
+              <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                <nav aria-label="Footer" className="flex gap-5">
+                  <a
+                    href="#"
+                    className="rounded text-sm hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+                  >
+                    Terms of Service
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded text-sm hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+                  >
+                    Privacy Policy
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded text-sm hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+                  >
+                    Contact
+                  </a>
+                </nav>
+                <p className="text-xs sm:text-sm">© 2024 Creatrix. All rights reserved.</p>
+              </div>
+            </Container>
+          </footer>
+        </div>
+      );
+
+      function isValidDateParts(d, m, y) {
+        if (!d || !m || !y) return false;
+        const day = Number(d), month = Number(m), year = Number(y);
+        if (String(y).length !== 4 || String(m).length !== 2 || String(d).length !== 2) return false;
+        if (year < 1900 || year > 9999) return false;
+        if (month < 1 || month > 12) return false;
+        if (day < 1 || day > 31) return false;
+        const date = new Date(year, month - 1, day);
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() === month - 1 &&
+          date.getDate() === day
+        );
+      }
+
+      function isAtLeast18(d, m, y) {
+        const day = Number(d), month = Number(m), year = Number(y);
+        const today = new Date();
+        const eighteen = new Date(year + 18, month - 1, day);
+        // Normalize times to avoid DST/tz issues
+        eighteen.setHours(0, 0, 0, 0);
+        const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return eighteen <= now;
+      }
+
+      const AgeGate = ({ open, onPass }) => {
+        const modalRef = useRef(null);
+        const dayRef = useRef(null);
+
+        const [day, setDay] = useState('');
+        const [month, setMonth] = useState('');
+        const [year, setYear] = useState('');
+        const [agree, setAgree] = useState(false);
+        const [error, setError] = useState('');
+
+        const validDob = useMemo(() => isValidDateParts(day, month, year), [day, month, year]);
+        const oldEnough = useMemo(
+          () => (validDob ? isAtLeast18(day, month, year) : false),
+          [validDob, day, month, year]
+        );
+
+        const canEnter = validDob && oldEnough && agree;
+
+        const sanitizeNum = (value, maxLen) => value.replace(/\D+/g, '').slice(0, maxLen);
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (!validDob) {
+            setError('生年月日が正しくありません。もう一度ご確認ください。');
+            return;
+          }
+          if (!oldEnough) {
+            setError('18歳未満の方はご利用いただけません。');
+            return;
+          }
+          if (!agree) {
+            setError('利用規約とプライバシーポリシーに同意してください。');
+            return;
+          }
+          setError('');
+          onPass();
+        };
+
+        // Focus trap and body scroll lock while open
+        useEffect(() => {
+          if (!open) return;
+          const prevOverflow = document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
+
+          const focusableSelectors =
+            'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+          const node = modalRef.current;
+
+          // Initial focus
+          setTimeout(() => {
+            dayRef.current?.focus();
+          }, 0);
+
+          const onKeyDown = (evt) => {
+            if (evt.key !== 'Tab') return; // ESC does nothing by spec
+            const focusables = node.querySelectorAll(focusableSelectors);
+            if (!focusables.length) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (evt.shiftKey) {
+              if (document.activeElement === first) {
+                evt.preventDefault();
+                last.focus();
+              }
+            } else {
+              if (document.activeElement === last) {
+                evt.preventDefault();
+                first.focus();
+              }
+            }
+          };
+
+          node.addEventListener('keydown', onKeyDown);
+
+          return () => {
+            node.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = prevOverflow;
+          };
+        }, [open]);
+
+        if (!open) return null;
+
+        return (
+          <div
+            className="fixed inset-0 z-50"
+            aria-labelledby="agegate-title"
+            aria-modal="true"
+            role="dialog"
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+            <div className="relative flex min-h-full items-center justify-center p-4">
+              <div
+                ref={modalRef}
+                className="w-full max-w-lg rounded-2xl bg-white px-6 py-7 shadow-2xl outline-none"
+              >
+                <header className="text-center">
+                  <h2
+                    id="agegate-title"
+                    className="text-xl font-extrabold tracking-tight sm:text-2xl"
+                  >
+                    CONTENT WARNING: ADULT MATERIAL
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    コンテンツ警告: アダルトコンテンツ
+                  </p>
+                </header>
+
+                <p id="agegate-desc" className="mt-5 text-sm text-slate-700">
+                  このサイトには一部の年齢層には不適切なコンテンツが含まれています。<br />
+                  続行するには生年月日を入力してください。
+                </p>
+
+                {error ? (
+                  <p
+                    role="alert"
+                    className="mt-3 text-sm font-semibold text-red-600"
+                  >
+                    {error}
+                  </p>
+                ) : null}
+
+                <form onSubmit={handleSubmit} className="mt-6">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label htmlFor="day" className="sr-only">Day</label>
+                      <input
+                        ref={dayRef}
+                        id="day"
+                        aria-label="DAY"
+                        placeholder="DD"
+                        inputMode="numeric"
+                        autoComplete="bday-day"
+                        value={day}
+                        onChange={(e) => setDay(sanitizeNum(e.target.value, 2))}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-center text-sm text-slate-900 placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="month" className="sr-only">Month</label>
+                      <input
+                        id="month"
+                        aria-label="MONTH"
+                        placeholder="MM"
+                        inputMode="numeric"
+                        autoComplete="bday-month"
+                        value={month}
+                        onChange={(e) => setMonth(sanitizeNum(e.target.value, 2))}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-center text-sm text-slate-900 placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="year" className="sr-only">Year</label>
+                      <input
+                        id="year"
+                        aria-label="YEAR"
+                        placeholder="YYYY"
+                        inputMode="numeric"
+                        autoComplete="bday-year"
+                        value={year}
+                        onChange={(e) => setYear(sanitizeNum(e.target.value, 4))}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-center text-sm text-slate-900 placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="flex items-start gap-3">
+                      <input
+                        id="agree"
+                        type="checkbox"
+                        checked={agree}
+                        onChange={(e) => setAgree(e.target.checked)}
+                        aria-describedby="tosline"
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-primary outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      />
+                      <label htmlFor="agree" className="text-sm text-slate-700">
+                        I agree to Terms of Service and Privacy Policy.
+                      </label>
+                    </div>
+                    <p id="tosline" className="mt-2 text-xs text-slate-600">
+                      <a
+                        href="#"
+                        className="rounded text-primary underline decoration-primary/40 underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      >
+                        利用規約
+                      </a>
+                      <span className="mx-2">/</span>
+                      <a
+                        href="#"
+                        className="rounded text-primary underline decoration-primary/40 underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      >
+                        プライバシーポリシー
+                      </a>
+                    </p>
+                  </div>
+
+                  <div className="mt-6">
+                    <button
+                      type="submit"
+                      disabled={!canEnter}
+                      className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                        canEnter ? 'bg-primary hover:bg-teal-600' : 'bg-slate-300 cursor-not-allowed'
+                      }`}
+                      aria-disabled={!canEnter}
+                    >
+                      ENTER SITE
+                    </button>
+                  </div>
+                </form>
+
+                <div className="mt-4 text-center">
+                  <a
+                    href="https://www.google.com"
+                    className="rounded text-xs text-slate-500 underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                  >
+                    Exit Site
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const App = () => {
+        const [showGate, setShowGate] = useState(true);
+
+        useEffect(() => {
+          const key = 'creatrix_age_gate';
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (data && typeof data.expiresAt === 'number') {
+              if (Date.now() < data.expiresAt) {
+                setShowGate(false);
+              }
+            }
+          } catch {}
+        }, []);
+
+        const passGate = () => {
+          const expireMs = 30 * 24 * 60 * 60 * 1000;
+          try {
+            localStorage.setItem(
+              'creatrix_age_gate',
+              JSON.stringify({ expiresAt: Date.now() + expireMs })
+            );
+          } catch {}
+          setShowGate(false);
+        };
+
+        return (
+          <>
+            <DummySite ariaHidden={showGate} />
+            <AgeGate open={showGate} onPass={passGate} />
+          </>
+        );
+      };
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+  </body>
+</html>
+
