@@ -1,0 +1,10 @@
+node_modules/
+# Next.js のビルド成果物（これがかなり重いです）
+.next/
+# OSが自動生成する隠しファイル（Macなどの場合）
+.DS_Store
+
+# 以下はご提示いただいた内容
+# Keep environment variables out of version control
+.env
+/generated/prisma

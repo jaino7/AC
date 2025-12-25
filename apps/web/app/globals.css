@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #111;
+  background-color: #fff;
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  margin: 0;
+}
