@@ -71,7 +71,7 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(post);
+        return NextResponse.json({ post });
     } catch (error) {
         console.error("Error fetching post:", error);
         return NextResponse.json(
@@ -93,7 +93,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { visibility, title, content, thumbnailUrl, folderId, tagIds } = await request.json();
+        const { visibility, title, content, thumbnailUrl, mediaUrl, folderId, tagIds, isLocked, requiredPlanId } = await request.json();
 
         // Get user
         const user = await prisma.user.findUnique({
@@ -139,7 +139,10 @@ export async function PATCH(
         if (content !== undefined) updateData.content = content;
         if (visibility !== undefined) updateData.visibility = visibility;
         if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl;
+        if (mediaUrl !== undefined) updateData.mediaUrl = mediaUrl;
         if (folderId !== undefined) updateData.folderId = folderId || null;
+        if (isLocked !== undefined) updateData.isLocked = isLocked;
+        if (requiredPlanId !== undefined) updateData.requiredPlanId = requiredPlanId || null;
 
         // Update post
         const updatedPost = await prisma.post.update({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type Tab = "profile" | "plans" | "notifications" | "domain";
 
@@ -107,17 +108,24 @@ export default function SettingsContent() {
                                             <button className="text-sm font-semibold text-pink-600 transition-colors hover:text-pink-700">
                                                 トライアルをキャンセルする
                                             </button>
-                                            <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
-                                                プランを選択する
-                                            </button>
+                                            <Link href="/creators/pricing">
+                                                <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
+                                                    プランを選択する
+                                                </button>
+                                            </Link>
                                         </div>
                                     </div>
 
                                     {/* Terms Link */}
-                                    <p className="text-sm">
-                                        <a href="#" className="text-blue-600 hover:underline">
-                                            利用規約とプライバシーポリシーをご確認ください
+                                    <p className="text-sm text-neutral-600">
+                                        <a href="/terms/creators" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                            利用規約
                                         </a>
+                                        {" "}と{" "}
+                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                            プライバシーポリシー
+                                        </a>
+                                        をご確認ください
                                     </p>
                                 </div>
                             </section>

@@ -20,11 +20,13 @@ export default function NewContentPage() {
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
     const [uploadingFiles, setUploadingFiles] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [publishMode, setPublishMode] = useState<PublishMode>("publish");
     const [scheduledDate, setScheduledDate] = useState("");
     const [scheduledTime, setScheduledTime] = useState("");
-    const [accessPermission, setAccessPermission] = useState<"everyone" | "plans">("everyone");
+    const [accessPermission, setAccessPermission] = useState<"everyone" | "plans" | "single_sale">("everyone");
     const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+    const [singleSalePrice, setSingleSalePrice] = useState<string>("");
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loadingPlans, setLoadingPlans] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -101,10 +103,8 @@ export default function NewContentPage() {
         return fileUrl;
     };
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-
-        const files = Array.from(e.target.files);
+    // 共通のファイル処理関数
+    const processFiles = async (files: File[]) => {
         setUploadedFiles(files);
         setUploadingFiles(true);
         setErrorMessage(null);
@@ -124,6 +124,41 @@ export default function NewContentPage() {
         }
     };
 
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
+        await processFiles(files);
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            await processFiles(files);
+        }
+    };
+
     const createContentMutation = useMutation({
         mutationFn: async (data: {
             title: string;
@@ -132,6 +167,7 @@ export default function NewContentPage() {
             mediaUrl?: string;
             isLocked: boolean;
             requiredPlanId?: string;
+            singleSalePrice?: number;
         }) => {
             const response = await fetch("/api/creators/content", {
                 method: "POST",
@@ -183,8 +219,9 @@ export default function NewContentPage() {
             content: body,
             visibility,
             mediaUrl,
-            isLocked: accessPermission === "plans",
+            isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
+            singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
         });
     };
 
@@ -204,8 +241,9 @@ export default function NewContentPage() {
             content: body,
             visibility: "DRAFT",
             mediaUrl,
-            isLocked: accessPermission === "plans",
+            isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
+            singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
         });
     };
 
@@ -272,7 +310,14 @@ export default function NewContentPage() {
                             </label>
                             <label
                                 htmlFor="file-upload"
-                                className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-black/20 bg-neutral-50 px-6 py-12 transition-colors hover:border-black/40 hover:bg-neutral-100"
+                                onDragOver={handleDragOver}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 transition-colors ${isDragging
+                                    ? "border-black bg-neutral-100"
+                                    : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
+                                    }`}
                             >
                                 <div className="mb-4 text-6xl text-neutral-400">☁</div>
                                 <p className="text-center text-sm text-neutral-600">
@@ -280,13 +325,10 @@ export default function NewContentPage() {
                                     <span className="font-semibold text-black">参照</span>{" "}
                                     してアップロード
                                 </p>
-                                <p className="mt-2 text-xs text-neutral-500">
-                                    PNG, JPG, GIF (最大10MB), MP4 (最大500MB)
-                                </p>
                                 <input
                                     id="file-upload"
                                     type="file"
-                                    accept="image/*,video/*"
+                                    accept="image/*,video/mp4,video/quicktime,video/webm,video/x-matroska"
                                     multiple
                                     onChange={handleFileSelect}
                                     className="hidden"
@@ -411,7 +453,7 @@ export default function NewContentPage() {
                                         name="access"
                                         value="everyone"
                                         checked={accessPermission === "everyone"}
-                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans")}
+                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
                                         className="h-4 w-4"
                                     />
                                     <span className="text-sm font-semibold">全員（無料）</span>
@@ -422,10 +464,21 @@ export default function NewContentPage() {
                                         name="access"
                                         value="plans"
                                         checked={accessPermission === "plans"}
-                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans")}
+                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
                                         className="h-4 w-4"
                                     />
                                     <span className="text-sm font-semibold">プラン限定</span>
+                                </label>
+                                <label className="flex cursor-pointer items-center gap-3">
+                                    <input
+                                        type="radio"
+                                        name="access"
+                                        value="single_sale"
+                                        checked={accessPermission === "single_sale"}
+                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
+                                        className="h-4 w-4"
+                                    />
+                                    <span className="text-sm font-semibold">単体販売</span>
                                 </label>
 
 
@@ -451,6 +504,31 @@ export default function NewContentPage() {
                                                 プランが設定されていません
                                             </p>
                                         )}
+                                    </div>
+                                )}
+
+                                {accessPermission === "single_sale" && (
+                                    <div className="ml-7 space-y-2 border-l-2 border-black/10 pl-4">
+                                        <label className="block">
+                                            <span className="mb-1 block text-xs font-semibold text-neutral-600">
+                                                販売価格
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-neutral-600">¥</span>
+                                                <input
+                                                    type="number"
+                                                    value={singleSalePrice}
+                                                    onChange={(e) => setSingleSalePrice(e.target.value)}
+                                                    placeholder="例: 500"
+                                                    min="0"
+                                                    step="1"
+                                                    className="flex-1 rounded-xl border border-black/10 px-3 py-2 text-sm focus:border-black/40 focus:outline-none"
+                                                />
+                                            </div>
+                                        </label>
+                                        <p className="text-xs text-neutral-500">
+                                            このコンテンツを購入した人のみ閲覧できます
+                                        </p>
                                     </div>
                                 )}
                             </div>

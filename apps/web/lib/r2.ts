@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -37,7 +37,7 @@ export async function generatePresignedUrl(
 
     // Put Object用のコマンドを作成
     const command = new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
+        Bucket: process.env.R2_CONTENT_BUCKET_NAME!,
         Key: key,
         ContentType: request.contentType,
     });
@@ -48,7 +48,7 @@ export async function generatePresignedUrl(
     });
 
     // 公開URL
-    const fileUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
+    const fileUrl = `${process.env.R2_CONTENT_PUBLIC_URL}/${key}`;
 
     return {
         uploadUrl,
@@ -57,4 +57,49 @@ export async function generatePresignedUrl(
     };
 }
 
+/**
+ * R2から画像を取得するためのpresigned URLを生成
+ * @param key R2オブジェクトキー
+ * @param expiresIn 有効期限（秒）デフォルト: 3600（1時間）
+ * @returns presigned URL
+ */
+export async function generatePresignedViewUrl(
+    key: string,
+    expiresIn: number = 3600
+): Promise<string> {
+    const command = new GetObjectCommand({
+        Bucket: process.env.R2_CONTENT_BUCKET_NAME!,
+        Key: key,
+    });
+
+    const presignedUrl = await getSignedUrl(r2Client, command, {
+        expiresIn,
+    });
+
+    return presignedUrl;
+}
+
+/**
+ * プライベートバケットから画像を取得するためのpresigned URLを生成（本人確認用）
+ * @param key R2オブジェクトキー
+ * @param expiresIn 有効期限（秒）デフォルト: 3600（1時間）
+ * @returns presigned URL
+ */
+export async function generatePresignedViewUrlPrivate(
+    key: string,
+    expiresIn: number = 3600
+): Promise<string> {
+    const command = new GetObjectCommand({
+        Bucket: process.env.R2_PRIVATE_BUCKET_NAME!,
+        Key: key,
+    });
+
+    const presignedUrl = await getSignedUrl(r2Client, command, {
+        expiresIn,
+    });
+
+    return presignedUrl;
+}
+
 export { r2Client };
+

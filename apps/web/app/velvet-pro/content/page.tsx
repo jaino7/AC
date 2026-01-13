@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type ContentCard = {
@@ -13,6 +13,13 @@ type ContentCard = {
   isLocked?: boolean;
   timeAgo?: string;
   unlockPrice?: number;
+};
+
+type CreatorProfile = {
+  handle: string;
+  displayName: string;
+  bio: string | null;
+  logoUrl: string | null;
 };
 
 const contentCards: ContentCard[] = [
@@ -79,6 +86,26 @@ type TabType = "all" | "velvet-elite" | "gold" | "video" | "backstage";
 export default function VelvetProContentPage() {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("/api/creators/profile");
+        if (response.ok) {
+          const data = await response.json();
+          setCreatorProfile(data.profile);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1612] via-[#2a231d] to-[#1a1612] text-white">
@@ -126,12 +153,12 @@ export default function VelvetProContentPage() {
           </div>
 
           {/* Name and Title */}
-          <h1 className="mb-2 text-3xl font-semibold">Elena D'Amara</h1>
+          <h1 className="mb-2 text-3xl font-semibold">{creatorProfile?.displayName || "Creator"}</h1>
           <p className="mb-4 text-sm uppercase tracking-wide text-yellow-600">ビジュアルアーティスト</p>
 
           {/* Bio */}
           <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-gray-300">
-            ファインアート写真＆映画。現実と夢の境界を探求しています。インナーサークルに参加しましょう。
+            {creatorProfile?.bio || "クリエイターのプロフィールです"}
           </p>
 
           {/* Buttons */}

@@ -1,63 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type ContentCard = {
   id: string;
   title: string;
-  cover: string;
+  cover: string | null;
   type: "free" | "premium";
   tier: string;
   description: string;
   timeAgo: string;
 };
 
-const contentCards: ContentCard[] = [
-  {
-    id: "1",
-    title: "Exclusive: My Sketchbook Tour",
-    cover: "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?auto=format&fit=crop&w=600&q=80",
-    type: "premium",
-    tier: "Tier 1 & Up",
-    description: "A detailed look inside my process for the upcoming illustration series. I talk about color theory, brush settings, and how I find...",
-    timeAgo: "2 hours ago"
-  },
-  {
-    id: "2",
-    title: "Weekly Update: Mountain Series",
-    cover: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=600&q=80",
-    type: "free",
-    tier: "",
-    description: "Just wanted to say hi 👋 to everyone! I've been working on a new set of landscapes inspired by my recent trip to the Alps. Here i...",
-    timeAgo: "1 day ago"
-  },
-  {
-    id: "3",
-    title: "High-Res Wallpapers (Jan Pack)",
-    cover: "https://images.unsplash.com/photo-1519865885283-4b45a1b4e895?auto=format&fit=crop&w=600&q=80",
-    type: "premium",
-    tier: "Tier 2 & Up",
-    description: "Download the January pack here! Includes 4k versions for desktop and mobile. I also added the PSD files for those who...",
-    timeAgo: "3 days ago"
-  },
-  {
-    id: "4",
-    title: "New Studio Setup!",
-    cover: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80",
-    type: "free",
-    tier: "",
-    description: "Finally finished organizing my desk. I got a new monitor arm and it makes such a difference for my posture. Here are a link t...",
-    timeAgo: "5 days ago"
-  }
-];
+type CreatorProfile = {
+  handle: string;
+  displayName: string;
+  bio: string | null;
+  logoUrl: string | null;
+};
 
 type TabType = "all" | "premium" | "free" | "gallery";
 
 export default function PureLiteContentPage() {
+  const searchParams = useSearchParams();
+  const handle = searchParams.get("handle");
+  const isPreview = searchParams.get("preview") === "true";
+
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [contentCards, setContentCards] = useState<ContentCard[]>([]);
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch creator profile
+        let profileResponse;
+        if (handle) {
+          profileResponse = await fetch(`/api/creators/profile?handle=${handle}`);
+        } else if (isPreview) {
+          profileResponse = await fetch("/api/creators/profile");
+        }
+
+        if (profileResponse?.ok) {
+          const profileData = await profileResponse.json();
+          setCreatorProfile(profileData.profile);
+        }
+
+        // Fetch published posts
+        let postsResponse;
+        if (handle) {
+          postsResponse = await fetch(`/api/creators/content/public?handle=${handle}`);
+        } else if (isPreview) {
+          postsResponse = await fetch("/api/creators/content?visibility=PUBLIC");
+        }
+
+        if (postsResponse?.ok) {
+          const postsData = await postsResponse.json();
+          const posts = postsData.posts || [];
+
+          // Transform posts to content cards
+          const cards: ContentCard[] = posts.map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            cover: post.thumbnailUrl || post.mediaUrl,
+            type: post.isLocked ? "premium" : "free",
+            tier: post.isLocked && post.requiredPlan ? post.requiredPlan.name : "",
+            description: post.content || "",
+            timeAgo: getTimeAgo(new Date(post.createdAt)),
+          }));
+
+          setContentCards(cards);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [handle, isPreview]);
+
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `${diffMins}分前`;
+    if (diffHours < 24) return `${diffHours}時間前`;
+    return `${diffDays}日前`;
+  };
+
+  const filteredCards = contentCards.filter((card) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "premium") return card.type === "premium";
+    if (activeTab === "free") return card.type === "free";
+    if (activeTab === "gallery") return card.cover; // Only cards with images
+    return true;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] text-[#333]">
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-500">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-[#333]">
@@ -68,9 +125,15 @@ export default function PureLiteContentPage() {
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 text-sm font-bold text-white">
-                C
+                {creatorProfile?.logoUrl ? (
+                  <img src={creatorProfile.logoUrl} alt="Logo" className="h-full w-full rounded-lg object-cover" />
+                ) : (
+                  "C"
+                )}
               </div>
-              <span className="text-base font-semibold text-gray-900">CreatorSpace</span>
+              <span className="text-base font-semibold text-gray-900">
+                {creatorProfile?.displayName || "CreatorSpace"}
+              </span>
             </div>
             <nav className="hidden items-center gap-6 text-sm md:flex">
               <a href="#" className="font-medium text-gray-900 hover:text-purple-600">
@@ -94,10 +157,12 @@ export default function PureLiteContentPage() {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-orange-400 to-pink-400"
               >
-                <span className="text-sm font-semibold text-white">JD</span>
+                <span className="text-sm font-semibold text-white">
+                  {creatorProfile?.displayName?.charAt(0) || "U"}
+                </span>
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
                   <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                     設定
                   </button>
@@ -116,23 +181,31 @@ export default function PureLiteContentPage() {
         <section className="mb-8 text-center">
           {/* Avatar */}
           <div className="mb-4 flex justify-center">
-            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-md">
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80"
-                alt="Jane Doe"
-                className="h-full w-full object-cover"
-              />
+            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-md bg-gradient-to-br from-purple-500 to-purple-600">
+              {creatorProfile?.logoUrl ? (
+                <img
+                  src={creatorProfile.logoUrl}
+                  alt={creatorProfile.displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-white text-3xl font-bold">
+                  {creatorProfile?.displayName?.charAt(0) || "C"}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Name */}
           <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-gray-900">Jane Doe</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {creatorProfile?.displayName || "Creator"}
+            </h1>
           </div>
 
           {/* Bio */}
           <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-gray-600">
-            デジタルアーティスト＆イラストレーター。夢のような風景とキャラクターデザインを制作しています。私のスケッチブックへようこそ！🎨
+            {creatorProfile?.bio || "クリエイターのプロフィールです"}
           </p>
 
           {/* Social Icons and Subscribe Button */}
@@ -164,7 +237,7 @@ export default function PureLiteContentPage() {
                 </svg>
               </button>
               {showProfileMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
                   <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                     シェア
                   </button>
@@ -236,77 +309,93 @@ export default function PureLiteContentPage() {
 
         {/* Content Cards */}
         <section className="space-y-6">
-          {contentCards.map((card) => (
-            <Link
-              key={card.id}
-              href={`/pure-lite/content/${card.id}`}
-              className="group block"
-            >
-              <article className="flex gap-4 rounded-2xl border border-gray-200 bg-white p-4 transition hover:shadow-md">
-                {/* Thumbnail */}
-                <div className="relative h-36 w-36 flex-shrink-0 overflow-hidden rounded-2xl">
-                  <img
-                    src={card.cover}
-                    alt={card.title}
-                    className="h-full w-full object-cover transition group-hover:scale-105"
-                  />
-                  {card.type === "premium" && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-                      <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-white">ロック中</span>
+          {filteredCards.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              {contentCards.length === 0 ? "投稿がありません" : "該当する投稿がありません"}
+            </div>
+          ) : (
+            filteredCards.map((card) => (
+              <Link
+                key={card.id}
+                href={`/pure-lite/content/${card.id}`}
+                className="group block"
+              >
+                <article className="flex gap-4 rounded-2xl border border-gray-200 bg-white p-4 transition hover:shadow-md">
+                  {/* Thumbnail */}
+                  <div className="relative h-36 w-36 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200">
+                    {card.cover ? (
+                      <img
+                        src={card.cover}
+                        alt={card.title}
+                        className="h-full w-full object-cover transition group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-purple-300">
+                        <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    {card.type === "premium" && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-white">ロック中</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <h3 className="text-base font-semibold text-gray-900 group-hover:text-purple-600">
+                        {card.title}
+                      </h3>
+                      <span
+                        className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-bold uppercase ${card.type === "premium"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-700"
+                          }`}
+                      >
+                        {card.type === "premium" ? "プレミアム" : "無料"}
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Content */}
-                <div className="flex-1">
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <h3 className="text-base font-semibold text-gray-900 group-hover:text-purple-600">
-                      {card.title}
-                    </h3>
-                    <span
-                      className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-bold uppercase ${card.type === "premium"
-                        ? "bg-purple-100 text-purple-700"
-                        : "bg-gray-100 text-gray-700"
-                        }`}
-                    >
-                      {card.type === "premium" ? "プレミアム" : "無料"}
-                    </span>
+                    {card.tier && (
+                      <p className="mb-1 text-xs font-semibold text-gray-500">{card.tier}</p>
+                    )}
+
+                    <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-gray-600">
+                      {card.description}
+                    </p>
+
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {card.timeAgo}
+                      </span>
+                    </div>
                   </div>
-
-                  {card.tier && (
-                    <p className="mb-1 text-xs font-semibold text-gray-500">{card.tier}</p>
-                  )}
-
-                  <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-gray-600">
-                    {card.description}
-                  </p>
-
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {card.timeAgo}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            </Link>
-          ))}
+                </article>
+              </Link>
+            ))
+          )}
         </section>
 
         {/* Load More */}
-        <div className="mt-10 text-center">
-          <button className="font-semibold text-purple-600 hover:text-purple-700">
-            もっと見る
-          </button>
-        </div>
+        {filteredCards.length > 0 && (
+          <div className="mt-10 text-center">
+            <button className="font-semibold text-purple-600 hover:text-purple-700">
+              もっと見る
+            </button>
+          </div>
+        )}
 
         {/* Footer */}
-        <footer className="border-t border-purple-900/20 bg-white px-6 py-4">
+        <footer className="border-t border-purple-900/20 bg-white px-6 py-4 mt-10">
           <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
             <a href="/terms/fans" target="_blank" className="hover:text-purple-600 hover:underline">
               利用規約

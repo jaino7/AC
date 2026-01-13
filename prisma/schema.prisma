@@ -32,6 +32,33 @@ enum DomainStatus {
   DISCONNECTED   // 切断済み
 }
 
+enum IdentityDocumentType {
+  DRIVERS_LICENSE  // 運転免許証
+  PASSPORT         // パスポート
+  MYNUMBER_CARD    // マイナンバーカード
+}
+
+enum VerificationStatus {
+  PENDING    // 審査待ち
+  APPROVED   // 承認済み
+  REJECTED   // 却下
+}
+
+enum ChargeRequestStatus {
+  PENDING      // 申請中（振込待ち）
+  TRANSFERRED  // 振込済み（確認待ち）
+  APPROVED     // 承認済み（チャージ完了）
+  REJECTED     // 却下
+  EXPIRED      // 期限切れ
+}
+
+enum CreditHistoryType {
+  CHARGE      // チャージ
+  PURCHASE    // 投稿購入
+  SUBSCRIBE   // サブスク購読
+  REFUND      // 返金
+}
+
 // 2. モデル定義
 
 model Account {
@@ -78,6 +105,7 @@ model User {
   // Relations
   creatorProfile CreatorProfile?
   fanProfile     FanProfile?
+  emailLogs      EmailLog[]
 }
 
 // ファンプロフィール（ファン専用情報）
@@ -99,6 +127,13 @@ model FanProfile {
   
   // リレーション
   subscriptions Subscription[]
+  purchases     Purchase[]
+  savedPosts    SavedPost[]
+  
+  // クレジット関連
+  credits         Int @default(0)  // クレジット残高（円）
+  chargeRequests  ChargeRequest[]
+  creditHistory   CreditHistory[]
   
   @@index([userId])
 }
@@ -129,6 +164,13 @@ model CreatorProfile {
   logoUrl       String?   // ロゴ画像URL
   faviconUrl    String?   // ファビコン画像URL
   
+  // ソーシャルメディア
+  twitterUrl    String?   // X (Twitter) URL
+  instagramUrl  String?   // Instagram URL
+  tiktokUrl     String?   // TikTok URL
+  discordUrl    String?   // Discord URL
+  otherUrl      String?   // その他のURL
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -141,6 +183,7 @@ model CreatorProfile {
   domains       Domain[]
   pageViews     PageView[]
   notifications Notification[]
+  identityVerification IdentityVerification?
 }
 
 model SubscriptionPlan {
@@ -152,6 +195,7 @@ model SubscriptionPlan {
   description String?
   price       Int
   features    Json?    // 特典リスト
+  includesPurchasedContent Boolean @default(false) // 単体購入コンテンツへのアクセス権を含むか
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -180,6 +224,25 @@ model Subscription {
   @@index([planId])
 }
 
+// 単体購入（コンテンツごとの購入）
+model Purchase {
+  id          String   @id @default(cuid())
+  fanId       String
+  fan         FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  amount      Int      // 購入金額
+  purchasedAt DateTime @default(now())
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([fanId])
+  @@index([postId])
+  @@index([fanId, purchasedAt])
+}
+
 model Post {
   id          String   @id @default(cuid())
   creatorId   String
@@ -199,12 +262,80 @@ model Post {
   visibility  String   // PUBLIC, SUBSCRIBERS_ONLY
   publishedAt DateTime @default(now())
   
+  price       Int?     // 単体購入価格（nullの場合は無料または購入不可）
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   media       Media[]
   tags        PostTag[]
+  purchases   Purchase[]
+  savedBy     SavedPost[]
 }
+
+// 保存済み投稿（ファンのブックマーク）
+model SavedPost {
+  id        String   @id @default(cuid())
+  fanId     String
+  fan       FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([fanId, postId])
+  @@index([fanId])
+}
+
+// クレジットチャージ申請
+model ChargeRequest {
+  id              String              @id @default(cuid())
+  fanId           String
+  fan             FanProfile          @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  
+  amount          Int                 // 申請金額（円）
+  status          ChargeRequestStatus @default(PENDING)
+  identifierCode  String              @unique // 振込識別コード
+  
+  // 振込情報
+  transferorName  String?             // 振込人名義
+  transferDate    DateTime?           // 振込日時
+  
+  // 処理情報
+  approvedBy      String?             // 承認者（管理者ID）
+  approvedAt      DateTime?           // 承認日時
+  rejectionReason String?             // 却下理由
+  
+  expiresAt       DateTime            // 有効期限
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@index([fanId])
+  @@index([identifierCode])
+  @@index([status])
+}
+
+// クレジット履歴
+model CreditHistory {
+  id          String             @id @default(cuid())
+  fanId       String
+  fan         FanProfile         @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  
+  type        CreditHistoryType
+  amount      Int                // 増減額（正=増加、負=減少）
+  balance     Int                // 処理後の残高
+  description String             // 説明文
+  
+  // 関連ID
+  chargeRequestId  String?       // チャージ申請ID
+  purchaseId       String?       // 購入ID
+  subscriptionId   String?       // サブスクリプションID
+  
+  createdAt   DateTime           @default(now())
+  
+  @@index([fanId])
+  @@index([createdAt])
+}
+
 
 model Media {
   id        String   @id @default(cuid())
@@ -406,3 +537,97 @@ model Notification {
   @@index([creatorId, isRead])
   @@index([creatorId, createdAt])
 }
+
+// 本人確認
+model IdentityVerification {
+  id           String                @id @default(cuid())
+  creatorId    String                @unique
+  creator      CreatorProfile        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  documentType IdentityDocumentType
+  
+  // R2に保存された画像のキー
+  frontImageKey  String
+  backImageKey   String?              // 運転免許証のみ必須
+  
+  // ステータス
+  status       VerificationStatus   @default(PENDING)
+  
+  // 審査情報
+  reviewedBy   String?              // 審査した管理者のID
+  reviewedAt   DateTime?
+  rejectReason String?              @db.Text
+  
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  
+  @@index([creatorId])
+  @@index([status])
+}
+
+// メール送信ログ
+enum EmailType {
+  // Creator emails
+  CREATOR_REGISTRATION
+  CREATOR_BANK_ACCOUNT_REGISTERED
+  CREATOR_NEW_SUBSCRIBER
+  CREATOR_PAYMENT_CONFIRMED
+  CREATOR_WITHDRAWAL_RECEIVED
+  CREATOR_WITHDRAWAL_COMPLETED
+  CREATOR_ANNOUNCEMENT
+  CREATOR_PASSWORD_RESET
+  
+  // Fan emails
+  FAN_EMAIL_VERIFICATION
+  FAN_PAYMENT_INSTRUCTIONS
+  FAN_SUBSCRIPTION_STARTED
+  FAN_RENEWAL_REMINDER
+  FAN_SUBSCRIPTION_EXPIRED
+  FAN_NEW_CONTENT
+  FAN_PASSWORD_RESET
+  FAN_RECEIPT
+}
+
+enum EmailStatus {
+  PENDING    // 送信待ち
+  SENT       // 送信済み
+  DELIVERED  // 配信完了
+  OPENED     // 開封済み
+  CLICKED    // リンククリック済み
+  FAILED     // 送信失敗
+  BOUNCED    // バウンス
+}
+
+model EmailLog {
+  id          String      @id @default(cuid())
+  
+  // 送信先情報
+  recipientId String?
+  recipient   User?       @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+  toEmail     String
+  
+  // メール情報
+  emailType   EmailType
+  subject     String
+  
+  // 送信状況
+  status      EmailStatus @default(PENDING)
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  
+  // エラー情報
+  errorMessage String?    @db.Text
+  
+  // メタデータ
+  metadata    Json?       // transactionId, planId等
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([recipientId, emailType])
+  @@index([status, createdAt])
+  @@index([toEmail])
+}
+

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -28,17 +28,17 @@ interface Notification {
 
 export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const { data: session } = useSession();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notificationCount, setNotificationCount] = useState(0);
-    const [creatorHandle, setCreatorHandle] = useState<string | null>(null);
 
-    // 通知とクリエイターハンドルを取得
+    // URLから handleを取得
+    const creatorHandle = pathname?.split('/')[2] || null;
+
+    // 通知を取得
     useEffect(() => {
         fetchNotifications();
-        if (session?.user?.email) {
-            fetchCreatorHandle();
-        }
     }, [session]);
 
     const fetchNotifications = async () => {
@@ -52,18 +52,6 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
             }
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
-        }
-    };
-
-    const fetchCreatorHandle = async () => {
-        try {
-            const res = await fetch('/api/creators/profile');
-            if (res.ok) {
-                const data = await res.json();
-                setCreatorHandle(data.handle);
-            }
-        } catch (error) {
-            console.error('Failed to fetch creator handle:', error);
         }
     };
 

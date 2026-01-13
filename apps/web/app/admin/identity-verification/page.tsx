@@ -10,6 +10,8 @@ type Verification = {
     creatorId: string;
     creatorName: string;
     documentType: string;
+    frontImageKey: string;
+    backImageKey?: string;
     status: VerificationStatus;
     submittedAt: string;
     reviewedAt?: string;
@@ -76,28 +78,38 @@ export default function IdentityVerificationAdminPage() {
 
     const loadImages = async (verification: Verification) => {
         try {
+            setSelectedVerification(verification);
+            setShowImageModal(true);
+
             // 表面画像の署名付きURL取得
             const frontResponse = await fetch(
-                `/api/admin/identity-verification/${verification.id}/image?type=front`
+                "/api/admin/identity-verification/presigned-url",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: verification.frontImageKey }),
+                }
             );
             if (frontResponse.ok) {
                 const frontData = await frontResponse.json();
-                setFrontImageUrl(frontData.signedUrl);
+                setFrontImageUrl(frontData.url);
             }
 
             // 裏面画像の署名付きURL取得（運転免許証の場合のみ）
-            if (verification.documentType === "DRIVERS_LICENSE") {
+            if (verification.documentType === "DRIVERS_LICENSE" && verification.backImageKey) {
                 const backResponse = await fetch(
-                    `/api/admin/identity-verification/${verification.id}/image?type=back`
+                    "/api/admin/identity-verification/presigned-url",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ key: verification.backImageKey }),
+                    }
                 );
                 if (backResponse.ok) {
                     const backData = await backResponse.json();
-                    setBackImageUrl(backData.signedUrl);
+                    setBackImageUrl(backData.url);
                 }
             }
-
-            setSelectedVerification(verification);
-            setShowImageModal(true);
         } catch (error) {
             console.error(error);
             alert("画像の取得に失敗しました");

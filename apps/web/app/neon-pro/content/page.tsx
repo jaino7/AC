@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type Post = {
@@ -15,6 +15,13 @@ type Post = {
   timeAgo?: string;
   likes?: number;
   comments?: number;
+};
+
+type CreatorProfile = {
+  handle: string;
+  displayName: string;
+  bio: string | null;
+  logoUrl: string | null;
 };
 
 const posts: Post[] = [
@@ -62,6 +69,26 @@ type TabType = "all" | "images" | "videos" | "archive";
 
 export default function NeonProContentPage() {
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("/api/creators/profile");
+        if (response.ok) {
+          const data = await response.json();
+          setCreatorProfile(data.profile);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[#0a0e12] text-white">
@@ -148,11 +175,11 @@ export default function NeonProContentPage() {
             </div>
             <div className="flex-1">
               <div className="mb-2 flex items-center gap-3">
-                <h2 className="font-mono text-2xl font-bold tracking-wide">NeonVixen_99</h2>
+                <h2 className="font-mono text-2xl font-bold tracking-wide">{creatorProfile?.displayName || "Creator"}</h2>
                 <span className="rounded bg-pink-600 px-2 py-0.5 text-[10px] font-bold uppercase">ライブ</span>
               </div>
               <p className="mb-4 text-xs text-cyan-300">
-                デジタルアーティスト＆コスプレイヤー // レベル99ネットランナー // サンナイトシティ
+                {creatorProfile?.bio || "クリエイターのプロフィールです"}
               </p>
               <div className="flex items-center gap-3">
                 <button className="flex items-center gap-1.5 rounded bg-cyan-500 px-4 py-2 text-xs font-bold uppercase text-black transition hover:bg-cyan-400">

@@ -1,73 +1,129 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type ContentCard = {
   id: string;
   title: string;
-  cover: string;
+  cover: string | null;
   type: "public" | "gold" | "bronze";
   timeAgo: string;
   likes?: number;
 };
 
-const contentCards: ContentCard[] = [
-  {
-    id: "1",
-    title: "Product Shoot: Red Series",
-    cover: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
-    type: "public",
-    timeAgo: "2 hours ago",
-    likes: 543
-  },
-  {
-    id: "2",
-    title: "Iceland Vlogs: Part 4",
-    cover: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
-    type: "gold",
-    timeAgo: "1 day ago",
-    likes: 892
-  },
-  {
-    id: "3",
-    title: "Studio Tour 2024",
-    cover: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
-    type: "public",
-    timeAgo: "3 days ago",
-    likes: 267
-  },
-  {
-    id: "4",
-    title: "High-Res Textures",
-    cover: "https://images.unsplash.com/photo-1519865885283-4b45a1b4e895?auto=format&fit=crop&w=800&q=80",
-    type: "bronze",
-    timeAgo: "1 week ago"
-  },
-  {
-    id: "5",
-    title: "Night City Walks",
-    cover: "https://images.unsplash.com/photo-1514924013411-cbf25faa35bb?auto=format&fit=crop&w=800&q=80",
-    type: "public",
-    timeAgo: "1 week ago",
-    likes: 1234
-  },
-  {
-    id: "6",
-    title: "Figma Source Files",
-    cover: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
-    type: "gold",
-    timeAgo: "2 weeks ago"
-  }
-];
+type CreatorProfile = {
+  handle: string;
+  displayName: string;
+  bio: string | null;
+  logoUrl: string | null;
+};
 
 type TabType = "all" | "bronze" | "free" | "gold";
 
 export default function ZineLiteContentPage() {
+  const searchParams = useSearchParams();
+  const handle = searchParams.get("handle");
+  const isPreview = searchParams.get("preview") === "true";
+
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [contentCards, setContentCards] = useState<ContentCard[]>([]);
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch creator profile
+        let profileResponse;
+        if (handle) {
+          profileResponse = await fetch(`/api/creators/profile?handle=${handle}`);
+        } else if (isPreview) {
+          profileResponse = await fetch("/api/creators/profile");
+        }
+
+        if (profileResponse?.ok) {
+          const profileData = await profileResponse.json();
+          setCreatorProfile(profileData.profile);
+        }
+
+        // Fetch published posts
+        let postsResponse;
+        if (handle) {
+          postsResponse = await fetch(`/api/creators/content/public?handle=${handle}`);
+        } else if (isPreview) {
+          postsResponse = await fetch("/api/creators/content?visibility=PUBLIC");
+        }
+
+        if (postsResponse?.ok) {
+          const postsData = await postsResponse.json();
+          const posts = postsData.posts || [];
+
+          // Transform posts to content cards
+          const cards: ContentCard[] = posts.map((post: any) => {
+            let type: "public" | "gold" | "bronze" = "public";
+            if (post.isLocked && post.requiredPlan) {
+              // You could add logic here to determine gold vs bronze based on plan price
+              type = post.requiredPlan.price > 1000 ? "gold" : "bronze";
+            }
+
+            return {
+              id: post.id,
+              title: post.title,
+              cover: post.thumbnailUrl || post.mediaUrl,
+              type,
+              timeAgo: getTimeAgo(new Date(post.createdAt)),
+              likes: undefined, // Could add likes from database if available
+            };
+          });
+
+          setContentCards(cards);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [handle, isPreview]);
+
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
+
+    if (diffMins < 60) return `${diffMins}分前`;
+    if (diffHours < 24) return `${diffHours}時間前`;
+    if (diffDays < 7) return `${diffDays}日前`;
+    return `${diffWeeks}週間前`;
+  };
+
+  const filteredCards = contentCards.filter((card) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "free") return card.type === "public";
+    if (activeTab === "bronze") return card.type === "bronze";
+    if (activeTab === "gold") return card.type === "gold";
+    return true;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white text-gray-900">
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-500">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -78,9 +134,15 @@ export default function ZineLiteContentPage() {
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 text-sm font-bold text-white">
-                ⊞
+                {creatorProfile?.logoUrl ? (
+                  <img src={creatorProfile.logoUrl} alt="Logo" className="h-full w-full rounded object-cover" />
+                ) : (
+                  "⊞"
+                )}
               </div>
-              <span className="text-base font-semibold text-gray-900">CreatorSpace</span>
+              <span className="text-base font-semibold text-gray-900">
+                {creatorProfile?.displayName || "CreatorSpace"}
+              </span>
             </div>
             <nav className="hidden items-center gap-6 text-sm md:flex">
               <a href="#" className="text-gray-600 hover:text-gray-900">
@@ -107,10 +169,12 @@ export default function ZineLiteContentPage() {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-orange-400 to-pink-400"
               >
-                <span className="text-sm font-semibold text-white">AV</span>
+                <span className="text-sm font-semibold text-white">
+                  {creatorProfile?.displayName?.charAt(0) || "U"}
+                </span>
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
                   <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                     設定
                   </button>
@@ -126,12 +190,16 @@ export default function ZineLiteContentPage() {
 
       <main className="mx-auto max-w-6xl px-6">
         {/* Hero Image */}
-        <div className="relative -mx-6 h-52 overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1557682260-96773eb01377?auto=format&fit=crop&w=1400&q=80"
-            alt="Hero"
-            className="h-full w-full object-cover"
-          />
+        <div className="relative -mx-6 h-52 overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600">
+          {creatorProfile?.logoUrl ? (
+            <img
+              src={creatorProfile.logoUrl}
+              alt="Hero"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full"></div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20"></div>
         </div>
 
@@ -141,22 +209,30 @@ export default function ZineLiteContentPage() {
             <div className="flex items-end gap-4">
               {/* Avatar */}
               <div className="h-28 w-28 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-lg">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80"
-                  alt="Alex Voxel"
-                  className="h-full w-full object-cover"
-                />
+                {creatorProfile?.logoUrl ? (
+                  <img
+                    src={creatorProfile.logoUrl}
+                    alt={creatorProfile.displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white text-3xl font-bold">
+                    {creatorProfile?.displayName?.charAt(0) || "C"}
+                  </div>
+                )}
               </div>
 
               {/* Name and Bio */}
               <div>
                 <div className="mb-1 flex items-center gap-2">
-                  <h1 className="text-2xl font-semibold text-gray-900">Alex Voxel</h1>
+                  <h1 className="text-2xl font-semibold text-gray-900">
+                    {creatorProfile?.displayName || "Creator"}
+                  </h1>
                   <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-600">@alexvoxelartist</p>
+                <p className="text-sm text-gray-600">@{creatorProfile?.handle || "creator"}</p>
               </div>
             </div>
 
@@ -178,7 +254,7 @@ export default function ZineLiteContentPage() {
                   </svg>
                 </button>
                 {showProfileMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
                     <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                       シェア
                     </button>
@@ -193,17 +269,17 @@ export default function ZineLiteContentPage() {
 
           {/* Bio */}
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-gray-700">
-            東京を拠点とするデジタルアーティスト＆映画制作者。限定裏側コンテンツ、チュートリアル、クリエイター向け高解像度テクスチャパックを提供しています。
+            {creatorProfile?.bio || "クリエイターのプロフィールです"}
           </p>
 
           {/* Stats */}
           <div className="mt-4 flex items-center gap-6 text-sm">
             <div>
-              <span className="font-semibold text-gray-900">4.5k</span>{" "}
+              <span className="font-semibold text-gray-900">{contentCards.reduce((sum, card) => sum + (card.likes || 0), 0)}</span>{" "}
               <span className="text-gray-600">いいね</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-900">12k</span>{" "}
+              <span className="font-semibold text-gray-900">{contentCards.filter(c => c.type !== "public").length}</span>{" "}
               <span className="text-gray-600">サブスクライバー</span>
             </div>
           </div>
@@ -277,66 +353,82 @@ export default function ZineLiteContentPage() {
 
         {/* Content Grid */}
         <section className={`mb-12 ${viewMode === "grid" ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3" : "space-y-4"}`}>
-          {contentCards.map((card) => (
-            <Link
-              key={card.id}
-              href={`/zine-lite/content/${card.id}`}
-              className="group block"
-            >
-              <article className="overflow-hidden rounded-xl bg-white shadow-sm transition hover:shadow-md">
-                {/* Thumbnail */}
-                <div className="relative aspect-video overflow-hidden bg-gray-100">
-                  <img
-                    src={card.cover}
-                    alt={card.title}
-                    className="h-full w-full object-cover transition group-hover:scale-105"
-                  />
-                  {card.type !== "public" && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
-                      <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      <span className="mt-2 text-sm font-semibold text-white">{card.type === "gold" ? "ゴールド" : "ブロンズ"}ティア限定</span>
-                      <button className="mt-3 rounded-md bg-white/90 px-4 py-1.5 text-xs font-semibold text-gray-900 hover:bg-white">
-                        アンロック
-                      </button>
+          {filteredCards.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              {contentCards.length === 0 ? "投稿がありません" : "該当する投稿がありません"}
+            </div>
+          ) : (
+            filteredCards.map((card) => (
+              <Link
+                key={card.id}
+                href={`/zine-lite/content/${card.id}`}
+                className="group block"
+              >
+                <article className="overflow-hidden rounded-xl bg-white shadow-sm transition hover:shadow-md">
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video overflow-hidden bg-gray-100">
+                    {card.cover ? (
+                      <img
+                        src={card.cover}
+                        alt={card.title}
+                        className="h-full w-full object-cover transition group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-gray-300">
+                        <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    {card.type !== "public" && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
+                        <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span className="mt-2 text-sm font-semibold text-white">{card.type === "gold" ? "ゴールド" : "ブロンズ"}ティア限定</span>
+                        <button className="mt-3 rounded-md bg-white/90 px-4 py-1.5 text-xs font-semibold text-gray-900 hover:bg-white">
+                          アンロック
+                        </button>
+                      </div>
+                    )}
+                    {/* Badge */}
+                    <div className="absolute left-3 top-3">
+                      <span
+                        className={`rounded px-2 py-1 text-xs font-bold uppercase ${card.type === "public"
+                          ? "bg-gray-900 text-white"
+                          : card.type === "gold"
+                            ? "bg-yellow-400 text-gray-900"
+                            : "bg-orange-500 text-white"
+                          }`}
+                      >
+                        {card.type}
+                      </span>
                     </div>
-                  )}
-                  {/* Badge */}
-                  <div className="absolute left-3 top-3">
-                    <span
-                      className={`rounded px-2 py-1 text-xs font-bold uppercase ${card.type === "public"
-                        ? "bg-gray-900 text-white"
-                        : card.type === "gold"
-                          ? "bg-yellow-400 text-gray-900"
-                          : "bg-orange-500 text-white"
-                        }`}
-                    >
-                      {card.type}
-                    </span>
                   </div>
-                </div>
 
-                {/* Content */}
-                <div className="p-4">
-                  <h3 className="mb-2 font-semibold text-gray-900 group-hover:text-blue-600">
-                    {card.title}
-                  </h3>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{card.timeAgo}</span>
+                  {/* Content */}
+                  <div className="p-4">
+                    <h3 className="mb-2 font-semibold text-gray-900 group-hover:text-blue-600">
+                      {card.title}
+                    </h3>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{card.timeAgo}</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            </Link>
-          ))}
+                </article>
+              </Link>
+            ))
+          )}
         </section>
 
         {/* Load More */}
-        <div className="mb-12 text-center">
-          <button className="font-semibold text-blue-600 hover:text-blue-700">
-            もっと読み込む
-          </button>
-        </div>
+        {filteredCards.length > 0 && (
+          <div className="mb-12 text-center">
+            <button className="font-semibold text-blue-600 hover:text-blue-700">
+              もっと読み込む
+            </button>
+          </div>
+        )}
       </main>
 
       {/* Footer */}

@@ -34,6 +34,8 @@ export async function POST(request: Request) {
             "image/webp",
             "video/mp4",
             "video/webm",
+            "video/quicktime",      // MOV
+            "video/x-matroska",     // MKV
         ];
 
         if (!allowedTypes.includes(contentType)) {

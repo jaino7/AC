@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     CreatorAccountInput,
     creatorAccountSchema
@@ -13,25 +13,67 @@ export const ZineLiteAccountForm = () => {
     const {
         register,
         handleSubmit,
+        reset,
         formState: { errors, isSubmitting }
     } = useForm<CreatorAccountInput>({
         resolver: zodResolver(creatorAccountSchema),
-        defaultValues: {
-            username: "user-name",
-            email: "user.name@example.com",
-            bio: "A short description about the creator."
-        }
     });
 
     const [message, setMessage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch profile data on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await fetch("/api/creators/profile");
+                if (response.ok) {
+                    const data = await response.json();
+                    reset({
+                        username: data.profile.displayName || "",
+                        email: data.profile.user?.email || "",
+                        bio: data.profile.bio || ""
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [reset]);
 
     const onSubmit = async (values: CreatorAccountInput) => {
         setMessage(null);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log(values);
-        setMessage("変更を保存しました。");
+        try {
+            const response = await fetch("/api/creators/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    displayName: values.username,
+                    bio: values.bio
+                }),
+            });
+
+            if (response.ok) {
+                setMessage("変更を保存しました。");
+            } else {
+                const error = await response.json();
+                setMessage(error.error || "更新に失敗しました。");
+            }
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+            setMessage("更新に失敗しました。");
+        }
     };
+
+    if (isLoading) {
+        return <div className="text-sm text-white/50">読み込み中...</div>;
+    }
 
     return (
         <form className="space-y-6 text-sm" onSubmit={handleSubmit(onSubmit)}>
@@ -67,7 +109,12 @@ export const ZineLiteAccountForm = () => {
             </label>
 
             {message && (
-                <p className="rounded-2xl border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+                <p className={clsx(
+                    "rounded-2xl border px-4 py-3 text-sm",
+                    message.includes("失敗")
+                        ? "border-red-500/50 bg-red-500/10 text-red-400"
+                        : "border-green-500/50 bg-green-500/10 text-green-400"
+                )}>
                     {message}
                 </p>
             )}

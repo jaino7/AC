@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 type Tab = "profile" | "plans" | "notifications" | "domain";
 
@@ -13,9 +14,77 @@ const tabs = [
 
 export default function SettingsContent() {
     const [activeTab, setActiveTab] = useState<Tab>("profile");
-    const [displayName, setDisplayName] = useState("John Appleseed");
-    const [bio, setBio] = useState("UX designer and content creator sharing insights on modern web design, accessibility, and creating user-friendly digital experiences.");
+    const [displayName, setDisplayName] = useState("");
+    const [bio, setBio] = useState("");
+    const [twitterUrl, setTwitterUrl] = useState("");
+    const [instagramUrl, setInstagramUrl] = useState("");
+    const [tiktokUrl, setTiktokUrl] = useState("");
+    const [discordUrl, setDiscordUrl] = useState("");
+    const [otherUrl, setOtherUrl] = useState("");
     const [maintenanceNotification, setMaintenanceNotification] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+
+    // Fetch profile data on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await fetch("/api/creators/profile");
+                if (response.ok) {
+                    const data = await response.json();
+                    setDisplayName(data.profile.displayName || "");
+                    setBio(data.profile.bio || "");
+                    setTwitterUrl(data.profile.twitterUrl || "");
+                    setInstagramUrl(data.profile.instagramUrl || "");
+                    setTiktokUrl(data.profile.tiktokUrl || "");
+                    setDiscordUrl(data.profile.discordUrl || "");
+                    setOtherUrl(data.profile.otherUrl || "");
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, []);
+
+    const handleSaveProfile = async () => {
+        setMessage(null);
+        setIsSaving(true);
+        try {
+            const response = await fetch("/api/creators/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    displayName,
+                    bio,
+                    twitterUrl,
+                    instagramUrl,
+                    tiktokUrl,
+                    discordUrl,
+                    otherUrl
+                }),
+            });
+
+            if (response.ok) {
+                setMessage("プロフィールを更新しました。");
+            } else {
+                const error = await response.json();
+                setMessage(error.error || "更新に失敗しました。");
+            }
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+            setMessage("更新に失敗しました。");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     return (
         <main className="min-h-screen bg-neutral-50 px-6 py-10 text-black lg:px-12">
@@ -51,12 +120,12 @@ export default function SettingsContent() {
                             <>
                                 {/* Basic Info */}
                                 <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                                    <h2 className="mb-6 text-xl font-semibold">Basic Info</h2>
+                                    <h2 className="mb-6 text-xl font-semibold">基本情報</h2>
 
                                     <div className="space-y-6">
                                         <div>
                                             <label htmlFor="displayName" className="mb-2 block text-sm font-semibold text-neutral-700">
-                                                Display Name
+                                                表示名
                                             </label>
                                             <input
                                                 id="displayName"
@@ -69,7 +138,7 @@ export default function SettingsContent() {
 
                                         <div>
                                             <label htmlFor="bio" className="mb-2 block text-sm font-semibold text-neutral-700">
-                                                Bio
+                                                自己紹介
                                             </label>
                                             <textarea
                                                 id="bio"
@@ -81,14 +150,105 @@ export default function SettingsContent() {
                                         </div>
                                     </div>
 
+                                    {/* Social Media Section */}
+                                    <div className="mt-8 border-t border-neutral-200 pt-6">
+                                        <h3 className="mb-4 text-lg font-semibold">ソーシャルメディア</h3>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label htmlFor="twitterUrl" className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                    <span className="mr-2">𝕏</span>X (Twitter)
+                                                </label>
+                                                <input
+                                                    id="twitterUrl"
+                                                    type="url"
+                                                    value={twitterUrl}
+                                                    onChange={(e) => setTwitterUrl(e.target.value)}
+                                                    placeholder="https://twitter.com/username"
+                                                    className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="instagramUrl" className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                    📷 Instagram
+                                                </label>
+                                                <input
+                                                    id="instagramUrl"
+                                                    type="url"
+                                                    value={instagramUrl}
+                                                    onChange={(e) => setInstagramUrl(e.target.value)}
+                                                    placeholder="https://instagram.com/username"
+                                                    className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="tiktokUrl" className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                    🎵 TikTok
+                                                </label>
+                                                <input
+                                                    id="tiktokUrl"
+                                                    type="url"
+                                                    value={tiktokUrl}
+                                                    onChange={(e) => setTiktokUrl(e.target.value)}
+                                                    placeholder="https://tiktok.com/@username"
+                                                    className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="discordUrl" className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                    💬 Discord
+                                                </label>
+                                                <input
+                                                    id="discordUrl"
+                                                    type="url"
+                                                    value={discordUrl}
+                                                    onChange={(e) => setDiscordUrl(e.target.value)}
+                                                    placeholder="https://discord.gg/invite"
+                                                    className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="otherUrl" className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                    🔗 その他
+                                                </label>
+                                                <input
+                                                    id="otherUrl"
+                                                    type="url"
+                                                    value={otherUrl}
+                                                    onChange={(e) => setOtherUrl(e.target.value)}
+                                                    placeholder="https://example.com"
+                                                    className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {message && (
+                                        <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${message.includes("失敗")
+                                            ? "border-red-200 bg-red-50 text-red-600"
+                                            : "border-green-200 bg-green-50 text-green-600"
+                                            }`}>
+                                            {message}
+                                        </p>
+                                    )}
+
                                     <div className="mt-6 flex justify-end">
-                                        <button className="rounded-2xl bg-blue-600 px-8 py-3 font-semibold text-white transition-colors hover:bg-blue-700">
-                                            変更する
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveProfile}
+                                            disabled={isSaving || isLoading}
+                                            className="rounded-2xl bg-blue-600 px-8 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                            {isSaving ? "保存中..." : "変更する"}
                                         </button>
                                     </div>
                                 </section>
                             </>
                         )}
+
 
                         {activeTab === "plans" && (
                             <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
@@ -107,17 +267,24 @@ export default function SettingsContent() {
                                             <button className="text-sm font-semibold text-pink-600 transition-colors hover:text-pink-700">
                                                 トライアルをキャンセルする
                                             </button>
-                                            <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
-                                                プランを選択する
-                                            </button>
+                                            <Link href="/creators/pricing">
+                                                <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
+                                                    プランを選択する
+                                                </button>
+                                            </Link>
                                         </div>
                                     </div>
 
                                     {/* Terms Link */}
-                                    <p className="text-sm">
-                                        <a href="#" className="text-blue-600 hover:underline">
-                                            利用規約とプライバシーポリシーをご確認ください
+                                    <p className="text-sm text-neutral-600">
+                                        <a href="/terms/creators" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                            利用規約
                                         </a>
+                                        {" "}と{" "}
+                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                            プライバシーポリシー
+                                        </a>
+                                        をご確認ください
                                     </p>
                                 </div>
                             </section>
