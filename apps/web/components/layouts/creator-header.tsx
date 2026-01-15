@@ -32,14 +32,28 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     const { data: session } = useSession();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notificationCount, setNotificationCount] = useState(0);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
     // URLから handleを取得
     const creatorHandle = pathname?.split('/')[2] || null;
 
-    // 通知を取得
+    // 通知とプロフィールを取得
     useEffect(() => {
         fetchNotifications();
+        fetchProfile();
     }, [session]);
+
+    const fetchProfile = async () => {
+        try {
+            const response = await fetch("/api/creators/profile");
+            if (response.ok) {
+                const data = await response.json();
+                setAvatarUrl(data.profile.logoUrl || null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch profile:", error);
+        }
+    };
 
     const fetchNotifications = async () => {
         try {
@@ -154,7 +168,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
                 <DropdownMenu
                     trigger={
                         <button className="rounded-full" aria-label="プロフィールメニュー">
-                            <Avatar fallback="C" />
+                            <Avatar fallback="C" src={avatarUrl} />
                         </button>
                     }
                 >
