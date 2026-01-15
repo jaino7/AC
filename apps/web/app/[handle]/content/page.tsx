@@ -33,7 +33,6 @@ export default async function Page({ params }: ContentPageProps) {
             },
             posts: {
                 where: {
-                    status: "PUBLISHED",
                     visibility: "PUBLIC"
                 },
                 select: {
