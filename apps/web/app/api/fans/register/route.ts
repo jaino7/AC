@@ -17,6 +17,27 @@ export async function POST(request: NextRequest) {
         }
 
         const { email, password, displayName } = result.data;
+        const { creatorHandle } = body;
+
+        // creatorHandleは必須
+        if (!creatorHandle) {
+            return NextResponse.json(
+                { error: "クリエイターが指定されていません" },
+                { status: 400 }
+            );
+        }
+
+        // クリエイターを取得
+        const creator = await prisma.creatorProfile.findUnique({
+            where: { handle: creatorHandle }
+        });
+
+        if (!creator) {
+            return NextResponse.json(
+                { error: "指定されたクリエイターが見つかりません" },
+                { status: 404 }
+            );
+        }
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -24,10 +45,42 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingUser) {
-            return NextResponse.json(
-                { error: "このメールアドレスは既に登録されています" },
-                { status: 409 }
-            );
+            // ユーザーは存在するが、このクリエイターへの登録が未完了か確認
+            const existingFanProfile = await prisma.fanProfile.findUnique({
+                where: {
+                    userId_creatorId: {
+                        userId: existingUser.id,
+                        creatorId: creator.id
+                    }
+                }
+            });
+
+            if (existingFanProfile) {
+                return NextResponse.json(
+                    { error: "このクリエイターには既に登録済みです" },
+                    { status: 409 }
+                );
+            }
+
+            // 既存ユーザーに新しいクリエイターのFanProfileを作成
+            await prisma.fanProfile.create({
+                data: {
+                    userId: existingUser.id,
+                    creatorId: creator.id,
+                    displayName: displayName || email.split("@")[0],
+                    credits: 0
+                }
+            });
+
+            return NextResponse.json({
+                success: true,
+                message: "アカウントが作成されました",
+                user: {
+                    id: existingUser.id,
+                    email: existingUser.email,
+                    name: existingUser.name
+                }
+            });
         }
 
         // Hash password
@@ -45,10 +98,11 @@ export async function POST(request: NextRequest) {
                 }
             });
 
-            // Create fan profile
+            // Create fan profile for this creator
             await tx.fanProfile.create({
                 data: {
                     userId: newUser.id,
+                    creatorId: creator.id,
                     displayName: displayName || email.split("@")[0],
                     credits: 0
                 }

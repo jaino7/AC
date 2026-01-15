@@ -4,13 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
     FanSignupInput,
     fanSignupSchema
 } from "@/lib/validators/fan-auth";
 import { fanSignup } from "@/lib/api";
+import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
 
@@ -32,11 +33,18 @@ export const NeonProSignupForm = () => {
     });
 
     const router = useRouter();
+    const pathname = usePathname();
     const [message, setMessage] = useState<string | null>(null);
 
     const mutation = useMutation({
         mutationFn: async (values: FanSignupInput) => {
-            await fanSignup(values);
+            // URLからクリエイターハンドルを取得
+            const creatorHandle = getCreatorHandleFromPath(pathname);
+            if (!creatorHandle) {
+                throw new Error("クリエイターが特定できませんでした");
+            }
+
+            await fanSignup({ ...values, creatorHandle });
 
             // Auto login after signup
             const result = await signIn("credentials", {

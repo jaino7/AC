@@ -39,6 +39,7 @@ export const fanSignup = async (payload: {
   displayName?: string;
   acceptTerms: boolean;
   confirmAdult: boolean;
+  creatorHandle: string;  // 追加: どのクリエイターへの登録か
 }) => {
   const response = await fetch("/api/fans/register", {
     method: "POST",
@@ -55,4 +56,5 @@ export const fanSignup = async (payload: {
 
   return response.json();
 };
+
 

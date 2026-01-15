@@ -104,15 +104,19 @@ model User {
   
   // Relations
   creatorProfile CreatorProfile?
-  fanProfile     FanProfile?
+  fanProfile     FanProfile[]  // 1ユーザーが複数クリエイターに登録可能
   emailLogs      EmailLog[]
 }
 
 // ファンプロフィール（ファン専用情報）
+// マルチテナント対応: 各クリエイターごとに独立したファンプロファイルを持つ
 model FanProfile {
   id        String   @id @default(cuid())
-  userId    String   @unique
+  userId    String   // @unique削除: 1ユーザーが複数クリエイターに登録可能
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  creatorId String   // 追加: どのクリエイターのファンか
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   
   // ファン情報
   displayName String?
@@ -130,12 +134,14 @@ model FanProfile {
   purchases     Purchase[]
   savedPosts    SavedPost[]
   
-  // クレジット関連
+  // クレジット関連（クリエイターごとに独立）
   credits         Int @default(0)  // クレジット残高（円）
   chargeRequests  ChargeRequest[]
   creditHistory   CreditHistory[]
   
+  @@unique([userId, creatorId])  // 1ユーザーが1クリエイターに1つのFanProfile
   @@index([userId])
+  @@index([creatorId])
 }
 
 model VerificationToken {
@@ -184,6 +190,9 @@ model CreatorProfile {
   pageViews     PageView[]
   notifications Notification[]
   identityVerification IdentityVerification?
+  
+  // マルチテナント: このクリエイターのファン
+  fans          FanProfile[]
 }
 
 model SubscriptionPlan {

@@ -4,10 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { FanSignupInput, fanSignupSchema } from "@/lib/validators/fan-auth";
 import { fanSignup } from "@/lib/api";
+import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
 
@@ -18,11 +19,14 @@ export const ZineLiteSignupForm = () => {
     });
 
     const router = useRouter();
+    const pathname = usePathname();
     const [message, setMessage] = useState<string | null>(null);
 
     const mutation = useMutation({
         mutationFn: async (values: FanSignupInput) => {
-            await fanSignup(values);
+            const creatorHandle = getCreatorHandleFromPath(pathname);
+            if (!creatorHandle) throw new Error("クリエイターが特定できませんでした");
+            await fanSignup({ ...values, creatorHandle });
             const result = await signIn("credentials", { email: values.email, password: values.password, redirect: false, callbackUrl: "/zine-lite/content" });
             if (!result || result.error) throw new Error("登録は成功しましたが、ログインに失敗しました。");
             return result;
