@@ -1,7 +1,7 @@
 import { prisma } from "@creator/shared";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { SessionProvider } from "next-auth/react";
+import { HandleSessionProvider } from "./providers";
 
 // テーマに対応するレイアウトスタイル
 const themeStyles: Record<string, { bg: string; accent: string }> = {
@@ -57,13 +57,13 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
     const themeStyle = themeStyles[creator.theme] || themeStyles["creator-pro"];
 
     return (
-        <SessionProvider>
+        <HandleSessionProvider>
             <div className={`min-h-screen ${themeStyle.bg}`}>
                 {/* クリエイター情報をコンテキストとして渡す */}
                 <div data-creator-id={creator.id} data-creator-handle={creator.handle} data-theme={creator.theme}>
                     {children}
                 </div>
             </div>
-        </SessionProvider>
+        </HandleSessionProvider>
     );
 }
