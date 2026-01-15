@@ -1,6 +1,7 @@
 import { prisma } from "@creator/shared";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 
 // テーマに対応するレイアウトスタイル
 const themeStyles: Record<string, { bg: string; accent: string }> = {
@@ -56,11 +57,13 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
     const themeStyle = themeStyles[creator.theme] || themeStyles["creator-pro"];
 
     return (
-        <div className={`min-h-screen ${themeStyle.bg}`}>
-            {/* クリエイター情報をコンテキストとして渡す */}
-            <div data-creator-id={creator.id} data-creator-handle={creator.handle} data-theme={creator.theme}>
-                {children}
+        <SessionProvider>
+            <div className={`min-h-screen ${themeStyle.bg}`}>
+                {/* クリエイター情報をコンテキストとして渡す */}
+                <div data-creator-id={creator.id} data-creator-handle={creator.handle} data-theme={creator.theme}>
+                    {children}
+                </div>
             </div>
-        </div>
+        </SessionProvider>
     );
 }
