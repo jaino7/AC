@@ -30,3 +30,29 @@ export const creatorLogin = async (payload: {
   email: string;
   password: string;
 }) => request("/creators/login", payload);
+
+// Fan authentication APIs
+export const fanSignup = async (payload: {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  displayName?: string;
+  acceptTerms: boolean;
+  confirmAdult: boolean;
+}) => {
+  const response = await fetch("/api/fans/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.error ?? "登録に失敗しました");
+  }
+
+  return response.json();
+};
+
