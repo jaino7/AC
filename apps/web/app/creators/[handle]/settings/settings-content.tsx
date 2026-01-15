@@ -16,6 +16,7 @@ export default function SettingsContent() {
     const [activeTab, setActiveTab] = useState<Tab>("profile");
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [twitterUrl, setTwitterUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
     const [tiktokUrl, setTiktokUrl] = useState("");
@@ -24,6 +25,7 @@ export default function SettingsContent() {
     const [maintenanceNotification, setMaintenanceNotification] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
 
     // Fetch profile data on mount
@@ -35,6 +37,7 @@ export default function SettingsContent() {
                     const data = await response.json();
                     setDisplayName(data.profile.displayName || "");
                     setBio(data.profile.bio || "");
+                    setAvatarUrl(data.profile.logoUrl || null);
                     setTwitterUrl(data.profile.twitterUrl || "");
                     setInstagramUrl(data.profile.instagramUrl || "");
                     setTiktokUrl(data.profile.tiktokUrl || "");
@@ -85,6 +88,38 @@ export default function SettingsContent() {
         }
     };
 
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setMessage(null);
+        setIsUploadingAvatar(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("avatar", file);
+
+            const response = await fetch("/api/creators/avatar", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setAvatarUrl(data.avatarUrl);
+                setMessage("プロフィール画像を更新しました。");
+            } else {
+                const error = await response.json();
+                setMessage(error.error || "アップロードに失敗しました。");
+            }
+        } catch (error) {
+            console.error("Failed to upload avatar:", error);
+            setMessage("アップロードに失敗しました。");
+        } finally {
+            setIsUploadingAvatar(false);
+        }
+    };
+
 
     return (
         <main className="min-h-screen bg-neutral-50 px-6 py-10 text-black lg:px-12">
@@ -123,6 +158,50 @@ export default function SettingsContent() {
                                     <h2 className="mb-6 text-xl font-semibold">基本情報</h2>
 
                                     <div className="space-y-6">
+                                        {/* Profile Image */}
+                                        <div>
+                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                プロフィール画像
+                                            </label>
+                                            <div className="flex items-center gap-6">
+                                                {/* Avatar Preview */}
+                                                <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-black/10 bg-neutral-100">
+                                                    {avatarUrl ? (
+                                                        <img
+                                                            src={avatarUrl}
+                                                            alt="Profile"
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-4xl text-neutral-400">
+                                                            👤
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Upload Button */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="avatar-upload"
+                                                        className="inline-block cursor-pointer rounded-2xl border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+                                                    >
+                                                        {isUploadingAvatar ? "アップロード中..." : "画像を選択"}
+                                                    </label>
+                                                    <input
+                                                        id="avatar-upload"
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                                        onChange={handleAvatarUpload}
+                                                        disabled={isUploadingAvatar}
+                                                        className="hidden"
+                                                    />
+                                                    <p className="mt-2 text-xs text-neutral-500">
+                                                        推奨: 正方形の画像、最大5MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div>
                                             <label htmlFor="displayName" className="mb-2 block text-sm font-semibold text-neutral-700">
                                                 表示名
