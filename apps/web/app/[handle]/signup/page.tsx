@@ -1,4 +1,4 @@
-import { prisma } from "@creator/shared";
+import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { SignupForm } from "./signup-form";
 
