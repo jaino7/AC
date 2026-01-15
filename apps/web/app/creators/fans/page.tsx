@@ -188,9 +188,9 @@ export default function FanManagementPage() {
                                     </p>
                                 </div>
 
-                                {/* 獲得したプランメンバー */}
+                                {/* 新規獲得 */}
                                 <div>
-                                    <p className="text-xs text-neutral-500">獲得したプランメンバー</p>
+                                    <p className="text-xs text-neutral-500">新規獲得</p>
                                     <p className="text-xs text-neutral-400">過去 30 日間</p>
                                     <p className="mt-2 text-3xl font-bold">23</p>
                                     <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
