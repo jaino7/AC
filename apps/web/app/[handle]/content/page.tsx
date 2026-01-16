@@ -1,9 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import dynamic from "next/dynamic";
 
 interface ContentPageProps {
     params: { handle: string };
 }
+
+// テーマごとのコンテンツページコンポーネントを動的インポート
+const themeContentPages: Record<string, React.ComponentType> = {
+    "neon-pro": dynamic(() => import("@/app/neon-pro/content/page")),
+    "pure-lite": dynamic(() => import("@/app/pure-lite/content/page")),
+    "zine-lite": dynamic(() => import("@/app/zine-lite/content/page")),
+    "creator-pro": dynamic(() => import("@/app/creator-pro/content/page")),
+    "velvet-pro": dynamic(() => import("@/app/velvet-pro/content/page")),
+    "studio-pro": dynamic(() => import("@/app/studio-pro/content/page")),
+};
 
 export default async function Page({ params }: ContentPageProps) {
     // クリエイター情報を取得
@@ -19,7 +30,8 @@ export default async function Page({ params }: ContentPageProps) {
         notFound();
     }
 
-    // テーマに応じて既存のテーマページにリダイレクト
-    // これにより、各テーマ固有のUIが表示される
-    redirect(`/${creator.theme}/content`);
+    // テーマに応じたコンテンツページコンポーネントを取得
+    const ThemeContentPage = themeContentPages[creator.theme] || themeContentPages["creator-pro"];
+
+    return <ThemeContentPage />;
 }
