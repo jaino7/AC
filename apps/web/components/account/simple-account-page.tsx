@@ -79,8 +79,8 @@ export function SimpleAccountPage({
                             key={item.key}
                             href={`${baseUrl}${item.path}`}
                             className={`pb-3 text-sm font-medium transition ${currentPage === item.key
-                                    ? "border-b-2 border-blue-600 text-blue-600"
-                                    : "text-gray-500 hover:text-gray-900"
+                                ? "border-b-2 border-blue-600 text-blue-600"
+                                : "text-gray-500 hover:text-gray-900"
                                 }`}
                         >
                             {item.label}
@@ -130,14 +130,6 @@ export function SimpleAccountPage({
                                     type="text"
                                     defaultValue={displayName || ""}
                                     placeholder="表示名"
-                                    className="mt-1 w-full max-w-md rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">メールアドレス</label>
-                                <input
-                                    type="email"
-                                    placeholder="user@example.com"
                                     className="mt-1 w-full max-w-md rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
