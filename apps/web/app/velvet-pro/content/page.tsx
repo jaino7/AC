@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type ContentCard = {
   id: string;
@@ -38,6 +39,7 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
   const searchParams = useSearchParams();
   const handle = propHandle || searchParams.get("handle");
   const isPreview = searchParams.get("preview") === "true";
+  const { data: session } = useSession();
 
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -138,12 +140,16 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-3">
-            <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
-              ログイン
-            </Link>
-            <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:from-yellow-500 hover:to-yellow-400">
-              新規登録
-            </Link>
+            {!session && (
+              <>
+                <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
+                  ログイン
+                </Link>
+                <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:from-yellow-500 hover:to-yellow-400">
+                  新規登録
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

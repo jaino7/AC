@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
     CreatorLoginInput,
@@ -12,7 +12,11 @@ import {
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
 
-export const CreatorProLoginForm = () => {
+interface CreatorProLoginFormProps {
+    handle?: string;
+}
+
+export const CreatorProLoginForm = ({ handle: propHandle }: CreatorProLoginFormProps = {}) => {
     const {
         register,
         handleSubmit,
@@ -26,7 +30,12 @@ export const CreatorProLoginForm = () => {
     });
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const handle = propHandle || searchParams.get("handle");
     const [message, setMessage] = useState<string | null>(null);
+
+    // ログイン後のリダイレクト先
+    const callbackUrl = handle ? `/${handle}/content` : "/creators/dashboard";
 
     const mutation = useMutation({
         mutationFn: async (values: CreatorLoginInput) => {
@@ -34,7 +43,7 @@ export const CreatorProLoginForm = () => {
                 email: values.email,
                 password: values.password,
                 redirect: false,
-                callbackUrl: "/creator-pro" // Redirect to template root or dashboard
+                callbackUrl
             });
 
             if (!result) {
@@ -49,7 +58,7 @@ export const CreatorProLoginForm = () => {
         },
         onSuccess: (result) => {
             setMessage("ログインに成功しました。");
-            router.push(result?.url ?? "/creator-pro");
+            router.push(result?.url ?? callbackUrl);
         }
     });
 
@@ -66,7 +75,7 @@ export const CreatorProLoginForm = () => {
         <form className="mt-8 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <button
                 type="button"
-                onClick={() => signIn("google", { callbackUrl: "/creator-pro" })}
+                onClick={() => signIn("google", { callbackUrl })}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm font-semibold text-[#021019] transition hover:bg-gray-100"
             >
                 <img src="/web_neutral_rd_na@3x.png" alt="Google" className="h-5 w-5" />

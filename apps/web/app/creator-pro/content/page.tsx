@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type Post = {
   id: string;
@@ -46,6 +47,7 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
   const searchParams = useSearchParams();
   const handle = propHandle || searchParams.get("handle");
   const isPreview = searchParams.get("preview") === "true";
+  const { data: session } = useSession();
 
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -219,12 +221,16 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
               <span className="text-lg font-semibold">{creatorProfile?.displayName || "Creator"}</span>
             </div>
             <div className="flex items-center gap-3">
-              <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
-                ログイン
-              </Link>
-              <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
-                新規登録
-              </Link>
+              {!session && (
+                <>
+                  <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
+                    ログイン
+                  </Link>
+                  <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    新規登録
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </header>

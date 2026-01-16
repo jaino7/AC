@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
     CreatorLoginInput,
@@ -12,7 +12,11 @@ import {
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
 
-export const NeonProLoginForm = () => {
+interface NeonProLoginFormProps {
+    handle?: string;
+}
+
+export const NeonProLoginForm = ({ handle: propHandle }: NeonProLoginFormProps = {}) => {
     const {
         register,
         handleSubmit,
@@ -26,7 +30,12 @@ export const NeonProLoginForm = () => {
     });
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const handle = propHandle || searchParams.get("handle");
     const [message, setMessage] = useState<string | null>(null);
+
+    // ログイン後のリダイレクト先
+    const callbackUrl = handle ? `/${handle}/content` : "/creators/dashboard";
 
     const mutation = useMutation({
         mutationFn: async (values: CreatorLoginInput) => {
@@ -34,7 +43,7 @@ export const NeonProLoginForm = () => {
                 email: values.email,
                 password: values.password,
                 redirect: false,
-                callbackUrl: "/neon-pro"
+                callbackUrl
             });
 
             if (!result) {
@@ -49,7 +58,7 @@ export const NeonProLoginForm = () => {
         },
         onSuccess: (result) => {
             setMessage("ログインに成功しました。");
-            router.push(result?.url ?? "/neon-pro");
+            router.push(result?.url ?? callbackUrl);
         }
     });
 

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
     CreatorLoginInput,
@@ -12,7 +12,11 @@ import {
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
 
-export const VelvetProLoginForm = () => {
+interface VelvetProLoginFormProps {
+    handle?: string;
+}
+
+export const VelvetProLoginForm = ({ handle: propHandle }: VelvetProLoginFormProps = {}) => {
     const {
         register,
         handleSubmit,
@@ -26,7 +30,12 @@ export const VelvetProLoginForm = () => {
     });
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const handle = propHandle || searchParams.get("handle");
     const [message, setMessage] = useState<string | null>(null);
+
+    // ログイン後のリダイレクト先
+    const callbackUrl = handle ? `/${handle}/content` : "/creators/dashboard";
 
     const mutation = useMutation({
         mutationFn: async (values: CreatorLoginInput) => {
@@ -34,7 +43,7 @@ export const VelvetProLoginForm = () => {
                 email: values.email,
                 password: values.password,
                 redirect: false,
-                callbackUrl: "/velvet-pro"
+                callbackUrl
             });
 
             if (!result) {
@@ -49,7 +58,7 @@ export const VelvetProLoginForm = () => {
         },
         onSuccess: (result) => {
             setMessage("ログインに成功しました。");
-            router.push(result?.url ?? "/velvet-pro");
+            router.push(result?.url ?? callbackUrl);
         }
     });
 
@@ -66,7 +75,7 @@ export const VelvetProLoginForm = () => {
         <form className="mt-6 space-y-4 text-sm" onSubmit={handleSubmit(onSubmit)}>
             <button
                 type="button"
-                onClick={() => signIn("google", { callbackUrl: "/velvet-pro" })}
+                onClick={() => signIn("google", { callbackUrl })}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#1a1b2e] py-3 text-sm font-semibold text-white transition hover:bg-[#23243a]"
             >
                 <img src="/web_neutral_rd_na@3x.png" alt="Google" className="h-5 w-5" />
