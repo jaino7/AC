@@ -23,7 +23,7 @@ export default function CreatorProAccountPage({ handle: propHandle, displayName,
 
   const sidebarLinks = [
     { label: "アカウント情報", icon: "👤", href: baseUrl, active: true },
-    { label: "プラン＆支払い", icon: "💳", href: `${baseUrl}/billing` },
+    { label: "プランと支払い", icon: "💳", href: `${baseUrl}/billing` },
     { label: "セキュリティ", icon: "🛡", href: `${baseUrl}/security` },
     { label: "通知", icon: "🔔", href: `${baseUrl}/notifications` },
   ];

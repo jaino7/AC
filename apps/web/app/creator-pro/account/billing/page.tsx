@@ -6,7 +6,7 @@ import { useState } from "react";
 
 const sidebarLinks = [
   { label: "アカウント情報", icon: "👤", href: "/creator-pro/account" },
-  { label: "プラン＆支払い", icon: "💳", href: "/creator-pro/account/billing", active: true },
+  { label: "プランと支払い", icon: "💳", href: "/creator-pro/account/billing", active: true },
   { label: "セキュリティ", icon: "🛡", href: "/creator-pro/account/security" },
   { label: "通知", icon: "🔔", href: "/creator-pro/account/notifications" },
 ];

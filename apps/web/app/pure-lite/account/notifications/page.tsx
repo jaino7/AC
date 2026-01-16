@@ -56,7 +56,7 @@ export default function PureLiteNotificationsPage() {
 
                 <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold text-[#8c8c99]">
                     <Link href="/pure-lite/account" className="pb-2 hover:text-[#1f1f22]">アカウント情報</Link>
-                    <Link href="/pure-lite/account/billing" className="pb-2 hover:text-[#1f1f22]">プラン＆支払い</Link>
+                    <Link href="/pure-lite/account/billing" className="pb-2 hover:text-[#1f1f22]">プランと支払い</Link>
                     <Link href="/pure-lite/account/security" className="pb-2 hover:text-[#1f1f22]">セキュリティ</Link>
                     <Link href="/pure-lite/account/notifications" className="border-b-2 border-[#7c5dfa] pb-2 text-[#1f1f22]">通知</Link>
                 </div>

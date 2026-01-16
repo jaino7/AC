@@ -70,7 +70,7 @@ export default function NeonProAccountPage({ handle: propHandle, displayName, lo
               👤 アカウント情報
             </Link>
             <Link href={`${baseUrl}/billing`} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
-              💳 プラン＆支払い
+              💳 プランと支払い
             </Link>
             <Link href={`${baseUrl}/security`} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
               🛡 セキュリティ

@@ -70,7 +70,7 @@ export default function StudioProAccountPage({ handle: propHandle, displayName, 
 
         <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-white/60">
           <Link href={baseUrl} className="border-b-2 border-[#2f6dff] pb-2 text-white">アカウント情報</Link>
-          <Link href={`${baseUrl}/billing`} className="pb-2 hover:text-white">プラン＆支払い</Link>
+          <Link href={`${baseUrl}/billing`} className="pb-2 hover:text-white">プランと支払い</Link>
           <Link href={`${baseUrl}/security`} className="pb-2 hover:text-white">セキュリティ</Link>
           <Link href={`${baseUrl}/notifications`} className="pb-2 hover:text-white">通知</Link>
         </div>

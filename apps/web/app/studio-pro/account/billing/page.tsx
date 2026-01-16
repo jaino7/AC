@@ -55,7 +55,7 @@ export default function StudioProBillingPage() {
 
                 <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-white/60">
                     <Link href="/studio-pro/account" className="pb-2 hover:text-white">アカウント情報</Link>
-                    <Link href="/studio-pro/account/billing" className="border-b-2 border-[#2f6dff] pb-2 text-white">プラン＆支払い</Link>
+                    <Link href="/studio-pro/account/billing" className="border-b-2 border-[#2f6dff] pb-2 text-white">プランと支払い</Link>
                     <Link href="/studio-pro/account/security" className="pb-2 hover:text-white">セキュリティ</Link>
                     <Link href="/studio-pro/account/notifications" className="pb-2 hover:text-white">通知</Link>
                 </div>

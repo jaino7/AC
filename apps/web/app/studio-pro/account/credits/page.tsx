@@ -141,7 +141,7 @@ export default function StudioProCreditsPage() {
 
                 <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-white/60">
                     <Link href="/studio-pro/account" className="pb-2 hover:text-white">アカウント情報</Link>
-                    <Link href="/studio-pro/account/billing" className="pb-2 hover:text-white">プラン＆支払い</Link>
+                    <Link href="/studio-pro/account/billing" className="pb-2 hover:text-white">プランと支払い</Link>
                     <Link href="/studio-pro/account/credits" className="border-b-2 border-[#2f6dff] pb-2 text-white">クレジット</Link>
                     <Link href="/studio-pro/account/security" className="pb-2 hover:text-white">セキュリティ</Link>
                 </div>

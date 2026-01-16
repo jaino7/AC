@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const sidebarLinks = [
     { label: "アカウント情報", icon: "👤", href: "/neon-pro/account" },
-    { label: "プラン＆支払い", icon: "💳", href: "/neon-pro/account/billing", active: true },
+    { label: "プランと支払い", icon: "💳", href: "/neon-pro/account/billing", active: true },
     { label: "セキュリティ", icon: "🛡", href: "/neon-pro/account/security" },
     { label: "通知", icon: "🔔", href: "/neon-pro/account/notifications" },
 ];
