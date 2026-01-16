@@ -66,7 +66,7 @@ export default function ZineLiteAccountPage({ handle: propHandle, displayName, l
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-10">
+      <main className="mx-auto w-full max-w-6xl px-4 py-10">
         <Link
           href={contentUrl}
           className="inline-flex items-center justify-center h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/10 mb-6 transition"
