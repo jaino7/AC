@@ -138,12 +138,12 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-3">
-            <button className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
+            <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
               ログイン
-            </button>
-            <button className="rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:from-yellow-500 hover:to-yellow-400">
+            </Link>
+            <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:from-yellow-500 hover:to-yellow-400">
               新規登録
-            </button>
+            </Link>
           </div>
         </div>
       </header>

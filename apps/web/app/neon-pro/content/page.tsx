@@ -176,15 +176,15 @@ export default function NeonProContentPage({ handle: propHandle }: NeonProConten
               </nav>
             </div>
             <div className="flex items-center gap-3">
-              <button className="rounded border border-cyan-600 bg-cyan-900/20 px-3 py-1.5 text-xs font-bold uppercase text-cyan-400 transition hover:bg-cyan-900/30">
+              <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded border border-cyan-600 bg-cyan-900/20 px-3 py-1.5 text-xs font-bold uppercase text-cyan-400 transition hover:bg-cyan-900/30">
                 ログイン
-              </button>
-              <button className="flex items-center gap-1.5 rounded bg-cyan-500 px-3 py-1.5 text-xs font-bold uppercase text-black transition hover:bg-cyan-400">
+              </Link>
+              <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="flex items-center gap-1.5 rounded bg-cyan-500 px-3 py-1.5 text-xs font-bold uppercase text-black transition hover:bg-cyan-400">
                 <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
                 </svg>
-                参加
-              </button>
+                新規登録
+              </Link>
             </div>
           </div>
         </header>

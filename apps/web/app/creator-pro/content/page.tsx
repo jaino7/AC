@@ -219,12 +219,12 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
               <span className="text-lg font-semibold">{creatorProfile?.displayName || "Creator"}</span>
             </div>
             <div className="flex items-center gap-3">
-              <button className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
+              <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
                 ログイン
-              </button>
-              <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+              </Link>
+              <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
                 新規登録
-              </button>
+              </Link>
             </div>
           </div>
         </header>

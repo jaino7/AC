@@ -146,12 +146,12 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
 
           {/* Auth Buttons (Not Logged In) */}
           <div className="flex items-center gap-3">
-            <button className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+            <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
               新規登録
-            </button>
-            <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+            </Link>
+            <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
               ログイン
-            </button>
+            </Link>
           </div>
         </div>
       </header>
