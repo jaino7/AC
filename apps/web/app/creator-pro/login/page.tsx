@@ -1,6 +1,12 @@
 import { CreatorProLoginForm } from "./login-form";
 
-export default function CreatorProLoginPage() {
+interface CreatorProLoginPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
+
+export default function CreatorProLoginPage({ handle, displayName, logoUrl }: CreatorProLoginPageProps = {}) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#02070e] text-white">
       <div className="pointer-events-none absolute inset-0">
@@ -12,18 +18,18 @@ export default function CreatorProLoginPage() {
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center px-4 py-16">
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-semibold text-white/90">ログインまたは登録</h1>
+          {logoUrl && (
+            <img src={logoUrl} alt={displayName || "Creator"} className="mx-auto mb-4 h-16 w-16 rounded-lg object-cover" />
+          )}
+          <h1 className="text-4xl font-semibold text-white/90">
+            {displayName ? `${displayName}にログイン` : "ログインまたは登録"}
+          </h1>
         </div>
 
         <section className="w-full max-w-sm rounded-[26px] border border-white/10 bg-[#070f1b]/80 px-8 py-9 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur">
-
-
           <CreatorProLoginForm />
-
-
         </section>
       </main>
     </div>
   );
 }
-
