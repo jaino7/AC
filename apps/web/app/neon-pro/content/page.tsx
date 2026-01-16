@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type Post = {
   id: string;
@@ -22,73 +23,101 @@ type CreatorProfile = {
   displayName: string;
   bio: string | null;
   logoUrl: string | null;
+  twitterUrl: string | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
+  discordUrl: string | null;
+  otherUrl: string | null;
 };
-
-const posts: Post[] = [
-  {
-    id: "1",
-    title: "Night City Photoshoot - Set A",
-    cover: "https://images.unsplash.com/photo-1518709414768-a88981a4515d?auto=format&fit=crop&w=600&q=80",
-    badge: "free",
-    timeAgo: "2 HOURS AGO",
-    likes: 1200,
-    comments: 42
-  },
-  {
-    id: "2",
-    title: "Exclusive Armor Blueprint [4K]",
-    cover: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80",
-    isLocked: true,
-    requiredTier: "CYBER_PUNK TIER",
-    timeAgo: "YESTERDAY"
-  },
-  {
-    id: "3",
-    title: "Encrypted Video",
-    isEncrypted: true,
-    requiredTier: "NETRUNNER TIER",
-    timeAgo: "2 DAYS AGO"
-  },
-  {
-    id: "4",
-    title: "Backstage Setup Tour -",
-    cover: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?auto=format&fit=crop&w=600&q=80",
-    badge: "free",
-    timeAgo: "3 DAYS AGO"
-  },
-  {
-    id: "5",
-    title: "New Rig Specs Released!",
-    cover: "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&w=600&q=80",
-    badge: "free",
-    timeAgo: "3 DAYS AGO"
-  }
-];
 
 type TabType = "all" | "images" | "videos" | "archive";
 
 export default function NeonProContentPage() {
+  const searchParams = useSearchParams();
+  const handle = searchParams.get("handle");
+  const isPreview = searchParams.get("preview") === "true";
+
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch("/api/creators/profile");
-        if (response.ok) {
-          const data = await response.json();
-          setCreatorProfile(data.profile);
+        // Fetch creator profile
+        let profileResponse;
+        if (handle) {
+          profileResponse = await fetch(`/api/creators/profile?handle=${handle}`);
+        } else if (isPreview) {
+          profileResponse = await fetch("/api/creators/profile");
+        } else {
+          profileResponse = await fetch("/api/creators/profile");
+        }
+
+        if (profileResponse?.ok) {
+          const profileData = await profileResponse.json();
+          setCreatorProfile(profileData.profile);
+        }
+
+        // Fetch published posts
+        let postsResponse;
+        if (handle) {
+          postsResponse = await fetch(`/api/creators/content/public?handle=${handle}`);
+        } else if (isPreview) {
+          postsResponse = await fetch("/api/creators/content?visibility=PUBLIC");
+        } else {
+          postsResponse = await fetch("/api/creators/content?visibility=PUBLIC");
+        }
+
+        if (postsResponse?.ok) {
+          const postsData = await postsResponse.json();
+          const postsArray = postsData.posts || [];
+
+          // Transform posts
+          const transformedPosts: Post[] = postsArray.map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            description: post.content || "",
+            cover: post.thumbnailUrl || post.mediaUrl,
+            badge: post.isLocked ? undefined : "free",
+            isLocked: post.isLocked,
+            requiredTier: post.requiredPlan?.name,
+            timeAgo: getTimeAgo(new Date(post.createdAt)),
+          }));
+
+          setPosts(transformedPosts);
         }
       } catch (error) {
-        console.error("Failed to fetch profile:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, []);
+    fetchData();
+  }, [handle, isPreview]);
+
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `${diffMins}分前`;
+    if (diffHours < 24) return `${diffHours}時間前`;
+    return `${diffDays}日前`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-[#0a0e12] text-white items-center justify-center">
+        <p className="text-cyan-400">読み込み中...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-screen bg-[#0a0e12] text-white">

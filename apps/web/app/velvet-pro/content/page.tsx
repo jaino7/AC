@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type ContentCard = {
   id: string;
   title: string;
   subtitle?: string;
-  cover: string;
+  cover: string | null;
   type: "free" | "velvet-elite" | "gold" | "limited" | "early-access";
   badge?: string;
   isLocked?: boolean;
@@ -20,92 +21,105 @@ type CreatorProfile = {
   displayName: string;
   bio: string | null;
   logoUrl: string | null;
+  twitterUrl: string | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
+  discordUrl: string | null;
+  otherUrl: string | null;
 };
-
-const contentCards: ContentCard[] = [
-  {
-    id: "1",
-    title: "Portrait Study",
-    cover: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
-    type: "free"
-  },
-  {
-    id: "2",
-    title: "The Red Series",
-    subtitle: "Full resolution photos available",
-    cover: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80",
-    type: "gold",
-    badge: "GOLD TIER",
-    isLocked: true
-  },
-  {
-    id: "3",
-    title: "Abstract Lines",
-    cover: "https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?auto=format&fit=crop&w=600&q=80",
-    type: "limited",
-    badge: "LIMITED EDITION",
-    isLocked: true
-  },
-  {
-    id: "4",
-    title: "Alpine Solitude",
-    subtitle: "Exclusive behind-the-scenes video set",
-    cover: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=600&q=80",
-    type: "velvet-elite",
-    badge: "VELVET ELITE",
-    isLocked: true,
-    unlockPrice: 25
-  },
-  {
-    id: "5",
-    title: "Art Quote",
-    cover: "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?auto=format&fit=crop&w=600&q=80",
-    type: "free"
-  },
-  {
-    id: "6",
-    title: "Geometric Studies",
-    subtitle: "Free • 2 hours ago",
-    cover: "https://images.unsplash.com/photo-1618219740975-d40978bb7378?auto=format&fit=crop&w=600&q=80",
-    type: "free",
-    timeAgo: "2 hours ago"
-  },
-  {
-    id: "7",
-    title: "Early Access",
-    subtitle: "Available for first 100 subscribers",
-    cover: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
-    type: "early-access",
-    badge: "LIMITED EDITION",
-    isLocked: true
-  }
-];
 
 type TabType = "all" | "velvet-elite" | "gold" | "video" | "backstage";
 
 export default function VelvetProContentPage() {
+  const searchParams = useSearchParams();
+  const handle = searchParams.get("handle");
+  const isPreview = searchParams.get("preview") === "true";
+
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [contentCards, setContentCards] = useState<ContentCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch("/api/creators/profile");
-        if (response.ok) {
-          const data = await response.json();
-          setCreatorProfile(data.profile);
+        // Fetch creator profile
+        let profileResponse;
+        if (handle) {
+          profileResponse = await fetch(`/api/creators/profile?handle=${handle}`);
+        } else {
+          profileResponse = await fetch("/api/creators/profile");
+        }
+
+        if (profileResponse?.ok) {
+          const profileData = await profileResponse.json();
+          setCreatorProfile(profileData.profile);
+        }
+
+        // Fetch published posts
+        let postsResponse;
+        if (handle) {
+          postsResponse = await fetch(`/api/creators/content/public?handle=${handle}`);
+        } else {
+          postsResponse = await fetch("/api/creators/content?visibility=PUBLIC");
+        }
+
+        if (postsResponse?.ok) {
+          const postsData = await postsResponse.json();
+          const posts = postsData.posts || [];
+
+          // Transform posts to content cards
+          const cards: ContentCard[] = posts.map((post: any) => {
+            let type: ContentCard["type"] = "free";
+            if (post.isLocked && post.requiredPlan) {
+              type = post.requiredPlan.price > 2000 ? "velvet-elite" : "gold";
+            }
+
+            return {
+              id: post.id,
+              title: post.title,
+              subtitle: post.content?.substring(0, 50) || undefined,
+              cover: post.thumbnailUrl || post.mediaUrl,
+              type,
+              badge: post.requiredPlan?.name?.toUpperCase(),
+              isLocked: post.isLocked,
+              timeAgo: getTimeAgo(new Date(post.createdAt)),
+            };
+          });
+
+          setContentCards(cards);
         }
       } catch (error) {
-        console.error("Failed to fetch profile:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, []);
+    fetchData();
+  }, [handle, isPreview]);
+
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `${diffMins}分前`;
+    if (diffHours < 24) return `${diffHours}時間前`;
+    return `${diffDays}日前`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#1a1612] via-[#2a231d] to-[#1a1612] text-white flex items-center justify-center">
+        <p className="text-yellow-400">読み込み中...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1612] via-[#2a231d] to-[#1a1612] text-white">

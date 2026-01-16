@@ -18,6 +18,11 @@ type CreatorProfile = {
   displayName: string;
   bio: string | null;
   logoUrl: string | null;
+  twitterUrl: string | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
+  discordUrl: string | null;
+  otherUrl: string | null;
 };
 
 type TabType = "all" | "bronze" | "free" | "gold";
