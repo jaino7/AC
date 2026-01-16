@@ -3,27 +3,35 @@
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-const sidebarLinks = [
-  { label: "アカウント情報", icon: "👤", href: "/creator-pro/account" },
-  { label: "プランと支払い", icon: "💳", href: "/creator-pro/account/billing", active: true },
-  { label: "セキュリティ", icon: "🛡", href: "/creator-pro/account/security" },
-  { label: "通知", icon: "🔔", href: "/creator-pro/account/notifications" },
-];
+interface CreatorProBillingPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
 
-export default function CreatorProBillingPage() {
-  // Image preview state is not needed here unless we want to show the avatar in sidebar too.
-  // For consistency, let's keep the sidebar static or use a placeholder if we don't have global state.
-  // The user asked for the sidebar to be the same.
-  // Ideally we should fetch the user profile or use a context, but for now I'll use the static placeholder
-  // or the same logic as account page (which uses local state for preview, so it won't persist across pages without a backend/context).
-  // I will use the static placeholder "U" or similar for now as I can't easily share state without a provider.
+export default function CreatorProBillingPage({ handle: propHandle, displayName, logoUrl }: CreatorProBillingPageProps = {}) {
+  const searchParams = useSearchParams();
+  const handle = propHandle || searchParams.get("handle");
+
+  // 動的なリンク生成
+  const baseUrl = handle ? `/${handle}/account` : "/creator-pro/account";
+  const contentUrl = handle ? `/${handle}/content` : "/creator-pro/content";
+  const logoutUrl = handle ? `/${handle}/content` : "/creator-pro/login";
+
+  const sidebarLinks = [
+    { label: "アカウント情報", icon: "👤", href: baseUrl },
+    { label: "プランと支払い", icon: "💳", href: `${baseUrl}/billing`, active: true },
+    { label: "セキュリティ", icon: "🛡", href: `${baseUrl}/security` },
+    { label: "通知", icon: "🔔", href: `${baseUrl}/notifications` },
+  ];
 
   return (
     <div className="min-h-screen bg-[#04090f] text-white">
       <header className="border-b border-white/5 bg-[#070f18]">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center px-4">
-          <Link href="/creator-pro/content" className="flex items-center gap-2 text-white/70 hover:text-white transition">
+          <Link href={contentUrl} className="flex items-center gap-2 text-white/70 hover:text-white transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5" />
               <path d="M12 19l-7-7 7-7" />
@@ -56,7 +64,7 @@ export default function CreatorProBillingPage() {
               </Link>
             ))}
             <button
-              onClick={() => signOut({ callbackUrl: "/creator-pro/login" })}
+              onClick={() => signOut({ callbackUrl: logoutUrl })}
               className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5"
             >
               <span>↩︎</span>
