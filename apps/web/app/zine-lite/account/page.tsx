@@ -4,9 +4,24 @@ import { ZineLiteAccountForm } from "./account-form";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function ZineLiteAccountPage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+interface ZineLiteAccountPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
+
+export default function ZineLiteAccountPage({ handle: propHandle, displayName, logoUrl }: ZineLiteAccountPageProps = {}) {
+  const searchParams = useSearchParams();
+  const handle = propHandle || searchParams.get("handle");
+
+  // 動的なリンク生成
+  const baseUrl = handle ? `/${handle}/account` : "/zine-lite/account";
+  const contentUrl = handle ? `/${handle}/content` : "/zine-lite/content";
+  const logoutUrl = handle ? `/${handle}/content` : "/zine-lite/login";
+
+  const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,7 +57,7 @@ export default function ZineLiteAccountPage() {
               )}
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/zine-lite/login" })}
+              onClick={() => signOut({ callbackUrl: logoutUrl })}
               className="text-sm text-white/70 hover:text-white"
             >
               ログアウト
@@ -53,7 +68,7 @@ export default function ZineLiteAccountPage() {
 
       <main className="mx-auto w-full max-w-5xl px-4 py-10">
         <Link
-          href="/zine-lite/content"
+          href={contentUrl}
           className="inline-flex items-center justify-center h-9 w-9 rounded-full text-white/60 hover:text-white hover:bg-white/10 mb-6 transition"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -63,10 +78,10 @@ export default function ZineLiteAccountPage() {
         </Link>
         <h1 className="text-3xl font-semibold">アカウント設定</h1>
         <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-white/60">
-          <Link href="/zine-lite/account" className="border-b-2 border-green-400 pb-2 text-white">アカウント情報</Link>
-          <Link href="/zine-lite/account/billing" className="pb-2 hover:text-white">プランとお支払い</Link>
-          <Link href="/zine-lite/account/security" className="pb-2 hover:text-white">セキュリティ</Link>
-          <Link href="/zine-lite/account/notifications" className="pb-2 hover:text-white">通知</Link>
+          <Link href={baseUrl} className="border-b-2 border-green-400 pb-2 text-white">アカウント情報</Link>
+          <Link href={`${baseUrl}/billing`} className="pb-2 hover:text-white">プランとお支払い</Link>
+          <Link href={`${baseUrl}/security`} className="pb-2 hover:text-white">セキュリティ</Link>
+          <Link href={`${baseUrl}/notifications`} className="pb-2 hover:text-white">通知</Link>
         </div>
 
         <section className="mt-8 space-y-6 rounded-[24px] border border-white/10 bg-[#111111] p-8">

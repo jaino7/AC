@@ -4,9 +4,24 @@ import { PureLiteAccountForm } from "./account-form";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function PureLiteAccountPage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+interface PureLiteAccountPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
+
+export default function PureLiteAccountPage({ handle: propHandle, displayName, logoUrl }: PureLiteAccountPageProps = {}) {
+  const searchParams = useSearchParams();
+  const handle = propHandle || searchParams.get("handle");
+
+  // 動的なリンク生成
+  const baseUrl = handle ? `/${handle}/account` : "/pure-lite/account";
+  const contentUrl = handle ? `/${handle}/content` : "/pure-lite/content";
+  const logoutUrl = handle ? `/${handle}/content` : "/pure-lite/login";
+
+  const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
   const [isLoggedIn] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +56,7 @@ export default function PureLiteAccountPage() {
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#7c5dfa] to-[#9b8aff] text-sm font-semibold text-white hover:opacity-90"
                 >
-                  JP
+                  {displayName?.charAt(0) || "JP"}
                 </button>
                 {showDropdown && (
                   <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-black/10 bg-white py-2 shadow-xl">
@@ -49,7 +64,7 @@ export default function PureLiteAccountPage() {
                       設定
                     </button>
                     <button
-                      onClick={() => signOut({ callbackUrl: "/pure-lite/login" })}
+                      onClick={() => signOut({ callbackUrl: logoutUrl })}
                       className="w-full px-4 py-2 text-left text-sm text-[#4b4b58] hover:bg-[#7c5dfa]/5 hover:text-[#1f1f22]"
                     >
                       ログアウト
@@ -66,10 +81,10 @@ export default function PureLiteAccountPage() {
         <h1 className="text-3xl font-semibold">アカウント</h1>
 
         <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold text-[#8c8c99]">
-          <Link href="/pure-lite/account" className="border-b-2 border-[#7c5dfa] pb-2 text-[#1f1f22]">アカウント情報</Link>
-          <Link href="/pure-lite/account/billing" className="pb-2 hover:text-[#1f1f22]">プラン＆支払い</Link>
-          <Link href="/pure-lite/account/security" className="pb-2 hover:text-[#1f1f22]">セキュリティ</Link>
-          <Link href="/pure-lite/account/notifications" className="pb-2 hover:text-[#1f1f22]">通知</Link>
+          <Link href={baseUrl} className="border-b-2 border-[#7c5dfa] pb-2 text-[#1f1f22]">アカウント情報</Link>
+          <Link href={`${baseUrl}/billing`} className="pb-2 hover:text-[#1f1f22]">プラン＆支払い</Link>
+          <Link href={`${baseUrl}/security`} className="pb-2 hover:text-[#1f1f22]">セキュリティ</Link>
+          <Link href={`${baseUrl}/notifications`} className="pb-2 hover:text-[#1f1f22]">通知</Link>
         </div>
 
         <section className="mt-6 rounded-[30px] border border-black/5 bg-white p-8 shadow-sm">

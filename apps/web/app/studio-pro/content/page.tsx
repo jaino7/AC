@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 type ContentCard = {
   id: string;
@@ -156,6 +156,16 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
                 <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
                   ログイン
                 </Link>
+              </>
+            )}
+            {session && (
+              <>
+                <Link href={handle ? `/${handle}/account` : "/studio-pro/account"} className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+                  設定
+                </Link>
+                <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+                  ログアウト
+                </button>
               </>
             )}
           </div>

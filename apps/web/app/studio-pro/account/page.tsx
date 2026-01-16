@@ -4,9 +4,24 @@ import { StudioProAccountForm } from "./account-form";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function StudioProAccountPage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+interface StudioProAccountPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
+
+export default function StudioProAccountPage({ handle: propHandle, displayName, logoUrl }: StudioProAccountPageProps = {}) {
+  const searchParams = useSearchParams();
+  const handle = propHandle || searchParams.get("handle");
+
+  // 動的なリンク生成
+  const baseUrl = handle ? `/${handle}/account` : "/studio-pro/account";
+  const contentUrl = handle ? `/${handle}/content` : "/studio-pro/content";
+  const logoutUrl = handle ? `/${handle}/content` : "/studio-pro/login";
+
+  const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,7 +56,7 @@ export default function StudioProAccountPage() {
               ) : null}
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/studio-pro/login" })}
+              onClick={() => signOut({ callbackUrl: logoutUrl })}
               className="text-white/60 hover:text-white"
             >
               ログアウト
@@ -54,10 +69,10 @@ export default function StudioProAccountPage() {
         <h1 className="text-3xl font-semibold">アカウント設定</h1>
 
         <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-white/60">
-          <Link href="/studio-pro/account" className="border-b-2 border-[#2f6dff] pb-2 text-white">アカウント情報</Link>
-          <Link href="/studio-pro/account/billing" className="pb-2 hover:text-white">プラン＆支払い</Link>
-          <Link href="/studio-pro/account/security" className="pb-2 hover:text-white">セキュリティ</Link>
-          <Link href="/studio-pro/account/notifications" className="pb-2 hover:text-white">通知</Link>
+          <Link href={baseUrl} className="border-b-2 border-[#2f6dff] pb-2 text-white">アカウント情報</Link>
+          <Link href={`${baseUrl}/billing`} className="pb-2 hover:text-white">プラン＆支払い</Link>
+          <Link href={`${baseUrl}/security`} className="pb-2 hover:text-white">セキュリティ</Link>
+          <Link href={`${baseUrl}/notifications`} className="pb-2 hover:text-white">通知</Link>
         </div>
 
         <section className="mt-8 rounded-[32px] border border-white/10 bg-[#070e1e] p-8">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 type ContentCard = {
   id: string;
@@ -184,10 +184,10 @@ export default function PureLiteContentPage({ handle: propHandle }: PureLiteCont
               </button>
               {showUserMenu && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
-                  <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                  <Link href={handle ? `/${handle}/account` : "/pure-lite/account"} className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                     設定
-                  </button>
-                  <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                  </Link>
+                  <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                     ログアウト
                   </button>
                 </div>

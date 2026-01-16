@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 type ContentCard = {
   id: string;
@@ -148,6 +148,16 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
                 <Link href={handle ? `/${handle}/signup` : "/creators/signup"} className="rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:from-yellow-500 hover:to-yellow-400">
                   新規登録
                 </Link>
+              </>
+            )}
+            {session && (
+              <>
+                <Link href={handle ? `/${handle}/account` : "/velvet-pro/account"} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
+                  設定
+                </Link>
+                <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
+                  ログアウト
+                </button>
               </>
             )}
           </div>

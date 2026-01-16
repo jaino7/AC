@@ -4,16 +4,31 @@ import { CreatorProAccountForm } from "./account-form";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
-const sidebarLinks = [
-  { label: "アカウント情報", icon: "👤", href: "/creator-pro/account", active: true },
-  { label: "プラン＆支払い", icon: "💳", href: "/creator-pro/account/billing" },
-  { label: "セキュリティ", icon: "🛡", href: "/creator-pro/account/security" },
-  { label: "通知", icon: "🔔", href: "/creator-pro/account/notifications" },
-];
+interface CreatorProAccountPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
 
-export default function CreatorProAccountPage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+export default function CreatorProAccountPage({ handle: propHandle, displayName, logoUrl }: CreatorProAccountPageProps = {}) {
+  const searchParams = useSearchParams();
+  const handle = propHandle || searchParams.get("handle");
+
+  // 動的なリンク生成
+  const baseUrl = handle ? `/${handle}/account` : "/creator-pro/account";
+  const contentUrl = handle ? `/${handle}/content` : "/creator-pro/content";
+  const logoutUrl = handle ? `/${handle}/content` : "/creator-pro/login";
+
+  const sidebarLinks = [
+    { label: "アカウント情報", icon: "👤", href: baseUrl, active: true },
+    { label: "プラン＆支払い", icon: "💳", href: `${baseUrl}/billing` },
+    { label: "セキュリティ", icon: "🛡", href: `${baseUrl}/security` },
+    { label: "通知", icon: "🔔", href: `${baseUrl}/notifications` },
+  ];
+
+  const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +47,7 @@ export default function CreatorProAccountPage() {
       <header className="border-b border-white/5 bg-[#070f18]">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center px-4">
           <Link
-            href="/creator-pro/content"
+            href={contentUrl}
             className="flex items-center text-white/70 transition hover:text-white"
           >
             <svg
@@ -81,7 +96,7 @@ export default function CreatorProAccountPage() {
               </Link>
             ))}
             <button
-              onClick={() => signOut({ callbackUrl: "/creator-pro/login" })}
+              onClick={() => signOut({ callbackUrl: logoutUrl })}
               className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5"
             >
               <span>↩︎</span>

@@ -4,9 +4,24 @@ import { NeonProAccountForm } from "./account-form";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function NeonProAccountPage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+interface NeonProAccountPageProps {
+  handle?: string;
+  displayName?: string;
+  logoUrl?: string | null;
+}
+
+export default function NeonProAccountPage({ handle: propHandle, displayName, logoUrl }: NeonProAccountPageProps = {}) {
+  const searchParams = useSearchParams();
+  const handle = propHandle || searchParams.get("handle");
+
+  // 動的なリンク生成
+  const baseUrl = handle ? `/${handle}/account` : "/neon-pro/account";
+  const contentUrl = handle ? `/${handle}/content` : "/neon-pro/content";
+  const logoutUrl = handle ? `/${handle}/content` : "/neon-pro/login";
+
+  const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,7 +39,7 @@ export default function NeonProAccountPage() {
     <div className="min-h-screen bg-[#080d24] text-white">
       <header className="border-b border-white/10 bg-[#0d1430]">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center px-4">
-          <Link href="/neon-pro/content" className="flex items-center gap-2 text-white/70 hover:text-cyan-400 transition">
+          <Link href={contentUrl} className="flex items-center gap-2 text-white/70 hover:text-cyan-400 transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5" />
               <path d="M12 19l-7-7 7-7" />
@@ -45,28 +60,28 @@ export default function NeonProAccountPage() {
               )}
             </div>
             <div>
-              <p className="text-base font-semibold">ユーザー名</p>
+              <p className="text-base font-semibold">{displayName || "ユーザー名"}</p>
               <p className="text-sm text-white/60">user@example.com</p>
             </div>
           </div>
 
           <nav className="mt-6 space-y-3">
-            <Link href="/neon-pro/account" className="flex w-full items-center gap-3 rounded-2xl bg-[#122048] px-4 py-3 text-left text-sm font-semibold text-cyan-200">
+            <Link href={baseUrl} className="flex w-full items-center gap-3 rounded-2xl bg-[#122048] px-4 py-3 text-left text-sm font-semibold text-cyan-200">
               👤 アカウント情報
             </Link>
-            <Link href="/neon-pro/account/billing" className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
+            <Link href={`${baseUrl}/billing`} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
               💳 プラン＆支払い
             </Link>
-            <Link href="/neon-pro/account/security" className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
+            <Link href={`${baseUrl}/security`} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
               🛡 セキュリティ
             </Link>
-            <Link href="/neon-pro/account/notifications" className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
+            <Link href={`${baseUrl}/notifications`} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5">
               🔔 通知
             </Link>
           </nav>
 
           <button
-            onClick={() => signOut({ callbackUrl: "/neon-pro/login" })}
+            onClick={() => signOut({ callbackUrl: logoutUrl })}
             className="mt-10 flex w-full items-center gap-3 rounded-2xl border border-white/15 px-4 py-3 text-sm text-white/70 hover:text-white"
           >
             ↩︎ ログアウト
