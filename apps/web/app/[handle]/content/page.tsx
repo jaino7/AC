@@ -35,3 +35,4 @@ export default async function Page({ params }: ContentPageProps) {
 
     return <ThemeContentPage />;
 }
+
