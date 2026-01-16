@@ -30,9 +30,13 @@ type CreatorProfile = {
 
 type TabType = "all" | "velvet-elite" | "gold" | "video" | "backstage";
 
-export default function VelvetProContentPage() {
+interface VelvetProContentPageProps {
+  handle?: string;
+}
+
+export default function VelvetProContentPage({ handle: propHandle }: VelvetProContentPageProps = {}) {
   const searchParams = useSearchParams();
-  const handle = searchParams.get("handle");
+  const handle = propHandle || searchParams.get("handle");
   const isPreview = searchParams.get("preview") === "true";
 
   const [activeTab, setActiveTab] = useState<TabType>("all");

@@ -38,9 +38,13 @@ type Plan = {
 
 type TabType = "all" | "single" | "saved" | string;
 
-export default function CreatorProContentPage() {
+interface CreatorProContentPageProps {
+  handle?: string;
+}
+
+export default function CreatorProContentPage({ handle: propHandle }: CreatorProContentPageProps = {}) {
   const searchParams = useSearchParams();
-  const handle = searchParams.get("handle");
+  const handle = propHandle || searchParams.get("handle");
   const isPreview = searchParams.get("preview") === "true";
 
   const [activeTab, setActiveTab] = useState<TabType>("all");

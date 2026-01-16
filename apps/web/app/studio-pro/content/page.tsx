@@ -26,9 +26,13 @@ type CreatorProfile = {
   otherUrl: string | null;
 };
 
-export default function StudioProContentPage() {
+interface StudioProContentPageProps {
+  handle?: string;
+}
+
+export default function StudioProContentPage({ handle: propHandle }: StudioProContentPageProps = {}) {
   const searchParams = useSearchParams();
-  const handle = searchParams.get("handle");
+  const handle = propHandle || searchParams.get("handle");
   const isPreview = searchParams.get("preview") === "true";
 
   const [showUserMenu, setShowUserMenu] = useState(false);

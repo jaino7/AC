@@ -32,9 +32,13 @@ type CreatorProfile = {
 
 type TabType = "all" | "images" | "videos" | "archive";
 
-export default function NeonProContentPage() {
+interface NeonProContentPageProps {
+  handle?: string;
+}
+
+export default function NeonProContentPage({ handle: propHandle }: NeonProContentPageProps = {}) {
   const searchParams = useSearchParams();
-  const handle = searchParams.get("handle");
+  const handle = propHandle || searchParams.get("handle");
   const isPreview = searchParams.get("preview") === "true";
 
   const [activeTab, setActiveTab] = useState<TabType>("all");

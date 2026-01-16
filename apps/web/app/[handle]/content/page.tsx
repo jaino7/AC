@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { ThemeContentWrapper } from "./theme-wrapper";
 
 interface ContentPageProps {
     params: { handle: string };
@@ -19,8 +20,6 @@ export default async function Page({ params }: ContentPageProps) {
         notFound();
     }
 
-    // テーマページにリダイレクト（handleをクエリパラメータとして渡す）
-    redirect(`/${creator.theme}/content?handle=${creator.handle}`);
+    // テーマに応じたコンテンツページをラッパー経由でレンダリング（リダイレクトなし）
+    return <ThemeContentWrapper handle={creator.handle} theme={creator.theme} />;
 }
-
-
