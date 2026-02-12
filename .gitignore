@@ -7,4 +7,16 @@ node_modules/
 # 以下はご提示いただいた内容
 # Keep environment variables out of version control
 .env
+.env.*
+.env.local
+.env.production
+.env.local.production
 /generated/prisma
+
+# PM2 logs
+logs/
+*.log
+
+# Build outputs
+dist/
+build/
