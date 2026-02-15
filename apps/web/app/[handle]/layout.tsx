@@ -75,7 +75,7 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
 
         // Skip check for public pages (login, signup, etc.)
         const publicPaths = ['/login', '/signup', '/password-reset', '/verify-email'];
-        const isPublicPath = publicPaths.some(p => params.handle.endsWith(p));
+        const isPublicPath = publicPaths.some((p: string) => params.handle.endsWith(p));
 
         if (userId && !isPublicPath) {
             const fanProfile = await prisma.fanProfile.findFirst({

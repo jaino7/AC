@@ -291,7 +291,7 @@ export default async function AdminDashboardPage() {
               最近登録されたユーザー
             </h2>
             <div className="space-y-3">
-              {recentUsers.map((user) => (
+              {recentUsers.map((user: any) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between rounded-2xl border border-gray-200 p-3"
@@ -305,13 +305,12 @@ export default async function AdminDashboardPage() {
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                      user.role === "ADMIN"
+                    className={`rounded-full px-2 py-1 text-xs font-semibold ${user.role === "ADMIN"
                         ? "bg-red-100 text-red-800"
                         : user.role === "CREATOR"
-                        ? "bg-purple-100 text-purple-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
                   >
                     {user.role}
                   </span>
@@ -326,7 +325,7 @@ export default async function AdminDashboardPage() {
               最近の投稿
             </h2>
             <div className="space-y-3">
-              {recentPosts.map((post) => (
+              {recentPosts.map((post: any) => (
                 <div
                   key={post.id}
                   className="rounded-2xl border border-gray-200 p-3"

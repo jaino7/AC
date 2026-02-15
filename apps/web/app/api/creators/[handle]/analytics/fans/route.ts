@@ -89,7 +89,7 @@ export async function GET(
         });
 
         const purchaseRevenue30d = purchases30d.reduce((sum: number, p: any) => sum + p.amount, 0);
-        const uniquePurchasers = new Set(purchases30d.map(p => p.fanId)).size;
+        const uniquePurchasers = new Set(purchases30d.map((p: any) => p.fanId)).size;
         const averagePrice = purchases30d.length > 0
             ? Math.round(purchaseRevenue30d / purchases30d.length)
             : 0;
@@ -107,7 +107,7 @@ export async function GET(
             select: { id: true, name: true }
         });
 
-        const planMap = new Map(plans.map(p => [p.id, p.name]));
+        const planMap = new Map(plans.map((p: any) => [p.id, p.name]));
 
         // Generate daily data for the past 30 days
         for (let i = 29; i >= 0; i--) {
@@ -135,8 +135,8 @@ export async function GET(
                 }
             });
 
-            const planACount = daySubs.filter(s => s.plan.name === "プランA").length;
-            const planBCount = daySubs.filter(s => s.plan.name === "プランB").length;
+            const planACount = daySubs.filter((s: any) => s.plan.name === "プランA").length;
+            const planBCount = daySubs.filter((s: any) => s.plan.name === "プランB").length;
 
             chartData.planA.push({ date: dateStr, count: planACount });
             chartData.planB.push({ date: dateStr, count: planBCount });

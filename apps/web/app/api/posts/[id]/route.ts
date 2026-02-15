@@ -126,7 +126,7 @@ export async function GET(
         // Filter out main media URLs when user doesn't have access
         const filteredMedia = hasAccess
             ? post.media
-            : post.media.map(m => m.isSample ? m : { ...m, url: '' });
+            : post.media.map((m: any) => m.isSample ? m : { ...m, url: '' });
 
         return NextResponse.json({
             post: { ...post, media: filteredMedia },

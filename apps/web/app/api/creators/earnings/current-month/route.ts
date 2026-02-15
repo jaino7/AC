@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
                 createdAt: t.paidAt!,
             })),
         ]
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
             .slice(0, 10);
 
         // 時間差を計算

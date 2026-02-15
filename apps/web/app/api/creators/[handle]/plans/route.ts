@@ -51,7 +51,7 @@ export async function GET(
         });
 
         // レスポンスの整形
-        const formattedPlans = plans.map(plan => ({
+        const formattedPlans = plans.map((plan: any) => ({
             id: plan.id,
             name: plan.name,
             description: plan.description,

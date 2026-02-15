@@ -63,12 +63,12 @@ export async function GET(
             let filteredSubscriptions = subscriptions;
             if (planFilter !== "全て") {
                 filteredSubscriptions = subscriptions.filter(
-                    sub => sub.plan.name === planFilter
+                    (sub: any) => sub.plan.name === planFilter
                 );
             }
 
             // Format data for frontend
-            const fans = filteredSubscriptions.map(sub => {
+            const fans = filteredSubscriptions.map((sub: any) => {
                 const startDate = new Date(sub.startDate);
                 const now = new Date();
                 const monthsDiff = Math.floor(
@@ -76,7 +76,7 @@ export async function GET(
                 );
 
                 const totalSupport = sub.transactions.reduce(
-                    (sum, tx) => sum + tx.amount,
+                    (sum: number, tx: any) => sum + tx.amount,
                     0
                 );
 
@@ -137,7 +137,7 @@ export async function GET(
                 totalAmount: number;
             }>();
 
-            purchases.forEach(purchase => {
+            purchases.forEach((purchase: any) => {
                 const fanId = purchase.fan.id;
                 if (!fanPurchaseMap.has(fanId)) {
                     fanPurchaseMap.set(fanId, {
@@ -158,7 +158,7 @@ export async function GET(
                 }
             });
 
-            const fans = Array.from(fanPurchaseMap.values()).map(data => ({
+            const fans = Array.from(fanPurchaseMap.values()).map((data: any) => ({
                 id: data.fan.id,
                 name: data.fan.user.name || data.fan.displayName || "Unknown",
                 avatar: data.fan.user.image || data.fan.avatar || `https://i.pravatar.cc/40?img=${data.fan.id}`,
