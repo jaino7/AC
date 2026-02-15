@@ -21,7 +21,7 @@ export default function AccountSuspendedPage() {
     if (session?.user?.email && !formData.email) {
       setFormData(prev => ({
         ...prev,
-        email: session.user.email || "",
+        email: session?.user?.email || "",
       }));
     }
   }, [session]);
