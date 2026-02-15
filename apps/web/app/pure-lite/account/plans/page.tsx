@@ -57,7 +57,7 @@ export default function PureLitePlansPage() {
               Support your favorite creator and unlock exclusive content by picking a plan.
             </p>
           </div>
-          <button className="text-[#9a9aae]">✁E/button>
+          <button className="text-[#9a9aae]">&#x2715;</button>
         </div>
 
         <div className="mt-8 space-y-6">
@@ -105,4 +105,3 @@ export default function PureLitePlansPage() {
     </div>
   );
 }
-
