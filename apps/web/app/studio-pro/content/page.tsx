@@ -234,7 +234,7 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
               <div className="max-w-xl">
                 {/* Title */}
                 <h1 className="mb-4 text-4xl font-bold leading-tight">
-                  {creatorProfile?.displayName || "Creator"}'s
+                  {creatorProfile?.displayName || "Creator"}&apos;s
                   <span className="text-blue-400"> Studio</span>
                 </h1>
 
