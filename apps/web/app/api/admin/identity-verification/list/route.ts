@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         });
 
         // レスポンス用にデータを整形
-        const formattedVerifications = verifications.map((v) => ({
+        const formattedVerifications = verifications.map((v: any) => ({
             id: v.id,
             creatorId: v.creatorId,
             creatorName: v.creator.displayName || v.creator.handle,
