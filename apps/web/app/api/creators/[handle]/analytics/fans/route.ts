@@ -68,8 +68,8 @@ export async function GET(
             }
         });
 
-        const planRevenue30d = activeSubscriptions.reduce((sum, sub) => {
-            const txSum = sub.transactions.reduce((s, tx) => s + tx.amount, 0);
+        const planRevenue30d = activeSubscriptions.reduce((sum: number, sub: any) => {
+            const txSum = sub.transactions.reduce((s: number, tx: any) => s + tx.amount, 0);
             return sum + txSum;
         }, 0);
 
@@ -88,7 +88,7 @@ export async function GET(
             }
         });
 
-        const purchaseRevenue30d = purchases30d.reduce((sum, p) => sum + p.amount, 0);
+        const purchaseRevenue30d = purchases30d.reduce((sum: number, p: any) => sum + p.amount, 0);
         const uniquePurchasers = new Set(purchases30d.map(p => p.fanId)).size;
         const averagePrice = purchases30d.length > 0
             ? Math.round(purchaseRevenue30d / purchases30d.length)

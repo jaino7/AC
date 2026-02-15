@@ -151,14 +151,14 @@ export async function GET(
                 subscriptionEarnings: subscriptionEarnings._sum.amount || 0,
                 purchaseCount: purchaseEarnings._count,
                 subscriptionCount: subscriptionEarnings._count,
-                transactions: transactions.map((t) => ({
+                transactions: transactions.map((t: any) => ({
                     id: t.id,
                     type: "サブスク更新",
                     amount: t.amount,
                     date: t.paidAt,
                     description: t.subscription?.plan?.name || "サブスクリプション",
                 })),
-                purchases: purchases.map((p) => ({
+                purchases: purchases.map((p: any) => ({
                     id: p.id,
                     type: "単体購入",
                     amount: p.amount,
@@ -216,7 +216,7 @@ export async function GET(
         }
 
         // Calculate yearly total
-        const yearlyTotal = monthlyEarnings.reduce((sum, month) => sum + month.totalEarnings, 0);
+        const yearlyTotal = monthlyEarnings.reduce((sum: number, month: any) => sum + month.totalEarnings, 0);
 
         return NextResponse.json({
             year,

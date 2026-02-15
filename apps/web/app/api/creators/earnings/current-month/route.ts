@@ -184,13 +184,13 @@ export async function GET(request: NextRequest) {
 
         // アクティビティをマージしてソート
         const allActivities = [
-            ...recentPurchaseActivities.map((p) => ({
+            ...recentPurchaseActivities.map((p: any) => ({
                 id: p.id,
                 type: "単体購入",
                 amount: p.amount,
                 createdAt: p.purchasedAt,
             })),
-            ...recentTransactionActivities.map((t) => ({
+            ...recentTransactionActivities.map((t: any) => ({
                 id: t.id,
                 type: "サブスク更新",
                 amount: t.amount,
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
             }
         };
 
-        const recentActivities = allActivities.map((activity) => ({
+        const recentActivities = allActivities.map((activity: any) => ({
             id: activity.id,
             type: activity.type,
             amount: activity.amount,

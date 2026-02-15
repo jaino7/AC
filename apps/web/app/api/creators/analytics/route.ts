@@ -238,7 +238,7 @@ export async function GET(request: NextRequest) {
 
             // プランごとにチャートデータを整理
             const chartData: { [planId: string]: Array<{ date: string; count: number }> } = {};
-            plans.forEach((plan) => {
+            plans.forEach((plan: any) => {
                 chartData[plan.id] = [];
             });
 
@@ -247,11 +247,11 @@ export async function GET(request: NextRequest) {
                 const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
                 const dateStr = date.toISOString().split("T")[0];
 
-                plans.forEach((plan) => {
+                plans.forEach((plan: any) => {
                     const dayData = dailyData.filter(
                         (d) => d.planId === plan.id && d.date.toISOString().split("T")[0] === dateStr
                     );
-                    const count = dayData.reduce((sum, d) => sum + d.count, 0);
+                    const count = dayData.reduce((sum: number, d: any) => sum + d.count, 0);
                     chartData[plan.id].push({ date: dateStr, count });
                 });
             }

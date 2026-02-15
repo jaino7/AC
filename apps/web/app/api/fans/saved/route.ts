@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Transform to match the expected post format
-        const posts = savedPosts.map((savedPost) => savedPost.post);
+        const posts = savedPosts.map((savedPost: any) => savedPost.post);
 
         return NextResponse.json({ posts });
     } catch (error) {
