@@ -18,23 +18,21 @@ const VelvetProLogin = dynamic(() => import("@/app/velvet-pro/login/page"));
 const StudioProLogin = dynamic(() => import("@/app/studio-pro/login/page"));
 
 export function ThemeLoginWrapper({ handle, theme, displayName, logoUrl }: ThemeLoginWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     // テーマに応じたログインページコンポーネントをレンダリング
     switch (theme) {
         case "neon-pro":
-            return <NeonProLogin {...props} />;
+            return <NeonProLogin />;
         case "pure-lite":
-            return <PureLiteLogin {...props} />;
+            return <PureLiteLogin />;
         case "zine-lite":
-            return <ZineLiteLogin {...props} />;
+            return <ZineLiteLogin />;
         case "creator-pro":
-            return <CreatorProLogin {...props} />;
+            return <CreatorProLogin />;
         case "velvet-pro":
-            return <VelvetProLogin {...props} />;
+            return <VelvetProLogin />;
         case "studio-pro":
-            return <StudioProLogin {...props} />;
+            return <StudioProLogin />;
         default:
-            return <CreatorProLogin {...props} />;
+            return <CreatorProLogin />;
     }
 }

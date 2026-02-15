@@ -1,3 +1,4 @@
+
 # CocoBa 本番デプロイガイド
 
 このガイドは、VultrのVPS（AlmaLinux 8）上でCocoBaプロジェクトをデプロイする手順を記載しています。

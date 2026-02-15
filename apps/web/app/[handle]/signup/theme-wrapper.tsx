@@ -18,23 +18,21 @@ const VelvetProSignup = dynamic(() => import("@/app/velvet-pro/signup/page"));
 const StudioProSignup = dynamic(() => import("@/app/studio-pro/signup/page"));
 
 export function ThemeSignupWrapper({ handle, theme, displayName, logoUrl }: ThemeSignupWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     // テーマに応じたサインアップページコンポーネントをレンダリング
     switch (theme) {
         case "neon-pro":
-            return <NeonProSignup {...props} />;
+            return <NeonProSignup />;
         case "pure-lite":
-            return <PureLiteSignup {...props} />;
+            return <PureLiteSignup />;
         case "zine-lite":
-            return <ZineLiteSignup {...props} />;
+            return <ZineLiteSignup />;
         case "creator-pro":
-            return <CreatorProSignup {...props} />;
+            return <CreatorProSignup />;
         case "velvet-pro":
-            return <VelvetProSignup {...props} />;
+            return <VelvetProSignup />;
         case "studio-pro":
-            return <StudioProSignup {...props} />;
+            return <StudioProSignup />;
         default:
-            return <CreatorProSignup {...props} />;
+            return <CreatorProSignup />;
     }
 }

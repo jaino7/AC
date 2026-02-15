@@ -1,11 +1,16 @@
 "use client";
 
 import { SimpleAccountSecurityPage } from "@/components/account/simple-account-page";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function ZineLiteSecurityPage() {
+    const pathname = usePathname();
     const searchParams = useSearchParams();
-    const handle = searchParams.get("handle") || undefined;
+    const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
+    const pathSegment = pathname.split('/')[1] || '';
+    const handle = THEME_PREFIXES.includes(pathSegment)
+        ? (searchParams.get("handle") || undefined)
+        : (pathSegment || undefined);
 
     return (
         <SimpleAccountSecurityPage

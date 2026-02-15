@@ -1,11 +1,16 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { NeonProLoginForm } from "./login-form";
 
 export default function NeonProLoginPage() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const handle = searchParams.get("handle") || undefined;
+  const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
+  const pathSegment = pathname.split('/')[1] || '';
+  const handle = THEME_PREFIXES.includes(pathSegment)
+    ? (searchParams.get("handle") || undefined)
+    : (pathSegment || undefined);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#4a4a4a] px-4 py-16 text-white">

@@ -17,22 +17,20 @@ const VelvetProNotifications = dynamic(() => import("@/app/velvet-pro/account/no
 const StudioProNotifications = dynamic(() => import("@/app/studio-pro/account/notifications/page"));
 
 export function ThemeNotificationsWrapper({ handle, theme, displayName, logoUrl }: ThemeNotificationsWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProNotifications {...props} />;
+            return <NeonProNotifications />;
         case "pure-lite":
-            return <PureLiteNotifications {...props} />;
+            return <PureLiteNotifications />;
         case "zine-lite":
-            return <ZineLiteNotifications {...props} />;
+            return <ZineLiteNotifications />;
         case "creator-pro":
-            return <CreatorProNotifications {...props} />;
+            return <CreatorProNotifications />;
         case "velvet-pro":
-            return <VelvetProNotifications {...props} />;
+            return <VelvetProNotifications />;
         case "studio-pro":
-            return <StudioProNotifications {...props} />;
+            return <StudioProNotifications />;
         default:
-            return <CreatorProNotifications {...props} />;
+            return <CreatorProNotifications />;
     }
 }

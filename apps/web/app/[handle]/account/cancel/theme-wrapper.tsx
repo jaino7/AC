@@ -17,22 +17,20 @@ const VelvetProCancel = dynamic(() => import("@/app/velvet-pro/account/cancel/pa
 const StudioProCancel = dynamic(() => import("@/app/studio-pro/account/cancel/page"));
 
 export function ThemeCancelWrapper({ handle, theme, displayName, logoUrl }: ThemeCancelWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProCancel {...props} />;
+            return <NeonProCancel />;
         case "pure-lite":
-            return <PureLiteCancel {...props} />;
+            return <PureLiteCancel />;
         case "zine-lite":
-            return <ZineLiteCancel {...props} />;
+            return <ZineLiteCancel />;
         case "creator-pro":
-            return <CreatorProCancel {...props} />;
+            return <CreatorProCancel />;
         case "velvet-pro":
-            return <VelvetProCancel {...props} />;
+            return <VelvetProCancel />;
         case "studio-pro":
-            return <StudioProCancel {...props} />;
+            return <StudioProCancel />;
         default:
-            return <CreatorProCancel {...props} />;
+            return <CreatorProCancel />;
     }
 }

@@ -17,22 +17,20 @@ const VelvetProSecurity = dynamic(() => import("@/app/velvet-pro/account/securit
 const StudioProSecurity = dynamic(() => import("@/app/studio-pro/account/security/page"));
 
 export function ThemeSecurityWrapper({ handle, theme, displayName, logoUrl }: ThemeSecurityWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProSecurity {...props} />;
+            return <NeonProSecurity />;
         case "pure-lite":
-            return <PureLiteSecurity {...props} />;
+            return <PureLiteSecurity />;
         case "zine-lite":
-            return <ZineLiteSecurity {...props} />;
+            return <ZineLiteSecurity />;
         case "creator-pro":
-            return <CreatorProSecurity {...props} />;
+            return <CreatorProSecurity />;
         case "velvet-pro":
-            return <VelvetProSecurity {...props} />;
+            return <VelvetProSecurity />;
         case "studio-pro":
-            return <StudioProSecurity {...props} />;
+            return <StudioProSecurity />;
         default:
-            return <CreatorProSecurity {...props} />;
+            return <CreatorProSecurity />;
     }
 }

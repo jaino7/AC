@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { TrustRankDisplay } from "@/components/credits/TrustRankDisplay";
@@ -26,8 +26,13 @@ type ChargeRequest = {
 };
 
 export default function VelvetProCreditsPage() {
+    const pathname = usePathname();
     const searchParams = useSearchParams();
-    const handle = searchParams.get("handle") || undefined;
+    const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
+    const pathSegment = pathname.split('/')[1] || '';
+    const handle = THEME_PREFIXES.includes(pathSegment)
+        ? (searchParams.get("handle") || undefined)
+        : (pathSegment || undefined);
     const [credits, setCredits] = useState(0);
     const [tier, setTier] = useState(0);
     const [trustScore, setTrustScore] = useState(0);

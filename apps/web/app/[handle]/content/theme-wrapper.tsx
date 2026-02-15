@@ -51,19 +51,19 @@ export function ThemeContentWrapper({ handle, initialTheme }: ThemeContentWrappe
     const renderContent = () => {
         switch (theme) {
             case "neon-pro":
-                return <NeonProContent key={theme} handle={handle} />;
+                return <NeonProContent key={theme} />;
             case "pure-lite":
-                return <PureLiteContent key={theme} handle={handle} />;
+                return <PureLiteContent key={theme} />;
             case "zine-lite":
-                return <ZineLiteContent key={theme} handle={handle} />;
+                return <ZineLiteContent key={theme} />;
             case "creator-pro":
-                return <CreatorProContent key={theme} handle={handle} />;
+                return <CreatorProContent key={theme} />;
             case "velvet-pro":
-                return <VelvetProContent key={theme} handle={handle} />;
+                return <VelvetProContent key={theme} />;
             case "studio-pro":
-                return <StudioProContent key={theme} handle={handle} />;
+                return <StudioProContent key={theme} />;
             default:
-                return <CreatorProContent key={theme} handle={handle} />;
+                return <CreatorProContent key={theme} />;
         }
     };
 

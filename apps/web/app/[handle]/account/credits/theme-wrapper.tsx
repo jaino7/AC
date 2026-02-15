@@ -17,22 +17,20 @@ const VelvetProCredits = dynamic(() => import("@/app/velvet-pro/account/credits/
 const StudioProCredits = dynamic(() => import("@/app/studio-pro/account/credits/page"));
 
 export function ThemeCreditsWrapper({ handle, theme, displayName, logoUrl }: ThemeCreditsWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProCredits {...props} />;
+            return <NeonProCredits />;
         case "pure-lite":
-            return <PureLiteCredits {...props} />;
+            return <PureLiteCredits />;
         case "zine-lite":
-            return <ZineLiteCredits {...props} />;
+            return <ZineLiteCredits />;
         case "creator-pro":
-            return <CreatorProCredits {...props} />;
+            return <CreatorProCredits />;
         case "velvet-pro":
-            return <VelvetProCredits {...props} />;
+            return <VelvetProCredits />;
         case "studio-pro":
-            return <StudioProCredits {...props} />;
+            return <StudioProCredits />;
         default:
-            return <CreatorProCredits {...props} />;
+            return <CreatorProCredits />;
     }
 }

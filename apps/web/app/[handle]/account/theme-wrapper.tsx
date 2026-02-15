@@ -18,23 +18,21 @@ const VelvetProAccount = dynamic(() => import("@/app/velvet-pro/account/page"));
 const StudioProAccount = dynamic(() => import("@/app/studio-pro/account/page"));
 
 export function ThemeAccountWrapper({ handle, theme, displayName, logoUrl }: ThemeAccountWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     // テーマに応じたアカウントページをレンダリング
     switch (theme) {
         case "neon-pro":
-            return <NeonProAccount {...props} />;
+            return <NeonProAccount />;
         case "pure-lite":
-            return <PureLiteAccount {...props} />;
+            return <PureLiteAccount />;
         case "zine-lite":
-            return <ZineLiteAccount {...props} />;
+            return <ZineLiteAccount />;
         case "creator-pro":
-            return <CreatorProAccount {...props} />;
+            return <CreatorProAccount />;
         case "velvet-pro":
-            return <VelvetProAccount {...props} />;
+            return <VelvetProAccount />;
         case "studio-pro":
-            return <StudioProAccount {...props} />;
+            return <StudioProAccount />;
         default:
-            return <CreatorProAccount {...props} />;
+            return <CreatorProAccount />;
     }
 }

@@ -17,22 +17,20 @@ const VelvetProBilling = dynamic(() => import("@/app/velvet-pro/account/billing/
 const StudioProBilling = dynamic(() => import("@/app/studio-pro/account/billing/page"));
 
 export function ThemeBillingWrapper({ handle, theme, displayName, logoUrl }: ThemeBillingWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProBilling {...props} />;
+            return <NeonProBilling />;
         case "pure-lite":
-            return <PureLiteBilling {...props} />;
+            return <PureLiteBilling />;
         case "zine-lite":
-            return <ZineLiteBilling {...props} />;
+            return <ZineLiteBilling />;
         case "creator-pro":
-            return <CreatorProBilling {...props} />;
+            return <CreatorProBilling />;
         case "velvet-pro":
-            return <VelvetProBilling {...props} />;
+            return <VelvetProBilling />;
         case "studio-pro":
-            return <StudioProBilling {...props} />;
+            return <StudioProBilling />;
         default:
-            return <CreatorProBilling {...props} />;
+            return <CreatorProBilling />;
     }
 }

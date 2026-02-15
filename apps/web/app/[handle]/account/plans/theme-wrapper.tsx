@@ -17,22 +17,20 @@ const VelvetProPlans = dynamic(() => import("@/app/velvet-pro/account/plans/page
 const StudioProPlans = dynamic(() => import("@/app/studio-pro/account/plans/page"));
 
 export function ThemePlansWrapper({ handle, theme, displayName, logoUrl }: ThemePlansWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProPlans {...props} />;
+            return <NeonProPlans />;
         case "pure-lite":
-            return <PureLitePlans {...props} />;
+            return <PureLitePlans />;
         case "zine-lite":
-            return <ZineLitePlans {...props} />;
+            return <ZineLitePlans />;
         case "creator-pro":
-            return <CreatorProPlans {...props} />;
+            return <CreatorProPlans />;
         case "velvet-pro":
-            return <VelvetProPlans {...props} />;
+            return <VelvetProPlans />;
         case "studio-pro":
-            return <StudioProPlans {...props} />;
+            return <StudioProPlans />;
         default:
-            return <CreatorProPlans {...props} />;
+            return <CreatorProPlans />;
     }
 }

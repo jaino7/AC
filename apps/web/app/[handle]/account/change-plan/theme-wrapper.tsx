@@ -17,22 +17,20 @@ const VelvetProChangePlan = dynamic(() => import("@/app/velvet-pro/account/chang
 const StudioProChangePlan = dynamic(() => import("@/app/studio-pro/account/change-plan/page"));
 
 export function ThemeChangePlanWrapper({ handle, theme, displayName, logoUrl }: ThemeChangePlanWrapperProps) {
-    const props = { handle, displayName, logoUrl };
-
     switch (theme) {
         case "neon-pro":
-            return <NeonProChangePlan {...props} />;
+            return <NeonProChangePlan />;
         case "pure-lite":
-            return <PureLiteChangePlan {...props} />;
+            return <PureLiteChangePlan />;
         case "zine-lite":
-            return <ZineLiteChangePlan {...props} />;
+            return <ZineLiteChangePlan />;
         case "creator-pro":
-            return <CreatorProChangePlan {...props} />;
+            return <CreatorProChangePlan />;
         case "velvet-pro":
-            return <VelvetProChangePlan {...props} />;
+            return <VelvetProChangePlan />;
         case "studio-pro":
-            return <StudioProChangePlan {...props} />;
+            return <StudioProChangePlan />;
         default:
-            return <CreatorProChangePlan {...props} />;
+            return <CreatorProChangePlan />;
     }
 }

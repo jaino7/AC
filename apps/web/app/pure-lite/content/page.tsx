@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
 type Media = {
@@ -39,8 +39,13 @@ type CreatorProfile = {
 type TabType = "all" | "premium" | "free" | "gallery";
 
 export default function PureLiteContentPage() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const propHandle = searchParams.get("handle") || undefined;
+  const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
+  const pathSegment = pathname.split('/')[1] || '';
+  const propHandle = THEME_PREFIXES.includes(pathSegment)
+    ? (searchParams.get("handle") || undefined)
+    : (pathSegment || undefined);
   const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
