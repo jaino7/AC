@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
+import { IdentityDocumentType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
     try {
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
             ? await prisma.identityVerification.update({
                 where: { creatorId },
                 data: {
-                    documentType: documentType.toUpperCase(),
+                    documentType: documentType.toUpperCase() as IdentityDocumentType,
                     frontImageKey,
                     backImageKey,
                     status: "PENDING", // 再審査待ち
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
             : await prisma.identityVerification.create({
                 data: {
                     creatorId,
-                    documentType: documentType.toUpperCase(),
+                    documentType: documentType.toUpperCase() as IdentityDocumentType,
                     frontImageKey,
                     backImageKey,
                     status: "PENDING",
