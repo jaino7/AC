@@ -44,10 +44,7 @@ type AnalyticsData = {
         revenueChange?: number;
         purchaseCountChange?: number;
     };
-    charts?: {
-        [planId: string]: Array<{ date: string; count: number }>;
-        purchases?: Array<{ date: string; count: number }>;
-    };
+    charts?: Record<string, Array<{ date: string; count: number }>>;
 };
 
 export default function FanManagementPage() {
@@ -207,9 +204,8 @@ export default function FanManagementPage() {
                                         ¥{analytics?.overall?.totalRevenue?.toLocaleString() || 0}
                                     </p>
                                     {analytics?.overall?.revenueChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
-                                            analytics.overall.revenueChange >= 0 ? "text-green-600" : "text-red-600"
-                                        }`}>
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.overall.revenueChange >= 0 ? "text-green-600" : "text-red-600"
+                                            }`}>
                                             <span>{analytics.overall.revenueChange >= 0 ? "↑" : "↓"}</span>
                                             <span>
                                                 {analytics.overall.revenueChange >= 999
@@ -267,9 +263,8 @@ export default function FanManagementPage() {
                                         ¥{analytics?.plans?.revenue30d?.toLocaleString() || 0}
                                     </p>
                                     {analytics?.plans?.revenueChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
-                                            analytics.plans.revenueChange >= 0 ? "text-green-600" : "text-red-600"
-                                        }`}>
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.plans.revenueChange >= 0 ? "text-green-600" : "text-red-600"
+                                            }`}>
                                             <span>{analytics.plans.revenueChange >= 0 ? "↑" : "↓"}</span>
                                             <span>
                                                 {analytics.plans.revenueChange >= 999
@@ -317,9 +312,8 @@ export default function FanManagementPage() {
                                         ¥{analytics?.purchases?.revenue30d?.toLocaleString() || 0}
                                     </p>
                                     {analytics?.purchases?.revenueChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
-                                            analytics.purchases.revenueChange >= 0 ? "text-green-600" : "text-red-600"
-                                        }`}>
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.purchases.revenueChange >= 0 ? "text-green-600" : "text-red-600"
+                                            }`}>
                                             <span>{analytics.purchases.revenueChange >= 0 ? "↑" : "↓"}</span>
                                             <span>
                                                 {analytics.purchases.revenueChange >= 999
@@ -338,9 +332,8 @@ export default function FanManagementPage() {
                                         {analytics?.purchases?.purchaseCount30d || 0}
                                     </p>
                                     {analytics?.purchases?.purchaseCountChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
-                                            analytics.purchases.purchaseCountChange >= 0 ? "text-green-600" : "text-red-600"
-                                        }`}>
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.purchases.purchaseCountChange >= 0 ? "text-green-600" : "text-red-600"
+                                            }`}>
                                             <span>{analytics.purchases.purchaseCountChange >= 0 ? "↑" : "↓"}</span>
                                             <span>
                                                 {analytics.purchases.purchaseCountChange >= 999
@@ -614,174 +607,174 @@ export default function FanManagementPage() {
 
                 {/* 検索・フィルター - Only show for plans and purchases tabs */}
                 {activeTab !== "revenue" && (
-                <div className="flex flex-wrap gap-4">
-                    <div className="flex flex-1 items-center gap-3 rounded-2xl border border-black/10 px-4 py-3">
-                        <span className="text-neutral-400">🔍</span>
-                        <input
-                            type="text"
-                            placeholder="名前またはメールアドレスで検索..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 border-none bg-transparent text-sm focus:outline-none"
-                        />
-                    </div>
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-1 items-center gap-3 rounded-2xl border border-black/10 px-4 py-3">
+                            <span className="text-neutral-400">🔍</span>
+                            <input
+                                type="text"
+                                placeholder="名前またはメールアドレスで検索..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="flex-1 border-none bg-transparent text-sm focus:outline-none"
+                            />
+                        </div>
 
-                    {activeTab === "plans" && (
-                        <select
-                            value={planFilter}
-                            onChange={(e) => setPlanFilter(e.target.value)}
-                            className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold focus:outline-none"
-                        >
-                            <option value="全て">プラン: 全て</option>
-                            <option value="プランA">プランA</option>
-                            <option value="プランB">プランB</option>
-                        </select>
-                    )}
-                </div>
+                        {activeTab === "plans" && (
+                            <select
+                                value={planFilter}
+                                onChange={(e) => setPlanFilter(e.target.value)}
+                                className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold focus:outline-none"
+                            >
+                                <option value="全て">プラン: 全て</option>
+                                <option value="プランA">プランA</option>
+                                <option value="プランB">プランB</option>
+                            </select>
+                        )}
+                    </div>
                 )}
 
                 {/* ファンリストテーブル - Only show for plans and purchases tabs */}
                 {activeTab !== "revenue" && (
-                <div className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="border-b border-black/10 bg-neutral-50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                        ユーザー
-                                    </th>
-                                    {activeTab === "plans" ? (
-                                        <>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                プラン
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                合計期間
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                最終更新日
-                                            </th>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                購入タイトル
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                購入本数
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                購入日
-                                            </th>
-                                        </>
-                                    )}
-                                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                        メニュー
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-black/10">
-                                {filteredFans.map((fan) => (
-                                    <tr key={fan.id} className="transition-colors hover:bg-neutral-50">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={fan.avatar}
-                                                    alt={fan.name}
-                                                    className="h-10 w-10 rounded-full object-cover"
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold">{fan.name}</span>
-                                                    {fan.hasTwitter && <span className="text-blue-400">🐦</span>}
-                                                </div>
-                                            </div>
-                                        </td>
-
+                    <div className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="border-b border-black/10 bg-neutral-50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                            ユーザー
+                                        </th>
                                         {activeTab === "plans" ? (
                                             <>
-                                                <td className="px-6 py-4">
-                                                    <span
-                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${fan.plan?.name === "プランA"
-                                                            ? "bg-blue-100 text-blue-700"
-                                                            : "bg-yellow-100 text-yellow-700"
-                                                            }`}
-                                                    >
-                                                        {fan.plan?.name}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-neutral-600">
-                                                    {fan.planDurationMonths}ヶ月
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-neutral-600">
-                                                    {fan.lastUpdated}
-                                                </td>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                                    プラン
+                                                </th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                                    合計期間
+                                                </th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                                    最終更新日
+                                                </th>
                                             </>
                                         ) : (
                                             <>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-neutral-900">
-                                                        {fan.purchasedTitles && fan.purchasedTitles.length > 0 ? (
-                                                            <span>
-                                                                {fan.purchasedTitles[0]}
-                                                                {fan.purchasedTitles.length > 1 && (
-                                                                    <span className="ml-1 text-neutral-500"> +{fan.purchasedTitles.length - 1}</span>
-                                                                )}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-neutral-400">-</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-neutral-600">
-                                                    {fan.purchaseCount}本
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-neutral-600">
-                                                    {fan.lastPurchasedDate}
-                                                </td>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                                    購入タイトル
+                                                </th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                                    購入本数
+                                                </th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                                    購入日
+                                                </th>
                                             </>
                                         )}
-
-                                        <td className="px-6 py-4">
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => setOpenMenuId(openMenuId === fan.id ? null : fan.id)}
-                                                    className="rounded-full p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-                                                >
-                                                    ...
-                                                </button>
-                                                {openMenuId === fan.id && (
-                                                    <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-2xl border border-black/10 bg-white shadow-lg">
-                                                        <button className="w-full px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-neutral-50">
-                                                            詳細
-                                                        </button>
-                                                        <button className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-neutral-50">
-                                                            ブロック
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                            メニュー
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-black/10">
+                                    {filteredFans.map((fan) => (
+                                        <tr key={fan.id} className="transition-colors hover:bg-neutral-50">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={fan.avatar}
+                                                        alt={fan.name}
+                                                        className="h-10 w-10 rounded-full object-cover"
+                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold">{fan.name}</span>
+                                                        {fan.hasTwitter && <span className="text-blue-400">🐦</span>}
+                                                    </div>
+                                                </div>
+                                            </td>
 
-                    {/* ペジネーション */}
-                    <div className="flex items-center justify-between border-t border-black/10 px-6 py-4">
-                        <p className="text-sm text-neutral-600">
-                            {filteredFans.length > 0 ? `1 / ${filteredFans.length}` : "0 / 0"}
-                        </p>
-                        <div className="flex gap-2">
-                            <button className="rounded-2xl border border-black/10 px-4 py-2 text-sm font-semibold transition-colors hover:border-black/40">
-                                前へ
-                            </button>
-                            <button className="rounded-2xl border border-black/10 px-4 py-2 text-sm font-semibold transition-colors hover:border-black/40">
-                                次へ
-                            </button>
+                                            {activeTab === "plans" ? (
+                                                <>
+                                                    <td className="px-6 py-4">
+                                                        <span
+                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${fan.plan?.name === "プランA"
+                                                                ? "bg-blue-100 text-blue-700"
+                                                                : "bg-yellow-100 text-yellow-700"
+                                                                }`}
+                                                        >
+                                                            {fan.plan?.name}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-neutral-600">
+                                                        {fan.planDurationMonths}ヶ月
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-neutral-600">
+                                                        {fan.lastUpdated}
+                                                    </td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-sm font-medium text-neutral-900">
+                                                            {fan.purchasedTitles && fan.purchasedTitles.length > 0 ? (
+                                                                <span>
+                                                                    {fan.purchasedTitles[0]}
+                                                                    {fan.purchasedTitles.length > 1 && (
+                                                                        <span className="ml-1 text-neutral-500"> +{fan.purchasedTitles.length - 1}</span>
+                                                                    )}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-neutral-400">-</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-neutral-600">
+                                                        {fan.purchaseCount}本
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-neutral-600">
+                                                        {fan.lastPurchasedDate}
+                                                    </td>
+                                                </>
+                                            )}
+
+                                            <td className="px-6 py-4">
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={() => setOpenMenuId(openMenuId === fan.id ? null : fan.id)}
+                                                        className="rounded-full p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                                                    >
+                                                        ...
+                                                    </button>
+                                                    {openMenuId === fan.id && (
+                                                        <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-2xl border border-black/10 bg-white shadow-lg">
+                                                            <button className="w-full px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-neutral-50">
+                                                                詳細
+                                                            </button>
+                                                            <button className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-neutral-50">
+                                                                ブロック
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* ペジネーション */}
+                        <div className="flex items-center justify-between border-t border-black/10 px-6 py-4">
+                            <p className="text-sm text-neutral-600">
+                                {filteredFans.length > 0 ? `1 / ${filteredFans.length}` : "0 / 0"}
+                            </p>
+                            <div className="flex gap-2">
+                                <button className="rounded-2xl border border-black/10 px-4 py-2 text-sm font-semibold transition-colors hover:border-black/40">
+                                    前へ
+                                </button>
+                                <button className="rounded-2xl border border-black/10 px-4 py-2 text-sm font-semibold transition-colors hover:border-black/40">
+                                    次へ
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
                 )}
             </div>
         </main>

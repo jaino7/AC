@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        if (!user?.fanProfile) {
+        const fanProfile = user?.fanProfile?.[0];
+        if (!fanProfile) {
             return NextResponse.json(
                 { error: "ファンプロフィールが見つかりません" },
                 { status: 404 }
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
         // Fetch saved posts
         const savedPosts = await prisma.savedPost.findMany({
             where: {
-                fanId: user.fanProfile.id,
+                fanId: fanProfile.id,
             },
             include: {
                 post: {

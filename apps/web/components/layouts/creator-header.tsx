@@ -168,7 +168,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
                 <DropdownMenu
                     trigger={
                         <button className="rounded-full" aria-label="プロフィールメニュー">
-                            <Avatar fallback="C" src={avatarUrl} />
+                            <Avatar fallback="C" src={avatarUrl || undefined} />
                         </button>
                     }
                 >

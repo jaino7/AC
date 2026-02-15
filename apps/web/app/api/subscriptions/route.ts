@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendEmailSafe } from '@/lib/email/client';
 import { PaymentInstructionsEmail } from '@/lib/email/templates/fan/PaymentInstructionsEmail';
 import { generateIdentifierCode } from '@/lib/email/utils/formatters';
+import { NewSubscriberEmail } from '@/lib/email/templates/creator/NewSubscriberEmail';
 
 /**
  * サブスクリプション購読申し込みAPI

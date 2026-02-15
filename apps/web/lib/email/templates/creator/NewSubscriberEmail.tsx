@@ -42,7 +42,7 @@ export function NewSubscriberEmail({
                         嬉しいお知らせです！新しい方があなたのプランに購読を申し込みました。
                     </Text>
 
-                    <Section style={destacBox}>
+                    <Section style={highlightBox}>
                         <Text style={highlightLabel}>購読者</Text>
                         <Text style={highlightValue}>{fanName}</Text>
 

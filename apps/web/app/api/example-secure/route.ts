@@ -20,9 +20,9 @@ const exampleSchema = z.object({
 type ExampleData = z.infer<typeof exampleSchema>;
 
 // 2. ハンドラー関数を定義
-async function handleRequest(req: NextRequest, data: ExampleData) {
+async function handleRequest(req: Request, data: ExampleData) {
   // 3. レート制限をチェック
-  const clientIp = getClientIp(req);
+  const clientIp = getClientIp(req as NextRequest);
   const rateLimitResult = await checkRateLimit(clientIp, 'default');
 
   if (!rateLimitResult.success) {

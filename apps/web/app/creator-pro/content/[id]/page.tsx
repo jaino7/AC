@@ -77,6 +77,7 @@ type Post = {
         id: string;
         url: string;
         type: string;
+        isSample?: boolean;
     }[];
 };
 
@@ -203,8 +204,8 @@ export default function ContentDetailPage() {
     const displayMedia = hasAccess && mainMedia.length > 0
         ? mainMedia
         : sampleMedia.length > 0
-        ? sampleMedia
-        : [];
+            ? sampleMedia
+            : [];
 
     const primaryMedia = displayMedia[0] || { url: post.mediaUrl || post.thumbnailUrl, type: post.mediaUrl ? "VIDEO" : "IMAGE" };
     const isVideo = primaryMedia?.type === "VIDEO";
@@ -328,8 +329,8 @@ export default function ContentDetailPage() {
                             <button
                                 onClick={() => setLiked(!liked)}
                                 className={`flex items-center gap-2 rounded-full border px-4 py-2 transition ${liked
-                                        ? "border-pink-400/50 bg-pink-400/10 text-pink-400"
-                                        : "border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-600 hover:bg-gray-800"
+                                    ? "border-pink-400/50 bg-pink-400/10 text-pink-400"
+                                    : "border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-600 hover:bg-gray-800"
                                     }`}
                             >
                                 <HeartIcon filled={liked} className="h-5 w-5" />
@@ -344,8 +345,8 @@ export default function ContentDetailPage() {
                         <div className="flex items-center gap-4">
                             <span
                                 className={`rounded-full px-4 py-2 text-sm font-semibold ${post.isLocked
-                                        ? "bg-blue-400/20 text-blue-300"
-                                        : "bg-green-400/20 text-green-300"
+                                    ? "bg-blue-400/20 text-blue-300"
+                                    : "bg-green-400/20 text-green-300"
                                     }`}
                             >
                                 {post.isLocked ? (post.requiredPlan ? post.requiredPlan.name : "有料") : "無料"}

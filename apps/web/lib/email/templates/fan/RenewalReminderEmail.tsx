@@ -48,7 +48,7 @@ export function RenewalReminderEmail({
     return (
         <Html>
             <Head />
-            <Preview>【{daysRemaining}日後に期限切れ】更新手続きのご案内 - {creatorName}</Preview>
+            <Preview>{`【${daysRemaining}日後に期限切れ】更新手続きのご案内 - ${creatorName}`}</Preview>
             <Body style={main}>
                 <Container style={container}>
                     <Heading style={h1}>🔔 更新手続きのご案内</Heading>

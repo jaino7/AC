@@ -294,12 +294,12 @@ export default function StudioProContentPage() {
 
                       {/* Badges */}
                       <div className="absolute left-3 top-3 flex gap-2">
-                        {card.type === "premium" && (
+                        {card.badge === "premium" && (
                           <span className="rounded bg-yellow-500 px-2 py-0.5 text-xs font-bold uppercase text-black">
                             プレミアム
                           </span>
                         )}
-                        {card.type === "new" && (
+                        {card.badge === "new" && (
                           <span className="rounded bg-orange-500 px-2 py-0.5 text-xs font-bold uppercase text-white">
                             新着
                           </span>

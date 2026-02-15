@@ -27,7 +27,8 @@ export async function POST(
             },
         });
 
-        if (!user?.fanProfile) {
+        const fanProfile = user?.fanProfile?.[0];
+        if (!fanProfile) {
             return NextResponse.json(
                 { error: "ファンプロフィールが見つかりません" },
                 { status: 404 }
@@ -52,12 +53,12 @@ export async function POST(
         const savedPost = await prisma.savedPost.upsert({
             where: {
                 fanId_postId: {
-                    fanId: user.fanProfile.id,
+                    fanId: fanProfile.id,
                     postId: postId,
                 },
             },
             create: {
-                fanId: user.fanProfile.id,
+                fanId: fanProfile.id,
                 postId: postId,
             },
             update: {}, // No update needed if it already exists
@@ -101,7 +102,8 @@ export async function DELETE(
             },
         });
 
-        if (!user?.fanProfile) {
+        const fanProfile = user?.fanProfile?.[0];
+        if (!fanProfile) {
             return NextResponse.json(
                 { error: "ファンプロフィールが見つかりません" },
                 { status: 404 }
@@ -113,7 +115,7 @@ export async function DELETE(
         // Delete saved post if it exists
         await prisma.savedPost.deleteMany({
             where: {
-                fanId: user.fanProfile.id,
+                fanId: fanProfile.id,
                 postId: postId,
             },
         });
