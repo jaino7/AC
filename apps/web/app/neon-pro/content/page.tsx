@@ -1,6 +1,7 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -44,7 +45,7 @@ type CreatorProfile = {
 
 type TabType = "all" | "images" | "videos" | "archive";
 
-export default function NeonProContentPage() {
+function NeonProContentPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -538,5 +539,13 @@ export default function NeonProContentPage() {
         </footer>
       </div>
     </div>
+  );
+}
+
+export default function NeonProContentPage() {
+  return (
+    <Suspense>
+      <NeonProContentPageContent />
+    </Suspense>
   );
 }

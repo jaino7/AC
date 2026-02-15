@@ -1,6 +1,7 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -66,7 +67,7 @@ const getTimeAgo = (date: Date): string => {
   return "たった今";
 };
 
-export default function StudioProContentPage() {
+function StudioProContentPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -398,3 +399,10 @@ export default function StudioProContentPage() {
   );
 }
 
+export default function StudioProContentPage() {
+  return (
+    <Suspense>
+      <StudioProContentPageContent />
+    </Suspense>
+  );
+}

@@ -1,6 +1,7 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -39,7 +40,7 @@ type CreatorProfile = {
 
 type TabType = "all" | "bronze" | "free" | "gold";
 
-export default function ZineLiteContentPage() {
+function ZineLiteContentPageContent() {
   const searchParams = useSearchParams();
   const propHandle = searchParams.get("handle") || undefined;
   const handle = propHandle;
@@ -528,5 +529,13 @@ export default function ZineLiteContentPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function ZineLiteContentPage() {
+  return (
+    <Suspense>
+      <ZineLiteContentPageContent />
+    </Suspense>
   );
 }

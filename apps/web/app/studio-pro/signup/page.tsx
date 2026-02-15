@@ -1,11 +1,12 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { StudioProSignupForm } from "./signup-form";
 
-export default function StudioProSignupPage() {
+function StudioProSignupPageContent() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -30,4 +31,12 @@ export default function StudioProSignupPage() {
             </section>
         </main>
     );
+}
+
+export default function StudioProSignupPage() {
+  return (
+    <Suspense>
+      <StudioProSignupPageContent />
+    </Suspense>
+  );
 }

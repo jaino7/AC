@@ -1,11 +1,12 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { SimpleAccountPage } from "@/components/account/simple-account-page";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export default function VelvetProAccountPage() {
+function VelvetProAccountPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -21,5 +22,13 @@ export default function VelvetProAccountPage() {
       logoUrl={null}
       currentPage="account"
     />
+  );
+}
+
+export default function VelvetProAccountPage() {
+  return (
+    <Suspense>
+      <VelvetProAccountPageContent />
+    </Suspense>
   );
 }

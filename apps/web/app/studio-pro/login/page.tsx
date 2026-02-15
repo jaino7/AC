@@ -1,11 +1,12 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { StudioProLoginForm } from "./login-form";
 
-export default function StudioProLoginPage() {
+function StudioProLoginPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -24,5 +25,13 @@ export default function StudioProLoginPage() {
         <StudioProLoginForm handle={handle} />
       </div>
     </div>
+  );
+}
+
+export default function StudioProLoginPage() {
+  return (
+    <Suspense>
+      <StudioProLoginPageContent />
+    </Suspense>
   );
 }

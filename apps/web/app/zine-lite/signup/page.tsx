@@ -1,11 +1,12 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { ZineLiteSignupForm } from "./signup-form";
 
-export default function ZineLiteSignupPage() {
+function ZineLiteSignupPageContent() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -30,4 +31,12 @@ export default function ZineLiteSignupPage() {
             </section>
         </main>
     );
+}
+
+export default function ZineLiteSignupPage() {
+  return (
+    <Suspense>
+      <ZineLiteSignupPageContent />
+    </Suspense>
+  );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { NeonProLoginForm } from "./login-form";
 
-export default function NeonProLoginPage() {
+function NeonProLoginPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -29,5 +30,13 @@ export default function NeonProLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NeonProLoginPage() {
+  return (
+    <Suspense>
+      <NeonProLoginPageContent />
+    </Suspense>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { SimpleAccountBillingPage } from "@/components/account/simple-account-page";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export default function StudioProBillingPage() {
+function StudioProBillingPageContent() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -21,4 +22,12 @@ export default function StudioProBillingPage() {
             logoUrl={null}
         />
     );
+}
+
+export default function StudioProBillingPage() {
+  return (
+    <Suspense>
+      <StudioProBillingPageContent />
+    </Suspense>
+  );
 }

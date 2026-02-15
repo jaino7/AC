@@ -1,6 +1,7 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -45,7 +46,7 @@ type CreatorProfile = {
 
 type TabType = "all" | "velvet-elite" | "gold" | "video" | "backstage";
 
-export default function VelvetProContentPage() {
+function VelvetProContentPageContent() {
   const searchParams = useSearchParams();
   const propHandle = searchParams.get("handle") || undefined;
   const handle = propHandle;
@@ -519,5 +520,13 @@ export default function VelvetProContentPage() {
         contentTitle={selectedCard?.title}
       />
     </div>
+  );
+}
+
+export default function VelvetProContentPage() {
+  return (
+    <Suspense>
+      <VelvetProContentPageContent />
+    </Suspense>
   );
 }

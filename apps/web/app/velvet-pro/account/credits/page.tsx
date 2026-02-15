@@ -1,6 +1,7 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from "react";
+
 
 import { useState, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -27,7 +28,7 @@ type ChargeRequest = {
     createdAt: string;
 };
 
-export default function VelvetProCreditsPage() {
+function VelvetProCreditsPageContent() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
@@ -240,4 +241,12 @@ export default function VelvetProCreditsPage() {
             </footer>
         </div>
     );
+}
+
+export default function VelvetProCreditsPage() {
+  return (
+    <Suspense>
+      <VelvetProCreditsPageContent />
+    </Suspense>
+  );
 }
