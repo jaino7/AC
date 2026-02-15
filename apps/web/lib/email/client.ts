@@ -2,8 +2,6 @@ import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 import React from 'react';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 interface SendEmailParams {
     to: string;
     subject: string;
@@ -24,6 +22,8 @@ export async function sendEmail({
     recipientId,
     metadata,
 }: SendEmailParams) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     // EmailLogレコードを作成
     const emailLog = await prisma.emailLog.create({
         data: {
