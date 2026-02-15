@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { PrismaModule } from "../prisma/prisma.module";
+import { MailModule } from "../mail/mail.module";
 import { CreatorsController } from "./creators.controller";
 import { CreatorsService } from "./creators.service";
 import { DomainsController } from "./domains.controller";
@@ -14,7 +15,7 @@ import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, MailModule],
   controllers: [CreatorsController, DomainsController, BrandAssetsController, AnalyticsController, PageViewsController, NotificationsController],
   providers: [CreatorsService, DomainsService, BrandAssetsService, AnalyticsService, PageViewsService, NotificationsService],
   exports: [DomainsService, BrandAssetsService, AnalyticsService, PageViewsService, NotificationsService]

@@ -8,6 +8,15 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { randomBytes } from "crypto";
 
+interface MulterFile {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    buffer: Buffer;
+    size: number;
+}
+
 @Injectable()
 export class BrandAssetsService {
     private readonly uploadDir = path.join(process.cwd(), "uploads", "brand-assets");
@@ -33,7 +42,7 @@ export class BrandAssetsService {
     async uploadAsset(
         creatorId: string,
         type: "logo" | "favicon",
-        file: Express.Multer.File
+        file: MulterFile
     ) {
         // クリエイタープロフィールの存在確認
         const creator = await this.prisma.creatorProfile.findUnique({

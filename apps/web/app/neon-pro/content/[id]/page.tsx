@@ -1,213 +1,332 @@
 "use client";
 
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
+import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
 
-// Sample data - in a real app this would come from an API
-const contentData: Record<string, { title: string; description: string; cover: string; type: "free" | "fan"; likes: number }> = {
-    "1": {
-        title: "最新ビデオログ #03",
-        description: "今回は最新のビデオログをお届けします。撮影の舞台裏や制作過程を詳しく紹介しています。ぜひご覧ください！",
-        cover: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1200&q=80",
-        type: "free",
-        likes: 234
-    },
-    "2": {
-        title: "舞台裏フォトセット",
-        description: "撮影現場の舞台裏をフォトセットでお届けします。普段見ることのできない貴重なショットばかりです。",
-        cover: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=80",
-        type: "fan",
-        likes: 567
-    },
-    "3": {
-        title: "限定配信アーカイブ",
-        description: "過去の限定配信のアーカイブです。見逃した方もこちらでご視聴いただけます。",
-        cover: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80",
-        type: "free",
-        likes: 189
-    },
-    "4": {
-        title: "スペシャルQ&Aセッション",
-        description: "ファンの皆さまからの質問にお答えするスペシャルQ&Aセッションです。様々な質問にお答えしています！",
-        cover: "https://images.unsplash.com/photo-1475139744895-2d4dbd74c3e0?auto=format&fit=crop&w=1200&q=80",
-        type: "fan",
-        likes: 412
-    },
-    "5": {
-        title: "月間レポートビデオ",
-        description: "今月の活動をまとめたレポートビデオです。イベントやコラボレーションの様子をご紹介します。",
-        cover: "https://images.unsplash.com/photo-1469478714370-89768c73a8e0?auto=format&fit=crop&w=1200&q=80",
-        type: "free",
-        likes: 98
-    },
-    "6": {
-        title: "未公開シーン集",
-        description: "これまで公開されていなかった未公開シーンをまとめました。ファンプラン限定のコンテンツです。",
-        cover: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
-        type: "fan",
-        likes: 782
-    }
-};
+interface Media {
+    id: string;
+    url: string;
+    type: string;
+    isSample: boolean;
+}
 
-// Related content suggestions
-const relatedContent = [
-    {
-        id: "3",
-        title: "限定配信アーカイブ",
-        cover: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=60"
-    },
-    {
-        id: "5",
-        title: "月間レポートビデオ",
-        cover: "https://images.unsplash.com/photo-1469478714370-89768c73a8e0?auto=format&fit=crop&w=600&q=60"
-    },
-    {
-        id: "2",
-        title: "舞台裏フォトセット",
-        cover: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=60"
-    }
-];
+interface Plan {
+    id: string;
+    name: string;
+    price: number;
+}
 
-export default function ContentDetailPage() {
+interface Post {
+    id: string;
+    title: string;
+    content: string | null;
+    thumbnailUrl: string | null;
+    isLocked: boolean;
+    price: number | null;
+    createdAt: string;
+    media: Media[];
+    requiredPlan: Plan | null;
+}
+
+interface Creator {
+    id: string;
+    handle: string;
+    displayName: string;
+    bio: string | null;
+    theme: string;
+}
+
+export default function NeonProContentDetailPage() {
     const params = useParams();
-    const router = useRouter();
     const id = params.id as string;
-    const content = contentData[id];
+    const [selectedSampleIndex, setSelectedSampleIndex] = useState(0);
+    const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+    const [isPurchasing, setIsPurchasing] = useState(false);
 
-    const [liked, setLiked] = useState(false);
-    const [likeCount, setLikeCount] = useState(content?.likes || 0);
+    // クレジット情報を取得
+    const { data: creditsData } = useCredits();
+    const invalidateCredits = useInvalidateCredits();
 
-    if (!content) {
+    const { data, isLoading, refetch } = useQuery({
+        queryKey: ["content-detail", "neon-pro", id],
+        queryFn: async () => {
+            const response = await fetch(`/api/posts/${id}`);
+            if (!response.ok) {
+                throw new Error("Failed to fetch content");
+            }
+            return response.json();
+        },
+    });
+
+    if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#030506] text-white flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-xl">コンテンツが見つかりません</p>
-                    <Link href="/neon-pro/content" className="mt-4 inline-block text-teal-400 hover:underline">
-                        コンテンツ一覧に戻る
-                    </Link>
-                </div>
+            <div className="min-h-screen flex items-center justify-center bg-[#030506] text-white">
+                <p className="text-white/70">読み込み中...</p>
             </div>
         );
     }
 
-    const handleLike = () => {
-        if (liked) {
-            setLiked(false);
-            setLikeCount(likeCount - 1);
-        } else {
-            setLiked(true);
-            setLikeCount(likeCount + 1);
+    if (!data) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#030506] text-white">
+                <p className="text-white/70">コンテンツが見つかりません</p>
+            </div>
+        );
+    }
+
+    const post: Post = data.post;
+    const creator: Creator = data.post.creator;
+    const sampleMedia = post.media.filter((m) => m.isSample);
+    const mainMedia = post.media.filter((m) => !m.isSample);
+    const hasAccess: boolean = data.hasAccess || false;
+
+    // 購入処理
+    const handlePurchase = async () => {
+        if (!post?.price) return;
+
+        const currentCredits = creditsData?.credits || 0;
+
+        // クレジット不足チェック
+        if (currentCredits < post.price) {
+            setShowInsufficientModal(true);
+            return;
+        }
+
+        setIsPurchasing(true);
+
+        try {
+            const response = await fetch("/api/fans/content/purchase", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    contentId: post.id,
+                }),
+            });
+
+            if (response.ok) {
+                invalidateCredits();
+                await refetch();
+            } else {
+                const error = await response.json();
+                if (error.shortage) {
+                    setShowInsufficientModal(true);
+                } else {
+                    alert(error.error || "購入に失敗しました");
+                }
+            }
+        } catch (error) {
+            console.error("Purchase error:", error);
+            alert("購入処理に失敗しました");
+        } finally {
+            setIsPurchasing(false);
         }
     };
 
     return (
         <div className="min-h-screen bg-[#030506] text-white">
-            <div className="mx-auto w-full max-w-4xl px-4 py-10">
-                {/* Back Button */}
-                <button
-                    onClick={() => router.back()}
-                    className="mb-6 flex items-center gap-2 text-sm text-white/70 transition hover:text-teal-300"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+            {/* ヘッダー */}
+            <header className="border-b border-white/10 px-6 py-4">
+                <div className="mx-auto max-w-5xl">
+                    <Link
+                        href="/neon-pro/content"
+                        className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-teal-300"
                     >
-                        <path d="M19 12H5" />
-                        <path d="M12 19l-7-7 7-7" />
-                    </svg>
-                    戻る
-                </button>
-
-                {/* Content Image */}
-                <div className="overflow-hidden rounded-3xl">
-                    <img
-                        src={content.cover}
-                        alt={content.title}
-                        className="h-96 w-full object-cover"
-                    />
-                </div>
-
-                {/* Content Info */}
-                <div className="mt-8">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <h1 className="text-3xl font-semibold">{content.title}</h1>
-                            <span
-                                className={`mt-3 inline-block rounded-full px-4 py-1.5 text-sm font-semibold ${content.type === "free"
-                                        ? "bg-teal-400/20 text-teal-300"
-                                        : "bg-purple-400/20 text-purple-300"
-                                    }`}
-                            >
-                                {content.type === "free" ? "無料" : "ファンプラン"}
-                            </span>
-                        </div>
-
-                        {/* Like Button */}
-                        <button
-                            onClick={handleLike}
-                            className={`flex items-center gap-2 rounded-2xl border px-6 py-3 font-semibold transition ${liked
-                                    ? "border-teal-400 bg-teal-400 text-black"
-                                    : "border-white/20 bg-white/5 text-white/80 hover:border-teal-400/50 hover:bg-white/10"
-                                }`}
-                        >
-                            <span className="text-xl">{liked ? "❤️" : "♡"}</span>
-                            <span>{likeCount}</span>
-                        </button>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        一覧に戻る
+                    </Link>
+                    <div className="mt-4">
+                        <p className="text-sm text-white/50">{creator.displayName}</p>
+                        <h1 className="text-3xl font-bold text-white mt-1">{post.title}</h1>
                     </div>
-
-                    {/* Description */}
-                    <p className="mt-6 text-lg leading-relaxed text-white/80">
-                        {content.description}
-                    </p>
                 </div>
+            </header>
 
-                {/* Related Content */}
-                <div className="mt-16">
-                    <h2 className="text-xl font-semibold">関連コンテンツ</h2>
-                    <div className="mt-6 grid gap-6 sm:grid-cols-3">
-                        {relatedContent.map((item) => (
-                            <Link
-                                key={item.id}
-                                href={`/neon-pro/content/${item.id}`}
-                                className="group"
-                            >
-                                <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#070b0f] transition hover:border-teal-400/60">
-                                    <img
-                                        src={item.cover}
-                                        alt={item.title}
-                                        className="h-40 w-full object-cover transition group-hover:scale-105"
-                                    />
-                                    <p className="p-3 text-sm text-white/80">{item.title}</p>
+            <main className="mx-auto max-w-5xl px-6 py-8">
+                <div className="grid gap-8 lg:grid-cols-[1fr,400px]">
+                    {/* メインエリア */}
+                    <div className="space-y-6">
+                        {/* サンプルメディア */}
+                        {sampleMedia.length > 0 && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-lg font-semibold text-white">
+                                        プレビュー（無料サンプル）
+                                    </h2>
+                                    {sampleMedia.length > 1 && (
+                                        <p className="text-sm text-white/50">
+                                            {selectedSampleIndex + 1} / {sampleMedia.length}
+                                        </p>
+                                    )}
                                 </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
 
-                {/* Footer */}
-                <footer className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8 text-xs text-white/60">
-                    <p>©CocoBa</p>
-                    <div className="flex gap-4">
-                        <a href="#" className="hover:text-teal-300">
-                            利用規約
-                        </a>
-                        <a href="#" className="hover:text-teal-300">
-                            プライバシーポリシー
-                        </a>
-                        <a href="#" className="hover:text-teal-300">
-                            特定商取引法に基づく表記
-                        </a>
+                                {/* メディア表示 */}
+                                <div className="rounded-3xl overflow-hidden bg-[#070b0f] border border-white/10">
+                                    {sampleMedia[selectedSampleIndex].type === "VIDEO" ? (
+                                        <video
+                                            src={sampleMedia[selectedSampleIndex].url}
+                                            controls
+                                            className="w-full aspect-video object-contain bg-black"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={sampleMedia[selectedSampleIndex].url}
+                                            alt={`Sample ${selectedSampleIndex + 1}`}
+                                            className="w-full aspect-video object-contain bg-[#070b0f]"
+                                        />
+                                    )}
+                                </div>
+
+                                {/* サムネイル選択 */}
+                                {sampleMedia.length > 1 && (
+                                    <div className="flex gap-3 overflow-x-auto pb-2">
+                                        {sampleMedia.map((media, index) => (
+                                            <button
+                                                key={media.id}
+                                                onClick={() => setSelectedSampleIndex(index)}
+                                                className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition ${selectedSampleIndex === index
+                                                    ? "border-teal-400"
+                                                    : "border-white/10 hover:border-white/20"
+                                                    }`}
+                                            >
+                                                {media.type === "VIDEO" ? (
+                                                    <video src={media.url} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <img src={media.url} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 本編アクセスCTA */}
+                        {mainMedia.length > 0 && !hasAccess && (
+                            <div className="rounded-3xl border border-teal-400/30 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 p-8 text-center">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-400/20 mb-4">
+                                    <svg className="w-8 h-8 text-teal-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">
+                                    本編を視聴するには
+                                </h3>
+                                <p className="text-white/70 mb-6">
+                                    {post.requiredPlan
+                                        ? `${post.requiredPlan.name}プランに加入すると本編を視聴できます`
+                                        : post.price
+                                            ? `¥${post.price.toLocaleString()}で本編を購入できます`
+                                            : "本編を視聴するにはアクセス権が必要です"}
+                                </p>
+                                {post.requiredPlan ? (
+                                    <Link
+                                        href="/neon-pro/content"
+                                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 px-8 py-3 font-semibold text-black hover:from-teal-300 hover:to-cyan-300 transition"
+                                    >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                                        </svg>
+                                        {post.requiredPlan.name}プランに加入（月額¥{post.requiredPlan.price.toLocaleString()}）
+                                    </Link>
+                                ) : post.price ? (
+                                    <button
+                                        onClick={handlePurchase}
+                                        disabled={isPurchasing}
+                                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 px-8 py-3 font-semibold text-black hover:from-teal-300 hover:to-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                        </svg>
+                                        {isPurchasing ? "処理中..." : `¥${post.price.toLocaleString()}で購入`}
+                                    </button>
+                                ) : null}
+                            </div>
+                        )}
+
+                        {/* 本編メディア（アクセス権がある場合） */}
+                        {mainMedia.length > 0 && hasAccess && (
+                            <div className="space-y-4">
+                                <h2 className="text-lg font-semibold text-white">
+                                    本編コンテンツ（{mainMedia.length}ファイル）
+                                </h2>
+                                <div className="grid gap-4">
+                                    {mainMedia.map((media, index) => (
+                                        <div key={media.id} className="rounded-3xl overflow-hidden bg-[#070b0f] border border-white/10">
+                                            {media.type === "VIDEO" ? (
+                                                <video
+                                                    src={media.url}
+                                                    controls
+                                                    className="w-full aspect-video object-contain bg-black"
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={media.url}
+                                                    alt={`Content ${index + 1}`}
+                                                    className="w-full object-contain bg-[#070b0f]"
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 説明文 */}
+                        {post.content && (
+                            <div className="prose prose-invert max-w-none">
+                                <p className="text-white/80 whitespace-pre-wrap">{post.content}</p>
+                            </div>
+                        )}
                     </div>
-                </footer>
-            </div>
+
+                    {/* サイドバー */}
+                    <aside className="space-y-6">
+
+                        {/* 投稿情報 */}
+                        <div className="rounded-3xl border border-white/10 bg-[#070b0f] p-6">
+                            <dl className="space-y-3 text-sm">
+                                <div>
+                                    <dt className="text-white/50">公開日</dt>
+                                    <dd className="text-white font-medium">
+                                        {new Date(post.createdAt).toLocaleDateString("ja-JP", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                        })}
+                                    </dd>
+                                </div>
+                                {(() => {
+                                    const allMedia = [...sampleMedia, ...mainMedia];
+                                    const images = allMedia.filter(m => m.type === "IMAGE");
+                                    return images.length > 0 && (
+                                        <div>
+                                            <dt className="text-white/50">画像</dt>
+                                            <dd className="text-white font-medium">{images.length}枚</dd>
+                                        </div>
+                                    );
+                                })()}
+                            </dl>
+                        </div>
+                    </aside>
+                </div>
+            </main>
+
+            {/* クレジット不足モーダル */}
+            <InsufficientCreditsModal
+                isOpen={showInsufficientModal}
+                onClose={() => setShowInsufficientModal(false)}
+                currentCredits={creditsData?.credits || 0}
+                requiredAmount={post?.price || 0}
+                contentTitle={post?.title}
+            />
         </div>
     );
 }

@@ -1,16 +1,28 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@creator/shared";
 import { notFound } from "next/navigation";
 import { ThemeContentWrapper } from "./theme-wrapper";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+
+
+// export const revalidate = 0; // 常に最新のデータを取得
+export const dynamic = "force-dynamic"; // キャッシュを無効化し、常に動的にレンダリング
 
 interface ContentPageProps {
     params: { handle: string };
 }
 
+import { unstable_noStore as noStore } from "next/cache";
+
 export default async function Page({ params }: ContentPageProps) {
+    noStore(); // データのキャッシュを無効化
+
     // クリエイター情報を取得
     const creator = await prisma.creatorProfile.findUnique({
         where: { handle: params.handle },
         select: {
+            id: true,
             handle: true,
             theme: true
         }
@@ -20,6 +32,50 @@ export default async function Page({ params }: ContentPageProps) {
         notFound();
     }
 
+    console.log(`[Content Page] Handle: ${params.handle}, Retrieved Theme: ${creator.theme}, Timestamp: ${new Date().toISOString()}`);
+
+
+    // 認証セッションを取得
+    const session = await getServerSession(authOptions);
+
+    // ログイン中のユーザーがいる場合、FanProfileを確認・作成
+    if (session?.user) {
+        const userId = (session.user as any).id;
+
+        if (userId) {
+            try {
+                // FanProfileが存在するか確認
+                const existingFanProfile = await prisma.fanProfile.findUnique({
+                    where: {
+                        userId_creatorId: {
+                            userId: userId,
+                            creatorId: creator.id
+                        }
+                    }
+                });
+
+                // FanProfileが存在しない場合は作成
+                if (!existingFanProfile) {
+                    const displayName = session.user.name || session.user.email?.split("@")[0] || "ユーザー";
+
+                    await prisma.fanProfile.create({
+                        data: {
+                            userId: userId,
+                            creatorId: creator.id,
+                            displayName: displayName,
+                            credits: 0
+                        }
+                    });
+
+                    console.log(`FanProfile created for user ${userId} and creator ${creator.handle}`);
+                }
+            } catch (error) {
+                // FanProfile作成エラーはログに記録するが、ページ表示は継続
+                console.error("Error ensuring FanProfile:", error);
+            }
+        }
+    }
+
     // テーマに応じたコンテンツページをラッパー経由でレンダリング（リダイレクトなし）
-    return <ThemeContentWrapper handle={creator.handle} theme={creator.theme} />;
+    return <ThemeContentWrapper handle={creator.handle} initialTheme={creator.theme} />;
 }

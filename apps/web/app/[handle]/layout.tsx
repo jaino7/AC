@@ -1,7 +1,13 @@
-import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { prisma } from "@creator/shared";
+import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
-import { HandleSessionProvider } from "./providers";
+// import { HandleSessionProvider } from "./providers";
+import { CustomSessionProvider } from "@/components/providers/handle-session-provider";
+// DebugSessionコンポーネントを削除
+// import { DebugSession } from "@/components/debug-session";
+
+// export const revalidate = 0; // 常に最新のデータを取得
+export const dynamic = "force-dynamic"; // キャッシュを無効化し、常に動的にレンダリング
 
 // テーマに対応するレイアウトスタイル
 const themeStyles: Record<string, { bg: string; accent: string }> = {
@@ -35,7 +41,16 @@ export async function generateMetadata({ params }: HandleLayoutProps): Promise<M
     };
 }
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+import { unstable_noStore as noStore } from "next/cache";
+
 export default async function HandleLayout({ children, params }: HandleLayoutProps) {
+    noStore(); // データのキャッシュを無効化
+    const session = await getServerSession(authOptions);
+    // デバッグログ削除
+
     // クリエイターを取得
     const creator = await prisma.creatorProfile.findUnique({
         where: { handle: params.handle },
@@ -54,16 +69,39 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
         notFound();
     }
 
+    // Check if fan account is locked
+    if (session?.user) {
+        const userId = (session.user as any).id;
+
+        // Skip check for public pages (login, signup, etc.)
+        const publicPaths = ['/login', '/signup', '/password-reset', '/verify-email'];
+        const isPublicPath = publicPaths.some(p => params.handle.endsWith(p));
+
+        if (userId && !isPublicPath) {
+            const fanProfile = await prisma.fanProfile.findFirst({
+                where: {
+                    userId: userId,
+                    creatorId: creator.id
+                },
+                select: { isLocked: true }
+            });
+
+            if (fanProfile?.isLocked) {
+                redirect('/account-suspended');
+            }
+        }
+    }
+
     const themeStyle = themeStyles[creator.theme] || themeStyles["creator-pro"];
 
     return (
-        <HandleSessionProvider>
+        <CustomSessionProvider session={session}>
             <div className={`min-h-screen ${themeStyle.bg}`}>
                 {/* クリエイター情報をコンテキストとして渡す */}
                 <div data-creator-id={creator.id} data-creator-handle={creator.handle} data-theme={creator.theme}>
                     {children}
                 </div>
             </div>
-        </HandleSessionProvider>
+        </CustomSessionProvider>
     );
 }

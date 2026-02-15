@@ -3,6 +3,7 @@ import { ThemeCustomizerWrapper } from "@/components/ThemeCustomizerWrapper";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@creator/shared";
 
 export default async function ThemeSettingsPage() {
     const session = await getServerSession(authOptions);
@@ -11,10 +12,35 @@ export default async function ThemeSettingsPage() {
         redirect("/creators/login");
     }
 
-    // TODO: Prisma Clientの再生成後、creatorProfileから実際のテーマを取得
-    // 現在はデフォルト値を使用
-    const currentTheme = "creator-pro";
-    const currentThemeConfig = undefined; // TODO: creator.themeConfig
+    // Get user
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+    });
+
+    if (!user) {
+        redirect("/creators/login");
+    }
+
+    // Get creator profile with theme
+    const creatorProfile = await prisma.creatorProfile.findUnique({
+        where: { userId: user.id },
+        select: {
+            theme: true,
+            themeConfig: true,
+        },
+    });
+
+    if (!creatorProfile) {
+        redirect("/creators/signup");
+    }
+
+    const currentTheme = creatorProfile.theme || "creator-pro";
+    const currentThemeConfig = creatorProfile.themeConfig as any; // TODO: Type properly
+
+    // Debug: Log the current theme
+    console.log("[Theme Settings] Current theme from DB:", creatorProfile.theme);
+    console.log("[Theme Settings] Final currentTheme:", currentTheme);
 
     return (
         <div className="space-y-6">
@@ -24,6 +50,13 @@ export default async function ThemeSettingsPage() {
                     サイトのデザインを選択してください。変更は即座に反映されます。
                 </p>
             </header>
+
+            {/* デバッグ情報 */}
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+                <p className="font-semibold text-yellow-900">デバッグ情報:</p>
+                <p className="text-yellow-800">データベースから取得したテーマ: {creatorProfile.theme || "(null)"}</p>
+                <p className="text-yellow-800">最終的なcurrentTheme: {currentTheme}</p>
+            </div>
 
             {/* テーマ選択 */}
             <ThemeSelector currentTheme={currentTheme} />

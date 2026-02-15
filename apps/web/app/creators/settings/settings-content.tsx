@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type Tab = "profile" | "plans" | "notifications" | "domain";
@@ -17,6 +17,14 @@ export default function SettingsContent() {
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
     const [maintenanceNotification, setMaintenanceNotification] = useState(true);
+    const [subscription, setSubscription] = useState<any>(null);
+
+    useEffect(() => {
+        fetch("/api/creators/subscription")
+            .then((r) => r.json())
+            .then((d) => { if (d.subscription) setSubscription(d.subscription); })
+            .catch(() => {});
+    }, []);
 
     return (
         <main className="min-h-screen bg-neutral-50 px-6 py-10 text-black lg:px-12">
@@ -95,24 +103,37 @@ export default function SettingsContent() {
                             <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                 <h2 className="mb-6 text-xl font-semibold">プランの詳細</h2>
 
-                                <div className="space-y-6">
-                                    {/* Trial Status */}
+                                <div className="space-y-4">
+                                    {/* Current Plan */}
                                     <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-neutral-50 p-6">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm font-semibold text-neutral-700">トライアル</span>
-                                            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                                残り3日
+                                            <span className="text-sm font-semibold text-neutral-700">現在のプラン</span>
+                                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                                                {subscription?.plan?.name ?? "無料プラン"}
                                             </span>
+                                            {subscription?.status === "ACTIVE" && subscription?.nextBillingDate && (
+                                                <span className="text-xs text-neutral-500">
+                                                    次回更新: {new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <button className="text-sm font-semibold text-pink-600 transition-colors hover:text-pink-700">
-                                                トライアルをキャンセルする
+                                        <Link href="/creators/pricing">
+                                            <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
+                                                プランを変更する
                                             </button>
-                                            <Link href="/creators/pricing">
-                                                <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
-                                                    プランを選択する
-                                                </button>
-                                            </Link>
+                                        </Link>
+                                    </div>
+
+                                    {/* Prepaid Balance */}
+                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-neutral-50 p-6">
+                                        <div>
+                                            <span className="text-sm font-semibold text-neutral-700">プリペイド残高</span>
+                                            <p className="mt-1 text-2xl font-bold text-blue-600">
+                                                ¥{(subscription?.billingBalance ?? 0).toLocaleString()}
+                                            </p>
+                                            <p className="mt-1 text-xs text-neutral-500">
+                                                プラン額以上の残高があると、更新日に自動引き落としされます
+                                            </p>
                                         </div>
                                     </div>
 

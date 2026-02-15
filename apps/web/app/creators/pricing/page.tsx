@@ -24,7 +24,7 @@ const plans: Plan[] = [
         name: "Lite",
         price: {
             monthly: 4980,
-            yearly: 49800, // 約2ヶ月分お得
+            yearly: 49800, // 2ヶ月分お得
         },
         description: "成長中のクリエイターに最適",
         features: [
@@ -92,7 +92,7 @@ export default function PricingPage() {
                             : "bg-white text-neutral-600 border border-neutral-300 hover:border-neutral-400"
                             }`}
                     >
-                        年払い（約2ヶ月分お得）
+                        年払い（2ヶ月分お得）
                     </button>
 
                 </div>

@@ -51,6 +51,11 @@ export async function GET(
                         id: true,
                         url: true,
                         type: true,
+                        isSample: true,
+                        duration: true,
+                    },
+                    orderBy: {
+                        createdAt: 'asc',
                     },
                 },
             },
@@ -80,6 +85,8 @@ export async function GET(
 
         // Check if user has access to locked content
         let hasAccess = !post.isLocked;
+        let hasPurchased = false;
+        let hasSubscription = false;
 
         if (post.isLocked) {
             const session = await getServerSession(authOptions);
@@ -89,11 +96,13 @@ export async function GET(
                     where: { email: session.user.email },
                     include: {
                         fanProfile: {
+                            where: { creatorId: post.creatorId },
                             include: {
                                 subscriptions: {
                                     where: {
                                         status: "ACTIVE",
-                                        planId: post.requiredPlanId || undefined,
+                                        endDate: { gte: new Date() },
+                                        ...(post.requiredPlanId ? { planId: post.requiredPlanId } : {}),
                                     },
                                 },
                                 purchases: {
@@ -106,17 +115,24 @@ export async function GET(
                     },
                 });
 
-                // Check if user has active subscription or purchased this post
-                const hasSubscription = user?.fanProfile?.subscriptions.length ?? 0 > 0;
-                const hasPurchased = user?.fanProfile?.purchases.length ?? 0 > 0;
+                const fanProfile = user?.fanProfile?.[0];
+                hasSubscription = (fanProfile?.subscriptions?.length ?? 0) > 0;
+                hasPurchased = (fanProfile?.purchases?.length ?? 0) > 0;
 
                 hasAccess = hasSubscription || hasPurchased;
             }
         }
 
+        // Filter out main media URLs when user doesn't have access
+        const filteredMedia = hasAccess
+            ? post.media
+            : post.media.map(m => m.isSample ? m : { ...m, url: '' });
+
         return NextResponse.json({
-            post,
-            hasAccess
+            post: { ...post, media: filteredMedia },
+            hasAccess,
+            hasPurchased,
+            hasSubscription,
         });
     } catch (error) {
         console.error("Error fetching post:", error);

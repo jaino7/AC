@@ -166,7 +166,7 @@ export default function EditBankAccountPage() {
                                     type="text"
                                     value={bankSearch}
                                     onChange={(e) => setBankSearch(e.target.value)}
-                                    placeholder="銀行名またはコードで検索..."
+                                    placeholder="銀行名またはコードで検索（例: みずほ、mufg、0001）"
                                     className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none"
                                 />
                             </div>
@@ -208,7 +208,7 @@ export default function EditBankAccountPage() {
                                     type="text"
                                     value={branchSearch}
                                     onChange={(e) => setBranchSearch(e.target.value)}
-                                    placeholder="支店名またはコードで検索..."
+                                    placeholder="支店名またはコードで検索（例: 本店、ほんてん、001）"
                                     className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none"
                                 />
                             </div>

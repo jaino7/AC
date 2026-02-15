@@ -2,13 +2,18 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// カスタムドメインからクリエイターハンドルを取得
-async function getCreatorHandleByDomain(domain: string): Promise<string | null> {
+// カスタムドメインからクリエイター情報を取得
+async function getCreatorByDomain(domain: string): Promise<{
+    handle: string;
+    creatorId: string;
+    status: string;
+    endDate?: string;
+} | null> {
     try {
         // APIサーバーのURL（環境変数から取得、デフォルトはlocalhost）
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-        const response = await fetch(`${apiUrl}/creators/domains/lookup?domain=${domain}`, {
+        const response = await fetch(`${apiUrl}/domains/lookup/${domain}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json"
@@ -17,7 +22,14 @@ async function getCreatorHandleByDomain(domain: string): Promise<string | null> 
 
         if (response.ok) {
             const data = await response.json();
-            return data.handle || null;
+            if (data.creator) {
+                return {
+                    handle: data.creator.handle,
+                    creatorId: data.creator.id,
+                    status: data.creator.creatorSubscription?.status,
+                    endDate: data.creator.creatorSubscription?.endDate
+                };
+            }
         }
 
         return null;
@@ -32,6 +44,84 @@ export default withAuth(
         const hostname = req.nextUrl.hostname;
         const path = req.nextUrl.pathname;
 
+        // Admin PathKey認証チェック（/admin/* パスのみ）
+        if (path.startsWith('/admin')) {
+            const adminPathKey = process.env.ADMIN_PATH_KEY;
+
+            // PathKeyが設定されている場合のみチェック
+            if (adminPathKey) {
+                const pathSegments = path.split('/').filter(Boolean);
+                const providedKey = pathSegments[1]; // /admin/{key}/...
+
+                // /admin または /admin/login の直接アクセスは /admin/{key}/login にリダイレクト
+                if (path === '/admin' || path === '/admin/') {
+                    const redirectUrl = req.nextUrl.clone();
+                    redirectUrl.pathname = `/admin/${adminPathKey}/login`;
+                    return NextResponse.redirect(redirectUrl);
+                }
+
+                // /admin/XXX の形式（XXXがPathKeyでない場合）
+                if (providedKey && providedKey !== adminPathKey) {
+                    // 404を返して存在しないように見せる
+                    return new NextResponse(
+                        `<!DOCTYPE html>
+                        <html>
+                          <head>
+                            <title>404 - Not Found</title>
+                            <meta charset="utf-8">
+                            <style>
+                              body {
+                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                height: 100vh;
+                                margin: 0;
+                                background: #f5f5f5;
+                              }
+                              .container {
+                                text-align: center;
+                                padding: 2rem;
+                                background: white;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                max-width: 500px;
+                              }
+                              h1 { color: #333; margin-bottom: 1rem; }
+                              p { color: #666; line-height: 1.6; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="container">
+                              <h1>404 - Not Found</h1>
+                              <p>お探しのページは見つかりませんでした。</p>
+                            </div>
+                          </body>
+                        </html>`,
+                        {
+                            status: 404,
+                            headers: {
+                                'Content-Type': 'text/html; charset=utf-8',
+                            },
+                        }
+                    );
+                }
+
+                // /admin/{正しいkey}/... の場合、内部的に /admin/... にrewrite
+                if (providedKey === adminPathKey) {
+                    const newPath = path.replace(`/admin/${adminPathKey}`, '/admin');
+                    const url = req.nextUrl.clone();
+                    url.pathname = newPath;
+
+                    // rewriteしたレスポンスにカスタムヘッダーを追加
+                    const response = NextResponse.rewrite(url);
+                    response.headers.set('x-pathname', path);
+                    return response;
+                }
+            }
+            // PathKeyが設定されていない場合はそのまま通す（開発環境）
+        }
+
         // カスタムドメインチェック
         // localhost, 127.0.0.1, vercel.app などのデフォルトドメイン以外の場合
         const isCustomDomain =
@@ -41,38 +131,146 @@ export default withAuth(
             !hostname.endsWith(".ngrok.io");
 
         if (isCustomDomain) {
-            // カスタムドメインからクリエイターハンドルを取得
-            const handle = await getCreatorHandleByDomain(hostname);
+            // カスタムドメインからクリエイター情報を取得
+            const creatorInfo = await getCreatorByDomain(hostname);
 
-            if (handle) {
+            if (creatorInfo) {
+                const { handle, creatorId, status, endDate } = creatorInfo;
+
+                // プラン期限切れチェック
+                if (
+                    status === 'EXPIRED' ||
+                    (endDate && new Date(endDate) < new Date())
+                ) {
+                    return new NextResponse(
+                        `
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <title>サービス停止中</title>
+                            <meta charset="utf-8">
+                            <style>
+                              body {
+                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                height: 100vh;
+                                margin: 0;
+                                background: #f5f5f5;
+                              }
+                              .container {
+                                text-align: center;
+                                padding: 2rem;
+                                background: white;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                max-width: 500px;
+                              }
+                              h1 { color: #333; margin-bottom: 1rem; }
+                              p { color: #666; line-height: 1.6; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="container">
+                              <h1>サービス停止中</h1>
+                              <p>このページは現在ご利用いただけません。</p>
+                              <p>プランの期限が切れています。</p>
+                            </div>
+                          </body>
+                        </html>
+                        `,
+                        {
+                            status: 503,
+                            headers: {
+                                'Content-Type': 'text/html; charset=utf-8',
+                            },
+                        }
+                    );
+                }
+
                 // クリエイターページへリライト
-                // 例: custom.com/posts → /creators/[handle]/posts
+                // 例: custom.com/ → /[handle]
                 const url = req.nextUrl.clone();
 
-                // 既に /creators/[handle] で始まっている場合はそのまま
-                if (path.startsWith(`/creators/${handle}`)) {
+                // 既に /[handle] で始まっている場合はそのまま
+                if (path.startsWith(`/${handle}`)) {
                     return NextResponse.next();
                 }
 
                 // ルートパスの場合はクリエイターのトップページへ
                 if (path === "/" || path === "") {
-                    url.pathname = `/creators/${handle}`;
+                    url.pathname = `/${handle}`;
                 } else {
                     // その他のパスはクリエイターのサブパスへ
-                    url.pathname = `/creators/${handle}${path}`;
+                    url.pathname = `/${handle}${path}`;
                 }
 
-                return NextResponse.rewrite(url);
+                // カスタムヘッダーを追加
+                const response = NextResponse.rewrite(url);
+                response.headers.set('x-custom-domain', hostname);
+                response.headers.set('x-creator-handle', handle);
+                response.headers.set('x-creator-id', creatorId);
+
+                return response;
+            } else {
+                // ドメインが見つからない場合
+                return new NextResponse(
+                    `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <title>ドメインが見つかりません</title>
+                        <meta charset="utf-8">
+                        <style>
+                          body {
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                            background: #f5f5f5;
+                          }
+                          .container {
+                            text-align: center;
+                            padding: 2rem;
+                            background: white;
+                            border-radius: 8px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                            max-width: 500px;
+                          }
+                          h1 { color: #333; margin-bottom: 1rem; }
+                          p { color: #666; line-height: 1.6; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="container">
+                          <h1>ドメインが見つかりません</h1>
+                          <p>このドメインは設定されていないか、現在利用できません。</p>
+                        </div>
+                      </body>
+                    </html>
+                    `,
+                    {
+                        status: 404,
+                        headers: {
+                            'Content-Type': 'text/html; charset=utf-8',
+                        },
+                    }
+                );
             }
         }
 
         // 通常のフロー（認証チェック）
+        // Note: Fan lock check is done in /[handle]/layout.tsx
         return NextResponse.next();
     },
     {
         callbacks: {
             authorized: ({ token, req }) => {
                 const path = req.nextUrl.pathname;
+                const adminPathKey = process.env.ADMIN_PATH_KEY;
 
                 // Public paths that don't require authentication
                 if (
@@ -82,6 +280,16 @@ export default withAuth(
                     path.startsWith('/creators/verify-email')
                 ) {
                     return true;
+                }
+
+                // Admin login path is always public (both with and without key)
+                if (path === '/admin/login' || (adminPathKey && path === `/admin/${adminPathKey}/login`)) {
+                    return true;
+                }
+
+                // Protected /admin/* paths require authentication (role check in layout)
+                if (path.startsWith('/admin')) {
+                    return !!token;
                 }
 
                 // Protected /creators/* paths require authentication

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import * as Imap from 'imap';
+import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMatchingService } from './payment-matching.service';
@@ -8,7 +8,7 @@ import { PaymentMatchingService } from './payment-matching.service';
 @Injectable()
 export class BankTransferPollService {
     private readonly logger = new Logger(BankTransferPollService.name);
-    private imap: Imap;
+    private imap!: Imap;
 
     constructor(
         private prisma: PrismaService,
@@ -19,8 +19,8 @@ export class BankTransferPollService {
 
     private initializeImap() {
         this.imap = new Imap({
-            user: process.env.GMAIL_USER,
-            password: process.env.GMAIL_APP_PASSWORD,
+            user: process.env.GMAIL_USER || '',
+            password: process.env.GMAIL_APP_PASSWORD || '',
             host: 'imap.gmail.com',
             port: 993,
             tls: true,
@@ -65,7 +65,7 @@ export class BankTransferPollService {
 
                             fetch.on('message', (msg, seqno) => {
                                 msg.on('body', async (stream, info) => {
-                                    const parsed = await simpleParser(stream);
+                                    const parsed = await simpleParser(stream as any);
                                     await this.processEmail(parsed, seqno);
                                 });
 
@@ -88,7 +88,7 @@ export class BankTransferPollService {
                 });
             });
 
-            this.imap.once('error', (err) => {
+            this.imap.once('error', (err: Error) => {
                 this.logger.error('IMAP error', err);
                 reject(err);
             });

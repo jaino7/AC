@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { TrustRankDisplay } from "@/components/credits/TrustRankDisplay";
+import ChargeModal from "@/components/credits/ChargeModal";
 
 type CreditHistory = {
     id: string;
@@ -22,14 +24,21 @@ type ChargeRequest = {
     createdAt: string;
 };
 
-export default function StudioProCreditsPage() {
+interface StudioProCreditsPageProps {
+    handle?: string;
+    displayName?: string;
+    logoUrl?: string | null;
+}
+
+export default function StudioProCreditsPage({ handle }: StudioProCreditsPageProps = {}) {
     const [credits, setCredits] = useState(0);
+    const [tier, setTier] = useState(0);
+    const [trustScore, setTrustScore] = useState(0);
+    const [isLocked, setIsLocked] = useState(false);
     const [history, setHistory] = useState<CreditHistory[]>([]);
     const [chargeRequests, setChargeRequests] = useState<ChargeRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [showChargeModal, setShowChargeModal] = useState(false);
-    const [chargeAmount, setChargeAmount] = useState("");
-    const [chargeResult, setChargeResult] = useState<any>(null);
 
     useEffect(() => {
         fetchCredits();
@@ -38,11 +47,20 @@ export default function StudioProCreditsPage() {
 
     const fetchCredits = async () => {
         try {
-            const res = await fetch("/api/fans/credits");
+            const url = handle ? `/api/fans/credits?handle=${handle}` : "/api/fans/credits";
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setCredits(data.credits);
-                setHistory(data.history);
+                setCredits(data.credits || 0);
+                setTier(data.tier || 0);
+                setTrustScore(data.trustScore || 0);
+                setIsLocked(data.isLocked || false);
+                setHistory(data.history || []);
+
+                // If account is locked, redirect to suspended page
+                if (data.isLocked) {
+                    window.location.href = "/account-suspended";
+                }
             }
         } catch (error) {
             console.error("Failed to fetch credits:", error);
@@ -53,41 +71,15 @@ export default function StudioProCreditsPage() {
 
     const fetchChargeRequests = async () => {
         try {
-            const res = await fetch("/api/fans/credits/charge-requests");
+            const url = handle ? `/api/fans/credits/charge-requests?handle=${handle}` : "/api/fans/credits/charge-requests";
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setChargeRequests(data.chargeRequests);
+                setChargeRequests(data.chargeRequests || []);
             }
         } catch (error) {
             console.error("Failed to fetch charge requests:", error);
-        }
-    };
-
-    const handleCharge = async () => {
-        const amount = parseInt(chargeAmount);
-        if (isNaN(amount) || amount < 1000) {
-            alert("チャージ金額は1,000円以上で入力してください");
-            return;
-        }
-
-        try {
-            const res = await fetch("/api/fans/credits/charge", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setChargeResult(data.chargeRequest);
-                setChargeAmount("");
-                fetchChargeRequests();
-            } else {
-                const error = await res.json();
-                alert(error.error);
-            }
-        } catch (error) {
-            console.error("Failed to create charge request:", error);
+            setChargeRequests([]);
         }
     };
 
@@ -127,7 +119,7 @@ export default function StudioProCreditsPage() {
                         <button className="rounded-full border border-white/20 px-4 py-2">🌙</button>
                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#fddcc3] to-[#fcb69f] overflow-hidden"></div>
                         <button
-                            onClick={() => signOut({ callbackUrl: "/studio-pro/login" })}
+                            onClick={() => signOut({ callbackUrl: handle ? `/${handle}/login` : "/studio-pro/login" })}
                             className="text-white/60 hover:text-white"
                         >
                             ログアウト
@@ -148,10 +140,10 @@ export default function StudioProCreditsPage() {
 
                 {/* Credit Balance */}
                 <section className="mt-8 rounded-[32px] border border-white/10 bg-[#070e1e] p-8">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-6">
                         <div>
                             <p className="text-sm text-white/60">クレジット残高</p>
-                            <p className="text-4xl font-bold text-[#2f6dff]">¥{credits.toLocaleString()}</p>
+                            <p className="text-4xl font-bold text-[#2f6dff]">¥{(credits || 0).toLocaleString()}</p>
                         </div>
                         <button
                             onClick={() => setShowChargeModal(true)}
@@ -160,10 +152,18 @@ export default function StudioProCreditsPage() {
                             チャージする
                         </button>
                     </div>
+
+                    {/* Trust Rank Display */}
+                    <TrustRankDisplay
+                        tier={tier}
+                        trustScore={trustScore}
+                        variant="studio-pro"
+                        className="pt-6 border-t border-white/10"
+                    />
                 </section>
 
                 {/* Charge Requests */}
-                {chargeRequests.length > 0 && (
+                {chargeRequests && chargeRequests.length > 0 && (
                     <section className="mt-8 rounded-[32px] border border-white/10 bg-[#070e1e] p-8">
                         <h2 className="text-xl font-semibold">チャージ申請</h2>
                         <div className="mt-4 space-y-3">
@@ -216,75 +216,14 @@ export default function StudioProCreditsPage() {
                 </section>
             </main>
 
-            {/* Charge Modal */}
             {showChargeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                    <div className="w-full max-w-md rounded-[32px] bg-[#070e1e] border border-white/10 p-8">
-                        {!chargeResult ? (
-                            <>
-                                <h3 className="text-xl font-semibold">クレジットをチャージ</h3>
-                                <p className="mt-2 text-sm text-white/60">
-                                    チャージ金額を入力し、銀行振込でお支払いください。
-                                </p>
-                                <div className="mt-6">
-                                    <label className="block text-sm font-medium">金額（1,000円〜100,000円）</label>
-                                    <input
-                                        type="number"
-                                        value={chargeAmount}
-                                        onChange={(e) => setChargeAmount(e.target.value)}
-                                        placeholder="10000"
-                                        className="mt-2 w-full rounded-xl border border-white/10 bg-[#030814] px-4 py-3 focus:border-[#2f6dff] focus:outline-none"
-                                    />
-                                </div>
-                                <div className="mt-6 flex gap-3">
-                                    <button
-                                        onClick={() => setShowChargeModal(false)}
-                                        className="flex-1 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold hover:bg-white/10"
-                                    >
-                                        キャンセル
-                                    </button>
-                                    <button
-                                        onClick={handleCharge}
-                                        className="flex-1 rounded-full bg-[#2f6dff] px-6 py-3 text-sm font-semibold text-white hover:bg-[#2563eb]"
-                                    >
-                                        申請する
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <h3 className="text-xl font-semibold text-[#2f6dff]">申請完了</h3>
-                                <div className="mt-4 rounded-2xl bg-[#030814] border border-white/10 p-4">
-                                    <p className="text-sm font-semibold">振込先情報</p>
-                                    <div className="mt-2 space-y-1 text-sm text-white/80">
-                                        <p>銀行名: {chargeResult.bankInfo.bankName}</p>
-                                        <p>支店名: {chargeResult.bankInfo.branchName}</p>
-                                        <p>口座種別: {chargeResult.bankInfo.accountType}</p>
-                                        <p>口座番号: {chargeResult.bankInfo.accountNumber}</p>
-                                        <p>口座名義: {chargeResult.bankInfo.accountHolder}</p>
-                                    </div>
-                                    <div className="mt-4 rounded-xl bg-[#2f6dff]/10 p-3">
-                                        <p className="text-xs font-semibold text-[#2f6dff]">識別コード</p>
-                                        <p className="text-lg font-bold text-[#2f6dff]">{chargeResult.identifierCode}</p>
-                                        <p className="mt-1 text-xs text-white/60">{chargeResult.instructions}</p>
-                                    </div>
-                                    <p className="mt-4 text-xs text-white/60">
-                                        有効期限: {new Date(chargeResult.expiresAt).toLocaleDateString("ja-JP")}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setShowChargeModal(false);
-                                        setChargeResult(null);
-                                    }}
-                                    className="mt-6 w-full rounded-full bg-[#2f6dff] px-6 py-3 text-sm font-semibold text-white"
-                                >
-                                    閉じる
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
+                <ChargeModal
+                    handle={handle}
+                    tier={tier}
+                    variant="studio-pro"
+                    onClose={() => { setShowChargeModal(false); fetchCredits(); fetchChargeRequests(); }}
+                    onSuccess={() => { fetchCredits(); fetchChargeRequests(); }}
+                />
             )}
 
             <footer className="mt-12 border-t border-white/10 bg-[#040a18] py-8">

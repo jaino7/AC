@@ -17,7 +17,7 @@ export default function StudioProLoginPage({ handle, displayName, logoUrl }: Stu
           {displayName ? `${displayName}にログイン` : "ログインまたは登録"}
         </h1>
 
-        <StudioProLoginForm />
+        <StudioProLoginForm handle={handle} />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { ThemeCustomizerWrapper } from "@/components/ThemeCustomizerWrapper";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@creator/shared";
 
 export default async function ThemeSettingsPage() {
     const session = await getServerSession(authOptions);
@@ -11,10 +12,31 @@ export default async function ThemeSettingsPage() {
         redirect("/creators/login");
     }
 
-    // TODO: Prisma Clientの再生成後、creatorProfileから実際のテーマを取得
-    // 現在はデフォルト値を使用
-    const currentTheme = "creator-pro";
-    const currentThemeConfig = undefined; // TODO: creator.themeConfig
+    // Get user
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+    });
+
+    if (!user) {
+        redirect("/creators/login");
+    }
+
+    // Get creator profile with theme
+    const creatorProfile = await prisma.creatorProfile.findUnique({
+        where: { userId: user.id },
+        select: {
+            theme: true,
+            themeConfig: true,
+        },
+    });
+
+    if (!creatorProfile) {
+        redirect("/creators/signup");
+    }
+
+    const currentTheme = creatorProfile.theme || "creator-pro";
+    const currentThemeConfig = creatorProfile.themeConfig as any;
 
     return (
         <div className="space-y-6">

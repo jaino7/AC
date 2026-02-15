@@ -5,6 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
+type Media = {
+  id: string;
+  url: string;
+  type: string;
+  isSample: boolean;
+  duration: number | null;
+};
+
 type Post = {
   id: string;
   title: string;
@@ -17,6 +25,7 @@ type Post = {
   timeAgo?: string;
   likes?: number;
   comments?: number;
+  media?: Media[];
 };
 
 type CreatorProfile = {
@@ -90,6 +99,7 @@ export default function NeonProContentPage({ handle: propHandle }: NeonProConten
             isLocked: post.isLocked,
             requiredTier: post.requiredPlan?.name,
             timeAgo: getTimeAgo(new Date(post.createdAt)),
+            media: post.media || [],
           }));
 
           setPosts(transformedPosts);
@@ -139,9 +149,9 @@ export default function NeonProContentPage({ handle: propHandle }: NeonProConten
           </button>
           <Link href={handle ? `/${handle}/account` : "/neon-pro/account"} className="flex w-full items-center gap-2 rounded px-3 py-2 text-xs font-semibold text-gray-400 hover:bg-gray-800 hover:text-white">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
             </svg>
-            設定
+            アカウント
           </Link>
           <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="flex w-full items-center gap-2 rounded px-3 py-2 text-xs font-semibold text-gray-400 hover:bg-gray-800 hover:text-white">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -289,7 +299,7 @@ export default function NeonProContentPage({ handle: propHandle }: NeonProConten
               {posts.map((post) => (
                 <Link
                   key={post.id}
-                  href={`/neon-pro/content/${post.id}`}
+                  href={handle ? `/${handle}/content/${post.id}` : `/neon-pro/content/${post.id}`}
                   className="group overflow-hidden rounded-lg border border-cyan-900/30 bg-gray-900/30 transition hover:border-cyan-700/50"
                 >
                   {post.cover && !post.isEncrypted && (
@@ -304,15 +314,50 @@ export default function NeonProContentPage({ handle: propHandle }: NeonProConten
                           FREE
                         </div>
                       )}
-                      {post.isLocked && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-                          <svg className="mb-2 h-10 w-10 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                          <div className="text-[10px] uppercase text-cyan-400">Access Denied</div>
-                          <div className="text-[9px] text-gray-400">REQ: {post.requiredTier}</div>
-                        </div>
-                      )}
+                      {/* メディア情報バッジ */}
+                      {post.media && (() => {
+                        const mainMedia = post.media.filter(m => !m.isSample);
+                        const videos = mainMedia.filter(m => m.type === "VIDEO");
+                        const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                        // 動画の合計時間を計算（秒数）
+                        const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+                        // 時間フォーマット関数 (例: 1523 -> "25:23")
+                        const formatDuration = (seconds: number): string => {
+                          const hours = Math.floor(seconds / 3600);
+                          const minutes = Math.floor((seconds % 3600) / 60);
+                          const secs = seconds % 60;
+
+                          if (hours > 0) {
+                            return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                          }
+                          return `${minutes}:${String(secs).padStart(2, '0')}`;
+                        };
+
+                        if (mainMedia.length === 0) return null;
+
+                        return (
+                          <div className="absolute bottom-2 right-2 flex gap-1.5">
+                            {videos.length > 0 && totalDuration > 0 && (
+                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                </svg>
+                                {formatDuration(totalDuration)}
+                              </div>
+                            )}
+                            {images.length > 0 && (
+                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                </svg>
+                                {images.length}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                   {post.isEncrypted && (

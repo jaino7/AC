@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds } = body;
+        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds, sampleMedia, mainMedia, singleSalePrice } = body;
 
         // バリデーション
         if (!title || title.trim() === "") {
@@ -80,6 +80,32 @@ export async function POST(req: Request) {
                     tagId
                 })),
                 skipDuplicates: true
+            });
+        }
+
+        // サンプルメディアを保存
+        if (sampleMedia && Array.isArray(sampleMedia) && sampleMedia.length > 0) {
+            await prisma.media.createMany({
+                data: sampleMedia.map((media: { url: string; duration: number | null }) => ({
+                    postId: post.id,
+                    url: media.url,
+                    type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    isSample: true,
+                    duration: media.duration
+                }))
+            });
+        }
+
+        // 限定コンテンツメディアを保存
+        if (mainMedia && Array.isArray(mainMedia) && mainMedia.length > 0) {
+            await prisma.media.createMany({
+                data: mainMedia.map((media: { url: string; duration: number | null }) => ({
+                    postId: post.id,
+                    url: media.url,
+                    type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    isSample: false,
+                    duration: media.duration
+                }))
             });
         }
 

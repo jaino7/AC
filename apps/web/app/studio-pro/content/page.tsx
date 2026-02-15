@@ -5,14 +5,24 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
+type Media = {
+  id: string;
+  url: string;
+  type: string;
+  isSample: boolean;
+  duration: number | null;
+};
+
 type ContentCard = {
   id: string;
   title: string;
-  creator: string;
+  description: string;
   cover: string | null;
-  duration?: string;
-  type: "free" | "premium" | "new";
+  badge?: "free" | "premium" | "new";
   isLocked?: boolean;
+  timeAgo?: string;
+  requiredTier?: string;
+  media?: Media[];
 };
 
 type CreatorProfile = {
@@ -30,6 +40,33 @@ type CreatorProfile = {
 interface StudioProContentPageProps {
   handle?: string;
 }
+
+// Helper function to calculate time ago
+const getTimeAgo = (date: Date): string => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) {
+    return Math.floor(interval) + "年前";
+  }
+  interval = seconds / 2592000;
+  if (interval > 1) {
+    return Math.floor(interval) + "ヶ月前";
+  }
+  interval = seconds / 86400;
+  if (interval > 1) {
+    return Math.floor(interval) + "日前";
+  }
+  interval = seconds / 3600;
+  if (interval > 1) {
+    return Math.floor(interval) + "時間前";
+  }
+  interval = seconds / 60;
+  if (interval > 1) {
+    return Math.floor(interval) + "分前";
+  }
+  return "たった今";
+};
 
 export default function StudioProContentPage({ handle: propHandle }: StudioProContentPageProps = {}) {
   const searchParams = useSearchParams();
@@ -71,14 +108,19 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
           const posts = postsData.posts || [];
 
           // Transform posts to content cards
-          const cards: ContentCard[] = posts.map((post: any, index: number) => ({
-            id: post.id,
-            title: post.title,
-            creator: creatorProfile?.displayName || "Creator",
-            cover: post.thumbnailUrl || post.mediaUrl,
-            type: post.isLocked ? "premium" : index < 2 ? "new" : "free",
-            isLocked: post.isLocked,
-          }));
+          const cards: ContentCard[] = posts.map((post: any, index: number) => {
+            return {
+              id: post.id,
+              title: post.title,
+              description: post.content || "",
+              cover: post.thumbnailUrl || post.mediaUrl,
+              badge: post.isLocked ? undefined : "free",
+              isLocked: post.isLocked,
+              requiredTier: post.requiredPlan?.name,
+              timeAgo: getTimeAgo(new Date(post.createdAt)),
+              media: post.media || [],
+            };
+          });
 
           setNewReleases(cards);
         }
@@ -161,7 +203,7 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
             {session && (
               <>
                 <Link href={handle ? `/${handle}/account` : "/studio-pro/account"} className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
-                  設定
+                  アカウント
                 </Link>
                 <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
                   ログアウト
@@ -228,7 +270,7 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
               {newReleases.map((card) => (
                 <Link
                   key={card.id}
-                  href={`/studio-pro/content/${card.id}`}
+                  href={handle ? `/${handle}/content/${card.id}` : `/studio-pro/content/${card.id}`}
                   className="group"
                 >
                   <article className="overflow-hidden rounded-xl bg-[#13171f] transition hover:bg-[#1a1f2e]">
@@ -263,13 +305,56 @@ export default function StudioProContentPage({ handle: propHandle }: StudioProCo
                       </div>
 
                       {/* Lock Overlay */}
-                      {card.isLocked && (
+                      {card.isLocked && !card.cover && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                           <svg className="h-12 w-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                           </svg>
                         </div>
                       )}
+
+                      {/* メディア情報バッジ */}
+                      {card.media && (() => {
+                        const mainMedia = card.media.filter(m => !m.isSample);
+                        const videos = mainMedia.filter(m => m.type === "VIDEO");
+                        const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                        const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+                        const formatDuration = (seconds: number): string => {
+                          const hours = Math.floor(seconds / 3600);
+                          const minutes = Math.floor((seconds % 3600) / 60);
+                          const secs = seconds % 60;
+
+                          if (hours > 0) {
+                            return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                          }
+                          return `${minutes}:${String(secs).padStart(2, '0')}`;
+                        };
+
+                        if (mainMedia.length === 0) return null;
+
+                        return (
+                          <div className="absolute bottom-2 right-2 flex gap-1.5">
+                            {videos.length > 0 && totalDuration > 0 && (
+                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                </svg>
+                                {formatDuration(totalDuration)}
+                              </div>
+                            )}
+                            {images.length > 0 && (
+                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                </svg>
+                                {images.length}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Content */}

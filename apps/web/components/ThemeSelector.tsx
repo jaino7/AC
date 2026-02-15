@@ -38,7 +38,8 @@ export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
         onSuccess: (themeId) => {
             setActiveTheme(themeId);
             setPreviewTheme(null);
-            router.refresh();
+            // ページ全体をリロードしてキャッシュをクリア
+            window.location.reload();
         },
     });
 

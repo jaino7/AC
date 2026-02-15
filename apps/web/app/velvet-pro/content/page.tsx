@@ -4,6 +4,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
+import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
+
+type Media = {
+  id: string;
+  url: string;
+  type: string;
+  isSample: boolean;
+  duration: number | null;
+};
 
 type ContentCard = {
   id: string;
@@ -15,6 +25,8 @@ type ContentCard = {
   isLocked?: boolean;
   timeAgo?: string;
   unlockPrice?: number;
+  price?: number | null;
+  media?: Media[];
 };
 
 type CreatorProfile = {
@@ -46,6 +58,13 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [contentCards, setContentCards] = useState<ContentCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<ContentCard | null>(null);
+
+  // クレジット情報を取得
+  const { data: creditsData } = useCredits(handle || undefined);
+  const invalidateCredits = useInvalidateCredits();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,6 +110,9 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
               badge: post.requiredPlan?.name?.toUpperCase(),
               isLocked: post.isLocked,
               timeAgo: getTimeAgo(new Date(post.createdAt)),
+              media: post.media || [],
+              price: post.price,
+              unlockPrice: post.price ? post.price / 100 : undefined,
             };
           });
 
@@ -116,6 +138,63 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
     if (diffMins < 60) return `${diffMins}分前`;
     if (diffHours < 24) return `${diffHours}時間前`;
     return `${diffDays}日前`;
+  };
+
+  // 購入処理
+  const handlePurchase = async (event: React.MouseEvent, card: ContentCard) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const price = card.price || (card.unlockPrice ? card.unlockPrice * 100 : null);
+    if (!price) {
+      alert("この投稿には価格が設定されていません");
+      return;
+    }
+
+    const currentCredits = creditsData?.credits || 0;
+
+    // クレジット不足チェック
+    if (currentCredits < price) {
+      setSelectedCard(card);
+      setShowInsufficientModal(true);
+      return;
+    }
+
+    setIsPurchasing(true);
+
+    try {
+      const response = await fetch("/api/fans/content/purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentId: card.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // クレジット情報を更新
+        invalidateCredits(handle || undefined);
+        alert("購入が完了しました");
+        // ページをリロードして購入済みコンテンツを反映
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        if (error.shortage) {
+          // クレジット不足エラー
+          setSelectedCard(card);
+          setShowInsufficientModal(true);
+        } else {
+          alert(error.error || "購入に失敗しました");
+        }
+      }
+    } catch (error) {
+      alert("購入処理に失敗しました");
+    } finally {
+      setIsPurchasing(false);
+    }
   };
 
   if (loading) {
@@ -153,7 +232,7 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
             {session && (
               <>
                 <Link href={handle ? `/${handle}/account` : "/velvet-pro/account"} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
-                  設定
+                  アカウント
                 </Link>
                 <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="rounded-full border border-yellow-600/50 px-4 py-2 text-sm font-semibold text-yellow-500 transition hover:bg-yellow-600/10">
                   ログアウト
@@ -287,7 +366,7 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
           {contentCards.map((card) => (
             <Link
               key={card.id}
-              href={`/velvet-pro/content/${card.id}`}
+              href={handle ? `/${handle}/content/${card.id}` : `/velvet-pro/content/${card.id}`}
               className="group"
             >
               <article className="overflow-hidden rounded-2xl bg-black/40 shadow-xl backdrop-blur transition hover:shadow-2xl hover:shadow-yellow-900/20">
@@ -324,7 +403,7 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
                   )}
 
                   {/* Lock Overlay */}
-                  {card.isLocked && (
+                  {card.isLocked && !card.cover && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
                       <svg className="mb-3 h-12 w-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -335,8 +414,12 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
                         </p>
                       )}
                       {card.unlockPrice ? (
-                        <button className="rounded-full bg-yellow-600 px-4 py-1.5 text-xs font-semibold text-black hover:bg-yellow-500">
-                          ¥{card.unlockPrice * 100}でアンロック
+                        <button
+                          onClick={(e) => handlePurchase(e, card)}
+                          disabled={isPurchasing}
+                          className="rounded-full bg-yellow-600 px-4 py-1.5 text-xs font-semibold text-black hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          {isPurchasing ? "処理中..." : `¥${card.unlockPrice * 100}でアンロック`}
                         </button>
                       ) : (
                         <button className="rounded-full border border-yellow-600 bg-yellow-600/10 px-4 py-1.5 text-xs font-semibold text-yellow-500 hover:bg-yellow-600/20">
@@ -345,6 +428,49 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
                       )}
                     </div>
                   )}
+
+                  {/* メディア情報バッジ */}
+                  {card.media && (() => {
+                    const mainMedia = card.media.filter(m => !m.isSample);
+                    const videos = mainMedia.filter(m => m.type === "VIDEO");
+                    const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                    const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+                    const formatDuration = (seconds: number): string => {
+                      const hours = Math.floor(seconds / 3600);
+                      const minutes = Math.floor((seconds % 3600) / 60);
+                      const secs = seconds % 60;
+
+                      if (hours > 0) {
+                        return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                      }
+                      return `${minutes}:${String(secs).padStart(2, '0')}`;
+                    };
+
+                    if (mainMedia.length === 0) return null;
+
+                    return (
+                      <div className="absolute bottom-2 right-2 flex gap-1.5">
+                        {videos.length > 0 && totalDuration > 0 && (
+                          <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                            </svg>
+                            {formatDuration(totalDuration)}
+                          </div>
+                        )}
+                        {images.length > 0 && (
+                          <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                            </svg>
+                            {images.length}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Content */}
@@ -383,6 +509,16 @@ export default function VelvetProContentPage({ handle: propHandle }: VelvetProCo
           <p className="text-xs">© 2025 Velvet Pro Inc.</p>
         </div>
       </footer>
+
+      {/* クレジット不足モーダル */}
+      <InsufficientCreditsModal
+        isOpen={showInsufficientModal}
+        onClose={() => setShowInsufficientModal(false)}
+        currentCredits={creditsData?.credits || 0}
+        requiredAmount={selectedCard?.price || (selectedCard?.unlockPrice ? selectedCard.unlockPrice * 100 : 0)}
+        handle={handle || undefined}
+        contentTitle={selectedCard?.title}
+      />
     </div>
   );
 }

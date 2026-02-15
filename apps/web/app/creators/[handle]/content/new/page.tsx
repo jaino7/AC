@@ -17,10 +17,27 @@ export default function NewContentPage() {
     const router = useRouter();
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
+
+    // サムネイル用state
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string>("");
+    const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+    const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
+
+    // サンプルメディア用state（誰でも閲覧可能）
+    const [sampleFiles, setSampleFiles] = useState<File[]>([]);
+    const [sampleUrls, setSampleUrls] = useState<string[]>([]);
+    const [sampleDurations, setSampleDurations] = useState<(number | null)[]>([]); // 動画の長さ（秒）
+    const [uploadingSamples, setUploadingSamples] = useState(false);
+    const [isDraggingSample, setIsDraggingSample] = useState(false);
+
+    // 限定コンテンツ用state
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
+    const [uploadedDurations, setUploadedDurations] = useState<(number | null)[]>([]); // 動画の長さ（秒）
     const [uploadingFiles, setUploadingFiles] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+
     const [publishMode, setPublishMode] = useState<PublishMode>("publish");
     const [scheduledDate, setScheduledDate] = useState("");
     const [scheduledTime, setScheduledTime] = useState("");
@@ -103,22 +120,133 @@ export default function NewContentPage() {
         return fileUrl;
     };
 
-    // 共通のファイル処理関数
+    // 動画の長さを取得するヘルパー関数
+    const getVideoDuration = (file: File): Promise<number | null> => {
+        return new Promise((resolve) => {
+            if (!file.type.startsWith('video/')) {
+                resolve(null);
+                return;
+            }
+
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+
+            video.onloadedmetadata = () => {
+                window.URL.revokeObjectURL(video.src);
+                const duration = Math.floor(video.duration);
+                resolve(duration);
+            };
+
+            video.onerror = () => {
+                resolve(null);
+            };
+
+            video.src = URL.createObjectURL(file);
+        });
+    };
+
+    // サムネイルアップロード処理
+    const handleThumbnailSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        await processThumbnail(file);
+    };
+
+    const processThumbnail = async (file: File) => {
+        setThumbnailFile(file);
+        setUploadingThumbnail(true);
+        setErrorMessage(null);
+        try {
+            const url = await uploadFileToR2(file);
+            setThumbnailUrl(url);
+            setSuccessMessage("サムネイルをアップロードしました");
+        } catch (error: any) {
+            setErrorMessage(error.message || "サムネイルのアップロードに失敗しました");
+            setThumbnailFile(null);
+            setThumbnailUrl("");
+        } finally {
+            setUploadingThumbnail(false);
+        }
+    };
+
+    const handleThumbnailDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingThumbnail(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            await processThumbnail(files[0]);
+        }
+    };
+
+    // サンプルメディアアップロード処理
+    const handleSampleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const files = Array.from(e.target.files);
+        await processSamples(files);
+    };
+
+    const processSamples = async (files: File[]) => {
+        setSampleFiles((prev) => [...prev, ...files]);
+        setUploadingSamples(true);
+        setErrorMessage(null);
+        try {
+            // ファイルアップロードと動画時間取得を並行実行
+            const uploadPromises = files.map((file) => uploadFileToR2(file));
+            const durationPromises = files.map((file) => getVideoDuration(file));
+
+            const [urls, durations] = await Promise.all([
+                Promise.all(uploadPromises),
+                Promise.all(durationPromises)
+            ]);
+
+            setSampleUrls((prev) => [...prev, ...urls]);
+            setSampleDurations((prev) => [...prev, ...durations]);
+            setSuccessMessage(`${files.length}件のサンプルをアップロードしました`);
+        } catch (error: any) {
+            setErrorMessage(error.message || "サンプルのアップロードに失敗しました");
+        } finally {
+            setUploadingSamples(false);
+        }
+    };
+
+    const handleSampleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingSample(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            await processSamples(files);
+        }
+    };
+
+    const removeSample = (index: number) => {
+        setSampleFiles((prev) => prev.filter((_, i) => i !== index));
+        setSampleUrls((prev) => prev.filter((_, i) => i !== index));
+        setSampleDurations((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    // 限定コンテンツアップロード処理
     const processFiles = async (files: File[]) => {
-        setUploadedFiles(files);
+        setUploadedFiles((prev) => [...prev, ...files]);
         setUploadingFiles(true);
         setErrorMessage(null);
 
         try {
-            // 全ファイルをアップロード
+            // ファイルアップロードと動画時間取得を並行実行
             const uploadPromises = files.map((file) => uploadFileToR2(file));
-            const urls = await Promise.all(uploadPromises);
-            setUploadedFileUrls(urls);
+            const durationPromises = files.map((file) => getVideoDuration(file));
+
+            const [urls, durations] = await Promise.all([
+                Promise.all(uploadPromises),
+                Promise.all(durationPromises)
+            ]);
+
+            setUploadedFileUrls((prev) => [...prev, ...urls]);
+            setUploadedDurations((prev) => [...prev, ...durations]);
             setSuccessMessage(`${files.length}件のファイルをアップロードしました`);
         } catch (error: any) {
             setErrorMessage(error.message || "ファイルのアップロードに失敗しました");
-            setUploadedFiles([]);
-            setUploadedFileUrls([]);
         } finally {
             setUploadingFiles(false);
         }
@@ -130,33 +258,20 @@ export default function NewContentPage() {
         await processFiles(files);
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    };
-
-    const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
     const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
-
         const files = Array.from(e.dataTransfer.files);
         if (files.length > 0) {
             await processFiles(files);
         }
+    };
+
+    const removeFile = (index: number) => {
+        setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+        setUploadedFileUrls((prev) => prev.filter((_, i) => i !== index));
+        setUploadedDurations((prev) => prev.filter((_, i) => i !== index));
     };
 
     const createContentMutation = useMutation({
@@ -164,7 +279,9 @@ export default function NewContentPage() {
             title: string;
             content: string;
             visibility: string;
-            mediaUrl?: string;
+            thumbnailUrl?: string;
+            sampleMedia?: { url: string; duration: number | null }[];
+            mainMedia?: { url: string; duration: number | null }[];
             isLocked: boolean;
             requiredPlanId?: string;
             singleSalePrice?: number;
@@ -202,15 +319,10 @@ export default function NewContentPage() {
             return;
         }
 
-        // アップロード済みのファイルURLを使用
-        const mediaUrl = uploadedFileUrls.length > 0 ? uploadedFileUrls[0] : undefined;
-
         let visibility = "PUBLIC";
         if (publishMode === "draft") {
             visibility = "DRAFT";
         } else if (publishMode === "scheduled") {
-            // 予約投稿の場合も一旦DRAFTとして保存
-            // 実際の予約投稿機能は別途スケジューラーが必要
             visibility = "DRAFT";
         }
 
@@ -218,7 +330,13 @@ export default function NewContentPage() {
             title,
             content: body,
             visibility,
-            mediaUrl,
+            thumbnailUrl: thumbnailUrl || undefined,
+            sampleMedia: sampleUrls.length > 0
+                ? sampleUrls.map((url, i) => ({ url, duration: sampleDurations[i] }))
+                : undefined,
+            mainMedia: uploadedFileUrls.length > 0
+                ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i] }))
+                : undefined,
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
             singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
@@ -234,18 +352,29 @@ export default function NewContentPage() {
             return;
         }
 
-        const mediaUrl = uploadedFileUrls.length > 0 ? uploadedFileUrls[0] : undefined;
-
         createContentMutation.mutate({
             title,
             content: body,
             visibility: "DRAFT",
-            mediaUrl,
+            thumbnailUrl: thumbnailUrl || undefined,
+            sampleMedia: sampleUrls.length > 0
+                ? sampleUrls.map((url, i) => ({ url, duration: sampleDurations[i] }))
+                : undefined,
+            mainMedia: uploadedFileUrls.length > 0
+                ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i] }))
+                : undefined,
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
             singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
         });
     };
+
+    // ドラッグイベントハンドラー共通化
+    const createDragHandlers = (setDragging: (v: boolean) => void) => ({
+        onDragOver: (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); e.stopPropagation(); setDragging(true); },
+        onDragEnter: (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); e.stopPropagation(); setDragging(true); },
+        onDragLeave: (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); e.stopPropagation(); setDragging(false); },
+    });
 
     return (
         <main className="min-h-screen bg-white px-6 py-10 text-black lg:px-12">
@@ -303,27 +432,113 @@ export default function NewContentPage() {
                             />
                         </div>
 
-                        {/* 画像/動画アップロード */}
+                        {/* サムネイル */}
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-neutral-700">
-                                画像・動画をアップロード
+                                サムネイル画像
+                            </label>
+                            {thumbnailUrl ? (
+                                <div className="relative rounded-2xl border border-black/10 overflow-hidden">
+                                    <img src={thumbnailUrl} alt="サムネイル" className="w-full h-48 object-cover" />
+                                    <button
+                                        onClick={() => { setThumbnailFile(null); setThumbnailUrl(""); }}
+                                        className="absolute top-2 right-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white hover:bg-black/80"
+                                    >
+                                        削除
+                                    </button>
+                                </div>
+                            ) : (
+                                <label
+                                    htmlFor="thumbnail-upload"
+                                    {...createDragHandlers(setIsDraggingThumbnail)}
+                                    onDrop={handleThumbnailDrop}
+                                    className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 transition-colors ${isDraggingThumbnail
+                                        ? "border-blue-500 bg-blue-50"
+                                        : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
+                                        }`}
+                                >
+                                    <p className="text-center text-sm text-neutral-600">
+                                        {uploadingThumbnail ? "アップロード中..." : "サムネイル画像を選択"}
+                                    </p>
+                                    <input
+                                        id="thumbnail-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleThumbnailSelect}
+                                        className="hidden"
+                                    />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* サンプルメディア */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-neutral-700">
+                                サンプル（プレビュー）
                             </label>
                             <label
-                                htmlFor="file-upload"
-                                onDragOver={handleDragOver}
-                                onDragEnter={handleDragEnter}
-                                onDragLeave={handleDragLeave}
-                                onDrop={handleDrop}
-                                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 transition-colors ${isDragging
-                                    ? "border-black bg-neutral-100"
+                                htmlFor="sample-upload"
+                                {...createDragHandlers(setIsDraggingSample)}
+                                onDrop={handleSampleDrop}
+                                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 transition-colors ${isDraggingSample
+                                    ? "border-green-500 bg-green-50"
                                     : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
                                     }`}
                             >
-                                <div className="mb-4 text-6xl text-neutral-400">☁</div>
                                 <p className="text-center text-sm text-neutral-600">
-                                    ファイルをここにドラッグ または{" "}
-                                    <span className="font-semibold text-black">参照</span>{" "}
-                                    してアップロード
+                                    {uploadingSamples ? "アップロード中..." : "サンプル画像・動画を選択"}
+                                </p>
+                                <input
+                                    id="sample-upload"
+                                    type="file"
+                                    accept="image/*,video/mp4,video/quicktime,video/webm,video/x-matroska"
+                                    multiple
+                                    onChange={handleSampleSelect}
+                                    className="hidden"
+                                />
+                            </label>
+                            {sampleFiles.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                    <p className="text-sm font-semibold text-neutral-700">
+                                        サンプル: {sampleFiles.length}ファイル
+                                    </p>
+                                    {sampleFiles.map((file, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm"
+                                        >
+                                            <span className="flex-1 truncate">{file.name}</span>
+                                            <span className="text-xs text-neutral-500">
+                                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                            </span>
+                                            <button
+                                                onClick={() => removeSample(index)}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* コンテンツ */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-neutral-700">
+                                コンテンツ
+                            </label>
+                            <label
+                                htmlFor="file-upload"
+                                {...createDragHandlers(setIsDragging)}
+                                onDrop={handleDrop}
+                                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 transition-colors ${isDragging
+                                    ? "border-amber-500 bg-amber-50"
+                                    : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
+                                    }`}
+                            >
+                                <p className="text-center text-sm text-neutral-600">
+                                    {uploadingFiles ? "アップロード中..." : "コンテンツを選択"}
                                 </p>
                                 <input
                                     id="file-upload"
@@ -337,17 +552,23 @@ export default function NewContentPage() {
                             {uploadedFiles.length > 0 && (
                                 <div className="mt-4 space-y-2">
                                     <p className="text-sm font-semibold text-neutral-700">
-                                        アップロード済み: {uploadedFiles.length}ファイル
+                                        コンテンツ: {uploadedFiles.length}ファイル
                                     </p>
                                     {uploadedFiles.map((file, index) => (
                                         <div
                                             key={index}
-                                            className="flex items-center gap-3 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm"
+                                            className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm"
                                         >
                                             <span className="flex-1 truncate">{file.name}</span>
                                             <span className="text-xs text-neutral-500">
                                                 {(file.size / 1024 / 1024).toFixed(2)} MB
                                             </span>
+                                            <button
+                                                onClick={() => removeFile(index)}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                ✕
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -364,7 +585,7 @@ export default function NewContentPage() {
                                 value={body}
                                 onChange={(e) => setBody(e.target.value)}
                                 placeholder="投稿の内容を記入..."
-                                rows={12}
+                                rows={8}
                                 className="w-full rounded-2xl border border-black/10 px-4 py-3 text-base focus:border-black/40 focus:outline-none"
                             />
                         </div>

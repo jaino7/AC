@@ -1,9 +1,11 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { changePassword, updateProfile } from "@/lib/api";
+import { useCredits } from "@/components/hooks/useCredits";
 
 interface SimpleAccountPageProps {
     handle?: string;
@@ -20,14 +22,62 @@ export function SimpleAccountPage({
 }: SimpleAccountPageProps) {
     const searchParams = useSearchParams();
     const handle = propHandle || searchParams.get("handle");
+    const { data: session, update: updateSession, status } = useSession();
+
+    // クレジット情報を取得
+    const { data: creditsData, isLoading: creditsLoading, error: creditsError } = useCredits(handle || undefined);
+
+    // セッションからユーザー情報を取得
+    const userEmail = session?.user?.email || "";
+    const userName = session?.user?.name || displayName || "ユーザー";
 
     // 動的なリンク生成
     const baseUrl = handle ? `/${handle}/account` : "/account";
     const contentUrl = handle ? `/${handle}/content` : "/";
-    const logoutUrl = handle ? `/${handle}/content` : "/";
+    const logoutUrl = handle ? `/${handle}/login` : "/";
 
     const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // 表示名の状態
+    const [editDisplayName, setEditDisplayName] = useState(userName);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+    // パスワード変更モーダルの状態
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+    // パスワード表示状態
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // セッションがロード中の場合はローディング表示
+    if (status === "loading") {
+        return (
+            <div className="min-h-screen bg-white text-gray-900">
+                <div className="flex items-center justify-center min-h-screen">
+                    <p className="text-gray-500">読み込み中...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // 未認証の場合はログインページへリダイレクト
+    if (status === "unauthenticated") {
+        return (
+            <div className="min-h-screen bg-white text-gray-900">
+                <div className="flex items-center justify-center min-h-screen">
+                    <p className="text-gray-500">ログインが必要です</p>
+                </div>
+            </div>
+        );
+    }
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -37,6 +87,72 @@ export function SimpleAccountPage({
                 setImagePreview(reader.result as string);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    // 表示名の保存
+    const handleSaveDisplayName = async () => {
+        const userId = (session?.user as any)?.id;
+        if (!userId) {
+            setSaveMessage("ログインが必要です");
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveMessage(null);
+        try {
+            await updateProfile({
+                userId,
+                name: editDisplayName,
+                displayName: editDisplayName
+            });
+            // セッションを更新して表示名を反映
+            await updateSession({ name: editDisplayName });
+            setSaveMessage("保存しました");
+            setTimeout(() => setSaveMessage(null), 3000);
+        } catch (error) {
+            setSaveMessage((error as Error).message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // パスワード変更
+    const handleChangePassword = async () => {
+        const userId = (session?.user as any)?.id;
+        if (!userId) {
+            setPasswordError("ログインが必要です");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError("新しいパスワードが一致しません");
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            setPasswordError("パスワードは8文字以上で入力してください");
+            return;
+        }
+
+        setIsChangingPassword(true);
+        setPasswordError(null);
+        try {
+            await changePassword({
+                userId,
+                currentPassword,
+                newPassword,
+                confirmPassword
+            });
+            setShowPasswordModal(false);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+            alert("パスワードを変更しました");
+        } catch (error) {
+            setPasswordError((error as Error).message);
+        } finally {
+            setIsChangingPassword(false);
         }
     };
 
@@ -71,6 +187,39 @@ export function SimpleAccountPage({
             {/* Main Content */}
             <main className="mx-auto w-full max-w-6xl px-4 py-10">
                 <h1 className="text-2xl font-bold text-gray-900">アカウント設定</h1>
+
+                {/* クレジット表示 - 全ページで表示 */}
+                <div className="mt-6 rounded-lg border border-gray-200 p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">保有クレジット</p>
+                            <div className="mt-1 flex items-baseline gap-2">
+                                {creditsLoading ? (
+                                    <div className="h-9 w-24 bg-gray-200 animate-pulse rounded"></div>
+                                ) : creditsError ? (
+                                    <p className="text-sm text-red-600">読み込みエラー</p>
+                                ) : (
+                                    <>
+                                        <p className="text-3xl font-bold text-gray-900">
+                                            {(creditsData?.credits || 0).toLocaleString()}
+                                        </p>
+                                        <p className="text-sm text-gray-500">クレジット</p>
+                                    </>
+                                )}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">1クレジット = ¥1</p>
+                        </div>
+                        <Link
+                            href={`${baseUrl}/credits`}
+                            className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm flex items-center gap-2"
+                        >
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                            チャージ
+                        </Link>
+                    </div>
+                </div>
 
                 {/* Navigation Tabs */}
                 <nav className="mt-6 flex gap-6 border-b border-gray-200">
@@ -112,7 +261,7 @@ export function SimpleAccountPage({
                                 />
                             </div>
                             <div>
-                                <p className="text-lg font-semibold">{displayName || "ユーザー"}</p>
+                                <p className="text-lg font-semibold">{userName}</p>
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     className="mt-1 text-sm text-blue-600 hover:underline"
@@ -128,14 +277,27 @@ export function SimpleAccountPage({
                                 <label className="block text-sm font-medium text-gray-700">表示名</label>
                                 <input
                                     type="text"
-                                    defaultValue={displayName || ""}
+                                    value={editDisplayName}
+                                    onChange={(e) => setEditDisplayName(e.target.value)}
                                     placeholder="表示名"
                                     className="mt-1 w-full max-w-md rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
-                            <button className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">
-                                保存
-                            </button>
+
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={handleSaveDisplayName}
+                                    disabled={isSaving}
+                                    className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSaving ? "保存中..." : "保存"}
+                                </button>
+                                {saveMessage && (
+                                    <span className={`text-sm ${saveMessage === "保存しました" ? "text-green-600" : "text-red-600"}`}>
+                                        {saveMessage}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -177,7 +339,7 @@ export function SimpleAccountPage({
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-500">メールアドレス</p>
-                                    <p className="mt-1 font-medium">user@example.com</p>
+                                    <p className="mt-1 font-medium">{userEmail || "未設定"}</p>
                                 </div>
                                 <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
                                     変更
@@ -190,7 +352,10 @@ export function SimpleAccountPage({
                                     <p className="text-sm text-gray-500">パスワード</p>
                                     <p className="mt-1 font-medium">••••••••</p>
                                 </div>
-                                <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
+                                <button
+                                    onClick={() => setShowPasswordModal(true)}
+                                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition"
+                                >
                                     変更
                                 </button>
                             </div>
@@ -220,6 +385,127 @@ export function SimpleAccountPage({
                     </div>
                 )}
             </main>
+
+            {/* パスワード変更モーダル */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+                        <h2 className="text-lg font-semibold text-gray-900">パスワードの変更</h2>
+                        <p className="mt-1 text-sm text-gray-500">セキュリティのため、現在のパスワードを入力してください。</p>
+
+                        <div className="mt-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">現在のパスワード</label>
+                                <div className="relative mt-1">
+                                    <input
+                                        type={showCurrentPassword ? "text" : "password"}
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showCurrentPassword ? (
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">新しいパスワード</label>
+                                <div className="relative mt-1">
+                                    <input
+                                        type={showNewPassword ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="8文字以上"
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showNewPassword ? (
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">新しいパスワード（確認）</label>
+                                <div className="relative mt-1">
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showConfirmPassword ? (
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {passwordError && (
+                                <p className="text-sm text-red-600">{passwordError}</p>
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowPasswordModal(false);
+                                    setCurrentPassword("");
+                                    setNewPassword("");
+                                    setConfirmPassword("");
+                                    setPasswordError(null);
+                                }}
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition"
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                onClick={handleChangePassword}
+                                disabled={isChangingPassword}
+                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isChangingPassword ? "変更中..." : "変更"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

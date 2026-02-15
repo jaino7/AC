@@ -6,19 +6,26 @@ import {
 } from "@nestjs/common";
 import { hash, verify } from "argon2";
 import { PrismaService } from "../prisma/prisma.service";
+import { MailService } from "../mail/mail.service";
 import { CreateCreatorDto } from "./dto/create-creator.dto";
 import { LoginCreatorDto } from "./dto/login-creator.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 
 type CreatorResponse = {
   id: string;
   email: string;
   verified: boolean;
+  handle?: string;
   createdAt?: Date;
 };
 
 @Injectable()
 export class CreatorsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) { }
 
   async create(payload: CreateCreatorDto): Promise<CreatorResponse> {
     if (payload.password !== payload.confirmPassword) {
@@ -58,7 +65,7 @@ export class CreatorsService {
     }
 
     // トランザクションでUserとCreatorProfileを同時に作成
-    const user = await this.prisma.$transaction(async (prisma) => {
+    const result = await this.prisma.$transaction(async (prisma) => {
       // Userを作成
       const newUser = await prisma.user.create({
         data: {
@@ -76,25 +83,41 @@ export class CreatorsService {
       });
 
       // CreatorProfileを作成
-      await prisma.creatorProfile.create({
+      const creatorProfile = await prisma.creatorProfile.create({
         data: {
           userId: newUser.id,
           handle: handle,
           displayName: emailPrefix,
           theme: 'creator-pro'
+        },
+        select: {
+          handle: true
         }
       });
 
-      return newUser;
+      return { user: newUser, handle: creatorProfile.handle };
     });
 
-    if (!user.email) {
+    if (!result.user.email) {
       throw new Error("User created without email");
     }
 
+    // Send welcome email
+    await this.mailService.sendWelcomeEmail(
+      result.user.email,
+      {
+        userType: 'creator',
+        name: emailPrefix,
+        email: result.user.email,
+        handle: result.handle,
+      },
+      result.user.id,
+    );
+
     return this.toCreatorResponse({
-      ...user,
-      email: user.email
+      ...result.user,
+      email: result.user.email,
+      handle: result.handle
     });
   }
 
@@ -106,7 +129,12 @@ export class CreatorsService {
         email: true,
         password: true,
         emailVerified: true,
-        createdAt: true
+        createdAt: true,
+        creatorProfile: {
+          select: {
+            handle: true
+          }
+        }
       }
     });
 
@@ -124,8 +152,11 @@ export class CreatorsService {
     }
 
     return this.toCreatorResponse({
-      ...user,
-      email: user.email
+      id: user.id,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      handle: user.creatorProfile?.handle,
+      createdAt: user.createdAt
     });
   }
 
@@ -133,13 +164,73 @@ export class CreatorsService {
     id: string;
     email: string;
     emailVerified: Date | null;
+    handle?: string;
     createdAt?: Date;
   }): CreatorResponse {
     return {
       id: user.id,
       email: user.email,
       verified: Boolean(user.emailVerified),
+      handle: user.handle,
       createdAt: user.createdAt
     };
+  }
+
+  async changePassword(payload: ChangePasswordDto): Promise<{ message: string }> {
+    if (payload.newPassword !== payload.confirmPassword) {
+      throw new BadRequestException("新しいパスワードが一致しません");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        password: true
+      }
+    });
+
+    if (!user || !user.password) {
+      throw new UnauthorizedException("ユーザーが見つかりません");
+    }
+
+    const isValid = await verify(user.password, payload.currentPassword);
+    if (!isValid) {
+      throw new UnauthorizedException("現在のパスワードが正しくありません");
+    }
+
+    const newPasswordHash = await hash(payload.newPassword);
+
+    await this.prisma.user.update({
+      where: { id: payload.userId },
+      data: { password: newPasswordHash }
+    });
+
+    return { message: "パスワードを変更しました" };
+  }
+
+  async updateProfile(payload: UpdateProfileDto): Promise<{ message: string }> {
+    // Userのname更新
+    if (payload.name !== undefined) {
+      await this.prisma.user.update({
+        where: { id: payload.userId },
+        data: { name: payload.name }
+      });
+    }
+
+    // CreatorProfileのdisplayName更新（存在する場合）
+    if (payload.displayName !== undefined) {
+      const creatorProfile = await this.prisma.creatorProfile.findUnique({
+        where: { userId: payload.userId }
+      });
+
+      if (creatorProfile) {
+        await this.prisma.creatorProfile.update({
+          where: { userId: payload.userId },
+          data: { displayName: payload.displayName }
+        });
+      }
+    }
+
+    return { message: "プロフィールを更新しました" };
   }
 }

@@ -1,0 +1,811 @@
+// prisma/schema.prisma
+
+// 1. データソースの設定
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Enums
+enum Role {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum TransactionStatus {
+  PENDING // 支払い待ち
+  PAID // 支払い完了
+  FAILED // 支払い失敗
+  REFUNDED // 返金済み
+}
+
+enum DomainStatus {
+  PENDING // DNS設定待ち
+  VERIFYING // 検証中
+  ACTIVE // 有効
+  FAILED // 設定失敗
+  DISCONNECTED // 切断済み
+}
+
+enum IdentityDocumentType {
+  DRIVERS_LICENSE // 運転免許証
+  PASSPORT // パスポート
+  MYNUMBER_CARD // マイナンバーカード
+}
+
+enum VerificationStatus {
+  PENDING // 審査待ち
+  APPROVED // 承認済み
+  REJECTED // 却下
+}
+
+enum ChargeRequestStatus {
+  PENDING // 申請中（振込待ち）
+  TRANSFERRED // 振込済み（確認待ち）
+  APPROVED // 承認済み（チャージ完了）
+  REJECTED // 却下
+  EXPIRED // 期限切れ
+}
+
+enum CreditHistoryType {
+  CHARGE // チャージ
+  PURCHASE // 投稿購入
+  SUBSCRIBE // サブスク購読
+  REFUND // 返金
+}
+
+enum CreatorPlanType {
+  FREE // 無料プラン
+  LITE // Liteプラン
+  BUSINESS // Businessプラン
+}
+
+enum CreatorSubscriptionStatus {
+  PENDING // 支払い待ち
+  ACTIVE // 有効
+  CANCELLED // キャンセル済み
+  EXPIRED // 期限切れ
+}
+
+enum BankTransferType {
+  CREATOR_PLAN // クリエイタープラン支払い
+  FAN_CREDIT // ファンクレジット購入
+}
+
+enum BankTransferStatus {
+  PENDING // 処理待ち
+  PROCESSED // 処理済み
+  FAILED // 処理失敗
+}
+
+// 2. モデル定義
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  // Relations
+  creatorProfile CreatorProfile?
+  fanProfile     FanProfile[] // 1ユーザーが複数クリエイターに登録可能
+  emailLogs      EmailLog[]
+}
+
+// ファンプロフィール（ファン専用情報）
+// マルチテナント対応: 各クリエイターごとに独立したファンプロファイルを持つ
+model FanProfile {
+  id     String @id @default(cuid())
+  userId String // @unique削除: 1ユーザーが複数クリエイターに登録可能
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  creatorId String // 追加: どのクリエイターのファンか
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // ファン情報
+  displayName String?
+  avatar      String?
+  bio         String? @db.Text
+
+  // 設定
+  preferences Json? // 通知設定、表示設定など
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  subscriptions Subscription[]
+  purchases     Purchase[]
+  savedPosts    SavedPost[]
+
+  // クレジット関連（クリエイターごとに独立）
+  credits         Int              @default(0) // クレジット残高（円）
+  chargeRequests  ChargeRequest[]
+  creditHistory   CreditHistory[]
+  virtualAccounts VirtualAccount[]
+
+  @@unique([userId, creatorId]) // 1ユーザーが1クリエイターに1つのFanProfile
+  @@index([userId])
+  @@index([creatorId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Creator Platform Models ---
+
+model CreatorProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  handle       String  @unique // @username
+  displayName  String
+  bio          String? @db.Text
+  theme        String  @default("creator-pro") // creator-pro, neon-pro, studio-pro, velvet-pro, pure-lite, zine-lite
+  themeConfig  Json? // テーマ設定 (カラー, レイアウト等)
+  customDomain String? @unique
+
+  // ブランドアセット
+  logoUrl    String? // ロゴ画像URL
+  faviconUrl String? // ファビコン画像URL
+
+  // ソーシャルメディア
+  twitterUrl   String? // X (Twitter) URL
+  instagramUrl String? // Instagram URL
+  tiktokUrl    String? // TikTok URL
+  discordUrl   String? // Discord URL
+  otherUrl     String? // その他のURL
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plans                SubscriptionPlan[]
+  posts                Post[]
+  folders              Folder[]
+  tags                 Tag[]
+  transactions         Transaction[]
+  bankAccount          BankAccount?
+  domains              Domain[]
+  pageViews            PageView[]
+  notifications        Notification[]
+  identityVerification IdentityVerification?
+
+  // マルチテナント: このクリエイターのファン
+  fans FanProfile[]
+
+  // クリエイター向けプラン
+  creatorSubscription CreatorSubscription?
+  virtualAccounts     VirtualAccount[]
+}
+
+model SubscriptionPlan {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  name                     String
+  description              String?
+  price                    Int
+  features                 Json? // 特典リスト
+  includesPurchasedContent Boolean @default(false) // 単体購入コンテンツへのアクセス権を含むか
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
+  posts         Post[]
+}
+
+model Subscription {
+  id     String           @id @default(cuid())
+  fanId  String
+  fan    FanProfile       @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  status    String // ACTIVE, CANCELLED, EXPIRED
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([fanId])
+  @@index([planId])
+}
+
+// 単体購入（コンテンツごとの購入）
+model Purchase {
+  id     String     @id @default(cuid())
+  fanId  String
+  fan    FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  amount      Int // 購入金額
+  purchasedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fanId])
+  @@index([postId])
+  @@index([fanId, purchasedAt])
+}
+
+model Post {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  title          String // 投稿タイトル
+  content        String?           @db.Text
+  thumbnailUrl   String? // サムネイル画像URL
+  mediaUrl       String? // メディアURL
+  isLocked       Boolean           @default(false) // ロック状態
+  requiredPlanId String? // 必要なプランID（無料の場合はnull）
+  requiredPlan   SubscriptionPlan? @relation(fields: [requiredPlanId], references: [id])
+
+  folderId String? // 所属フォルダID
+  folder   Folder? @relation(fields: [folderId], references: [id])
+
+  visibility  String // PUBLIC, SUBSCRIBERS_ONLY
+  publishedAt DateTime @default(now())
+
+  price Int? // 単体購入価格（nullの場合は無料または購入不可）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media     Media[]
+  tags      PostTag[]
+  purchases Purchase[]
+  savedBy   SavedPost[]
+}
+
+// 保存済み投稿（ファンのブックマーク）
+model SavedPost {
+  id        String     @id @default(cuid())
+  fanId     String
+  fan       FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([fanId, postId])
+  @@index([fanId])
+}
+
+// クレジットチャージ申請
+model ChargeRequest {
+  id    String     @id @default(cuid())
+  fanId String
+  fan   FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+
+  amount         Int // 申請金額（円）
+  status         ChargeRequestStatus @default(PENDING)
+  identifierCode String              @unique // 振込識別コード
+
+  // 振込情報
+  transferorName String? // 振込人名義
+  transferDate   DateTime? // 振込日時
+
+  // 処理情報
+  approvedBy      String? // 承認者（管理者ID）
+  approvedAt      DateTime? // 承認日時
+  rejectionReason String? // 却下理由
+
+  expiresAt DateTime // 有効期限
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bankTransfers BankTransfer[]
+
+  @@index([fanId])
+  @@index([identifierCode])
+  @@index([status])
+}
+
+// クレジット履歴
+model CreditHistory {
+  id    String     @id @default(cuid())
+  fanId String
+  fan   FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+
+  type        CreditHistoryType
+  amount      Int // 増減額（正=増加、負=減少）
+  balance     Int // 処理後の残高
+  description String // 説明文
+
+  // 関連ID
+  chargeRequestId String? // チャージ申請ID
+  purchaseId      String? // 購入ID
+  subscriptionId  String? // サブスクリプションID
+
+  createdAt DateTime @default(now())
+
+  @@index([fanId])
+  @@index([createdAt])
+}
+
+model Media {
+  id     String @id @default(cuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  url      String
+  type     String // IMAGE, VIDEO
+  isSample Boolean @default(false) // サンプルメディア（誰でも閲覧可能）
+  duration Int? // 動画の長さ（秒数、動画のみ）
+
+  createdAt DateTime @default(now())
+}
+
+// フォルダ管理（クリエイターごとのコンテンツ整理）
+model Folder {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  name String // フォルダ名
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts Post[]
+
+  @@index([creatorId])
+}
+
+// タグ管理
+model Tag {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  name String // タグ名
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts PostTag[]
+
+  @@unique([creatorId, name]) // 同じクリエイター内で同じ名前のタグは作成不可
+  @@index([creatorId])
+}
+
+// 投稿とタグの中間テーブル（多対多リレーション）
+model PostTag {
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([postId, tagId])
+  @@index([postId])
+  @@index([tagId])
+}
+
+// --- Revenue Models ---
+
+model Transaction {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  amount Int // 金額（円）
+  status TransactionStatus @default(PENDING)
+
+  // 支払い処理情報
+  paymentMethod   String? // STRIPE, BANK_TRANSFER等
+  paymentIntentId String? // Stripe等の外部ID
+
+  // 銀行振込用フィールド
+  userId         String? // 振込者のユーザーID
+  identifierCode String? // 振込名義人に含める識別コード
+  transferorName String? // 実際の振込名義人
+  transferDate   DateTime? // 振込日時
+
+  paidAt    DateTime? // 支払完了日時
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([creatorId, status])
+  @@index([subscriptionId])
+  @@index([identifierCode])
+  @@index([userId, status])
+}
+
+model BankAccount {
+  id        String         @id @default(cuid())
+  creatorId String         @unique
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // 銀行情報
+  bankName      String // 銀行名
+  bankCode      String? // 銀行コード
+  branchName    String // 支店名
+  branchCode    String? // 支店コード
+  accountType   String // SAVINGS（普通）, CHECKING（当座）
+  accountNumber String // 口座番号
+  accountHolder String // 口座名義
+
+  // メタデータ
+  isVerified Boolean   @default(false) // 確認済みフラグ
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProcessedEmail {
+  id          String   @id @default(cuid())
+  emailUid    String   @unique // IMAPメールUID
+  subject     String
+  from        String
+  receivedAt  DateTime
+  processedAt DateTime @default(now())
+
+  transactionId String? // 紐付けられたTransaction
+
+  createdAt DateTime @default(now())
+
+  @@index([emailUid])
+}
+
+model Domain {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  domain String       @unique // example.com
+  status DomainStatus @default(PENDING)
+
+  // DNS レコード情報（JSON形式で保存）
+  dnsRecords Json? // { "A": "xxx.xxx.xxx.xxx", "CNAME": "..." }
+
+  // 検証情報
+  verificationToken String?   @unique
+  verifiedAt        DateTime?
+
+  // SSL証明書情報
+  sslEnabled  Boolean   @default(false)
+  sslIssuedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+// ページビュートラッキング
+model PageView {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  path      String // 閲覧されたページパス
+  userAgent String? // ユーザーエージェント情報
+  referer   String? // リファラー情報
+
+  viewedAt DateTime @default(now())
+
+  @@index([creatorId, viewedAt])
+  @@index([creatorId, path])
+}
+
+// 通知システム
+enum NotificationType {
+  PURCHASE // プラン購入通知
+  ANNOUNCEMENT // 新機能お知らせ
+  PAYMENT_REMINDER // お支払日のご案内
+  SUBSCRIBER // 新規サブスクライバー
+  COMMENT // コメント通知
+}
+
+model Notification {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String           @db.Text
+
+  // 購入通知の場合の詳細情報
+  metadata Json? // { userName, planName, amount, etc }
+
+  isRead    Boolean @default(false)
+  emailSent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([creatorId, isRead])
+  @@index([creatorId, createdAt])
+}
+
+// 本人確認
+model IdentityVerification {
+  id        String         @id @default(cuid())
+  creatorId String         @unique
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  documentType IdentityDocumentType
+
+  // R2に保存された画像のキー
+  frontImageKey String
+  backImageKey  String? // 運転免許証のみ必須
+
+  // ステータス
+  status VerificationStatus @default(PENDING)
+
+  // 審査情報
+  reviewedBy   String? // 審査した管理者のID
+  reviewedAt   DateTime?
+  rejectReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+// メール送信ログ
+enum EmailType {
+  // Creator emails
+  CREATOR_REGISTRATION
+  CREATOR_BANK_ACCOUNT_REGISTERED
+  CREATOR_NEW_SUBSCRIBER
+  CREATOR_PAYMENT_CONFIRMED
+  CREATOR_WITHDRAWAL_RECEIVED
+  CREATOR_WITHDRAWAL_COMPLETED
+  CREATOR_ANNOUNCEMENT
+  CREATOR_PASSWORD_RESET
+
+  // Fan emails
+  FAN_EMAIL_VERIFICATION
+  FAN_PAYMENT_INSTRUCTIONS
+  FAN_SUBSCRIPTION_STARTED
+  FAN_RENEWAL_REMINDER
+  FAN_SUBSCRIPTION_EXPIRED
+  FAN_NEW_CONTENT
+  FAN_PASSWORD_RESET
+  FAN_RECEIPT
+}
+
+enum EmailStatus {
+  PENDING // 送信待ち
+  SENT // 送信済み
+  DELIVERED // 配信完了
+  OPENED // 開封済み
+  CLICKED // リンククリック済み
+  FAILED // 送信失敗
+  BOUNCED // バウンス
+}
+
+model EmailLog {
+  id String @id @default(cuid())
+
+  // 送信先情報
+  recipientId String?
+  recipient   User?   @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+  toEmail     String
+
+  // メール情報
+  emailType EmailType
+  subject   String
+
+  // 送信状況
+  status      EmailStatus @default(PENDING)
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+
+  // エラー情報
+  errorMessage String? @db.Text
+
+  // メタデータ
+  metadata Json? // transactionId, planId等
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipientId, emailType])
+  @@index([status, createdAt])
+  @@index([toEmail])
+}
+
+// --- クリエイター向けプラン・決済システム ---
+
+// クリエイター向けプランマスター
+model CreatorPlan {
+  id String @id @default(cuid())
+
+  type CreatorPlanType @unique
+  name     String // "Free", "Lite", "Business"
+
+  // 料金
+  monthlyPrice Int // 月額料金（円）
+  yearlyPrice  Int // 年額料金（円）
+
+  // 手数料率
+  feeRate Float // 手数料率（0.12 = 12%, 0.07 = 7%, 0.03 = 3%）
+
+  // プラン特典
+  features Json? // プラン特典のJSON配列
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions CreatorSubscription[]
+}
+
+// クリエイターのプラン契約
+model CreatorSubscription {
+  id        String         @id @default(cuid())
+  creatorId String         @unique
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   CreatorPlan @relation(fields: [planId], references: [id])
+
+  status CreatorSubscriptionStatus @default(PENDING)
+
+  // 契約期間
+  isYearly  Boolean   @default(false) // 年契約かどうか
+  startDate DateTime? // 有効開始日
+  endDate   DateTime? // 有効終了日
+
+  // 次回更新
+  nextBillingDate DateTime? // 次回請求日
+
+  // 支払い管理
+  billingBalance Int @default(0) // 入金残高（円）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bankTransfers BankTransfer[]
+
+  @@index([creatorId])
+  @@index([planId])
+  @@index([status])
+}
+
+// バーチャル口座（GMOあおぞらネット銀行）
+model VirtualAccount {
+  id String @id @default(cuid())
+
+  // 所有者（クリエイターまたはファン）
+  // 注: 在庫管理用。実際の決済紐付けは assignedToPaymentId で行う
+  creatorId String?
+  creator   CreatorProfile? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  fanId String?
+  fan   FanProfile? @relation(fields: [fanId], references: [id], onDelete: Cascade)
+
+  // GMO口座情報
+  accountNumber String  @unique // バーチャル口座番号
+  accountName   String // 口座名義
+  branchCode    String? // 支店コード
+
+  // 用途
+  purpose BankTransferType // CREATOR_PLAN or FAN_CREDIT
+
+  // 決済単位の紐付け（1つの口座は1つの決済に割り当てられる）
+  assignedToPaymentId String? // CreatorSubscription.id または ChargeRequest.id
+  isUsed              Boolean  @default(false) // 使用中フラグ
+  assignedAt          DateTime? // 割り当て日時
+
+  // メタデータ
+  gmoAccountId String? // GMOのアカウントID
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bankTransfers BankTransfer[]
+
+  @@index([creatorId])
+  @@index([fanId])
+  @@index([accountNumber])
+  @@index([assignedToPaymentId])
+  @@index([isUsed, purpose]) // 在庫検索用
+}
+
+// 銀行振込履歴（GMO Webhook受信データ）
+model BankTransfer {
+  id String @id @default(cuid())
+
+  virtualAccountId String
+  virtualAccount   VirtualAccount @relation(fields: [virtualAccountId], references: [id], onDelete: Cascade)
+
+  // 振込情報
+  amount         Int // 振込金額（円）
+  transferorName String // 振込人名義
+  transferDate   DateTime // 振込日時
+
+  // 処理ステータス
+  type   BankTransferType // CREATOR_PLAN or FAN_CREDIT
+  status BankTransferStatus @default(PENDING)
+
+  // GMO Webhookデータ
+  gmoTransactionId String? @unique // GMOの取引ID
+  webhookPayload   Json? // Webhookの生データ
+
+  // 処理結果
+  processedAt  DateTime? // 処理完了日時
+  errorMessage String?   @db.Text // エラーメッセージ
+
+  // 関連エンティティ
+  creatorSubscriptionId String?
+  creatorSubscription   CreatorSubscription? @relation(fields: [creatorSubscriptionId], references: [id])
+
+  chargeRequestId String?
+  chargeRequest   ChargeRequest? @relation(fields: [chargeRequestId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([virtualAccountId])
+  @@index([gmoTransactionId])
+  @@index([status])
+  @@index([transferDate])
+}

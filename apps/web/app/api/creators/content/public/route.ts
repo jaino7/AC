@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
                         price: true,
                     },
                 },
+                media: true,
             },
             orderBy: {
                 createdAt: "desc",

@@ -5,6 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
+type Media = {
+  id: string;
+  url: string;
+  type: string;
+  isSample: boolean;
+  duration: number | null;
+};
+
 type ContentCard = {
   id: string;
   title: string;
@@ -12,6 +20,7 @@ type ContentCard = {
   type: "public" | "gold" | "bronze";
   timeAgo: string;
   likes?: number;
+  media?: Media[];
 };
 
 type CreatorProfile = {
@@ -89,6 +98,7 @@ export default function ZineLiteContentPage({ handle: propHandle }: ZineLiteCont
               type,
               timeAgo: getTimeAgo(new Date(post.createdAt)),
               likes: undefined, // Could add likes from database if available
+              media: post.media || [],
             };
           });
 
@@ -197,7 +207,7 @@ export default function ZineLiteContentPage({ handle: propHandle }: ZineLiteCont
               {showUserMenu && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
                   <Link href={handle ? `/${handle}/account` : "/zine-lite/account"} className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                    設定
+                    アカウント
                   </Link>
                   <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                     ログアウト
@@ -382,7 +392,7 @@ export default function ZineLiteContentPage({ handle: propHandle }: ZineLiteCont
             filteredCards.map((card) => (
               <Link
                 key={card.id}
-                href={`/zine-lite/content/${card.id}`}
+                href={handle ? `/${handle}/content/${card.id}` : `/zine-lite/content/${card.id}`}
                 className="group block"
               >
                 <article className="overflow-hidden rounded-xl bg-white shadow-sm transition hover:shadow-md">
@@ -425,6 +435,49 @@ export default function ZineLiteContentPage({ handle: propHandle }: ZineLiteCont
                         {card.type}
                       </span>
                     </div>
+
+                    {/* メディア情報バッジ */}
+                    {card.media && (() => {
+                      const mainMedia = card.media.filter(m => !m.isSample);
+                      const videos = mainMedia.filter(m => m.type === "VIDEO");
+                      const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                      const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+                      const formatDuration = (seconds: number): string => {
+                        const hours = Math.floor(seconds / 3600);
+                        const minutes = Math.floor((seconds % 3600) / 60);
+                        const secs = seconds % 60;
+
+                        if (hours > 0) {
+                          return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                        }
+                        return `${minutes}:${String(secs).padStart(2, '0')}`;
+                      };
+
+                      if (mainMedia.length === 0) return null;
+
+                      return (
+                        <div className="absolute bottom-2 right-2 flex gap-1.5">
+                          {videos.length > 0 && totalDuration > 0 && (
+                            <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                              </svg>
+                              {formatDuration(totalDuration)}
+                            </div>
+                          )}
+                          {images.length > 0 && (
+                            <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                              </svg>
+                              {images.length}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Content */}

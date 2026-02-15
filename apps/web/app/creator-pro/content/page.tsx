@@ -4,14 +4,28 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
+import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
+
+type Media = {
+  id: string;
+  url: string;
+  type: string;
+  isSample: boolean;
+  duration: number | null;
+};
 
 type Post = {
   id: string;
   title: string;
   description: string;
   cover: string | null;
+  isEncrypted?: boolean;
   isLocked?: boolean;
-  unlockPrice?: string;
+  timeAgo?: string;
+  media?: Media[];
+  price?: number | null;
+  unlockPrice?: number | null;
   requiredPlan?: {
     id: string;
     name: string;
@@ -43,6 +57,33 @@ interface CreatorProContentPageProps {
   handle?: string;
 }
 
+// Helper function to calculate time ago
+const getTimeAgo = (date: Date): string => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) {
+    return Math.floor(interval) + "年前";
+  }
+  interval = seconds / 2592000;
+  if (interval > 1) {
+    return Math.floor(interval) + "ヶ月前";
+  }
+  interval = seconds / 86400;
+  if (interval > 1) {
+    return Math.floor(interval) + "日前";
+  }
+  interval = seconds / 3600;
+  if (interval > 1) {
+    return Math.floor(interval) + "時間前";
+  }
+  interval = seconds / 60;
+  if (interval > 1) {
+    return Math.floor(interval) + "分前";
+  }
+  return Math.floor(seconds) + "秒前";
+};
+
 export default function CreatorProContentPage({ handle: propHandle }: CreatorProContentPageProps = {}) {
   const searchParams = useSearchParams();
   const handle = propHandle || searchParams.get("handle");
@@ -56,6 +97,13 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedLoading, setSavedLoading] = useState(false);
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  // クレジット情報を取得
+  const { data: creditsData } = useCredits(handle || undefined);
+  const invalidateCredits = useInvalidateCredits();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,8 +152,10 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
             title: post.title,
             description: post.content || "",
             cover: post.thumbnailUrl || post.mediaUrl,
-            isLocked: post.isLocked,
-            unlockPrice: post.isLocked && post.requiredPlan ? `¥${post.requiredPlan.price}` : undefined,
+            isEncrypted: false,
+            timeAgo: getTimeAgo(new Date(post.createdAt)),
+            media: post.media || [],
+            requiredPlan: post.requiredPlan,
           }));
 
           setPosts(transformedPosts);
@@ -135,10 +185,12 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
             const transformedPosts: Post[] = savedPostsArray.map((post: any) => ({
               id: post.id,
               title: post.title,
-              description: post.content || "",
+              description: post.content?.substring(0, 80) || "",
               cover: post.thumbnailUrl || post.mediaUrl,
-              isLocked: post.isLocked,
-              unlockPrice: post.isLocked && post.requiredPlan ? `¥${post.requiredPlan.price}` : undefined,
+              badge: post.isLocked ? "locked" : "free",
+              isEncrypted: false,
+              timeAgo: getTimeAgo(new Date(post.createdAt)),
+              media: post.media || [],
               requiredPlan: post.requiredPlan,
             }));
 
@@ -170,6 +222,63 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
     return true;
   });
 
+  // 購入処理
+  const handlePurchase = async (event: React.MouseEvent, post: Post) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const price = post.price || post.unlockPrice;
+    if (!price) {
+      alert("この投稿には価格が設定されていません");
+      return;
+    }
+
+    const currentCredits = creditsData?.credits || 0;
+
+    // クレジット不足チェック
+    if (currentCredits < price) {
+      setSelectedPost(post);
+      setShowInsufficientModal(true);
+      return;
+    }
+
+    setIsPurchasing(true);
+
+    try {
+      const response = await fetch("/api/fans/content/purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentId: post.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // クレジット情報を更新
+        invalidateCredits(handle || undefined);
+        alert("購入が完了しました");
+        // ページをリロードして購入済みコンテンツを反映
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        if (error.shortage) {
+          // クレジット不足エラー
+          setSelectedPost(post);
+          setShowInsufficientModal(true);
+        } else {
+          alert(error.error || "購入に失敗しました");
+        }
+      }
+    } catch (error) {
+      alert("購入処理に失敗しました");
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0d1117] text-white">
@@ -192,9 +301,9 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
           </button>
           <Link href={handle ? `/${handle}/account` : "/creator-pro/account"} className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
             </svg>
-            設定
+            アカウント
           </Link>
           <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -387,7 +496,7 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
               filteredPosts.map((post) => (
                 <Link
                   key={post.id}
-                  href={`/creator-pro/content/${post.id}`}
+                  href={handle ? `/${handle}/content/${post.id}` : `/creator-pro/content/${post.id}`}
                   className="group overflow-hidden rounded-xl bg-[#161b22] transition hover:bg-[#1c2128]"
                 >
                   {post.cover ? (
@@ -397,14 +506,49 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
                         alt={post.title}
                         className="h-full w-full object-cover transition group-hover:scale-105"
                       />
-                      {/* Lock Icon */}
-                      {post.isLocked && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                          <svg className="h-10 w-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
-                      )}
+
+                      {/* メディア情報バッジ */}
+                      {post.media && (() => {
+                        const mainMedia = post.media.filter(m => !m.isSample);
+                        const videos = mainMedia.filter(m => m.type === "VIDEO");
+                        const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                        const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+                        const formatDuration = (seconds: number): string => {
+                          const hours = Math.floor(seconds / 3600);
+                          const minutes = Math.floor((seconds % 3600) / 60);
+                          const secs = seconds % 60;
+
+                          if (hours > 0) {
+                            return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                          }
+                          return `${minutes}:${String(secs).padStart(2, '0')}`;
+                        };
+
+                        if (mainMedia.length === 0) return null;
+
+                        return (
+                          <div className="absolute bottom-2 right-2 flex gap-1.5">
+                            {videos.length > 0 && totalDuration > 0 && (
+                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                </svg>
+                                {formatDuration(totalDuration)}
+                              </div>
+                            )}
+                            {images.length > 0 && (
+                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                </svg>
+                                {images.length}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="border-l-4 border-blue-600 bg-blue-600/10 p-4">
@@ -423,8 +567,12 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
                       <p className="mb-3 text-sm text-gray-400 line-clamp-2">{post.description}</p>
                     )}
                     {post.unlockPrice && (
-                      <button className="w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold hover:bg-blue-700">
-                        {post.unlockPrice}でアンロック
+                      <button
+                        onClick={(e) => handlePurchase(e, post)}
+                        disabled={isPurchasing}
+                        className="w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      >
+                        {isPurchasing ? "処理中..." : `¥${post.unlockPrice}でアンロック`}
                       </button>
                     )}
                   </div>
@@ -453,6 +601,16 @@ export default function CreatorProContentPage({ handle: propHandle }: CreatorPro
           </footer>
         </main>
       </div>
+
+      {/* クレジット不足モーダル */}
+      <InsufficientCreditsModal
+        isOpen={showInsufficientModal}
+        onClose={() => setShowInsufficientModal(false)}
+        currentCredits={creditsData?.credits || 0}
+        requiredAmount={selectedPost?.price || selectedPost?.unlockPrice || 0}
+        handle={handle || undefined}
+        contentTitle={selectedPost?.title}
+      />
     </div>
   );
 }

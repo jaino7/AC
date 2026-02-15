@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { TrustRankDisplay } from "@/components/credits/TrustRankDisplay";
+import ChargeModal from "@/components/credits/ChargeModal";
 
 type CreditHistory = {
     id: string;
@@ -22,14 +24,21 @@ type ChargeRequest = {
     createdAt: string;
 };
 
-export default function PureLiteCreditsPage() {
+interface PureLiteCreditsPageProps {
+    handle?: string;
+    displayName?: string;
+    logoUrl?: string | null;
+}
+
+export default function PureLiteCreditsPage({ handle }: PureLiteCreditsPageProps = {}) {
     const [credits, setCredits] = useState(0);
+    const [tier, setTier] = useState(0);
+    const [trustScore, setTrustScore] = useState(0);
+    const [isLocked, setIsLocked] = useState(false);
     const [history, setHistory] = useState<CreditHistory[]>([]);
     const [chargeRequests, setChargeRequests] = useState<ChargeRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [showChargeModal, setShowChargeModal] = useState(false);
-    const [chargeAmount, setChargeAmount] = useState("");
-    const [chargeResult, setChargeResult] = useState<any>(null);
 
     useEffect(() => {
         fetchCredits();
@@ -38,11 +47,20 @@ export default function PureLiteCreditsPage() {
 
     const fetchCredits = async () => {
         try {
-            const res = await fetch("/api/fans/credits");
+            const url = handle ? `/api/fans/credits?handle=${handle}` : "/api/fans/credits";
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setCredits(data.credits);
-                setHistory(data.history);
+                setCredits(data.credits || 0);
+                setTier(data.tier || 0);
+                setTrustScore(data.trustScore || 0);
+                setIsLocked(data.isLocked || false);
+                setHistory(data.history || []);
+
+                // If account is locked, redirect to suspended page
+                if (data.isLocked) {
+                    window.location.href = "/account-suspended";
+                }
             }
         } catch (error) {
             console.error("Failed to fetch credits:", error);
@@ -53,41 +71,15 @@ export default function PureLiteCreditsPage() {
 
     const fetchChargeRequests = async () => {
         try {
-            const res = await fetch("/api/fans/credits/charge-requests");
+            const url = handle ? `/api/fans/credits/charge-requests?handle=${handle}` : "/api/fans/credits/charge-requests";
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setChargeRequests(data.chargeRequests);
+                setChargeRequests(data.chargeRequests || []);
             }
         } catch (error) {
             console.error("Failed to fetch charge requests:", error);
-        }
-    };
-
-    const handleCharge = async () => {
-        const amount = parseInt(chargeAmount);
-        if (isNaN(amount) || amount < 1000) {
-            alert("チャージ金額は1,000円以上で入力してください");
-            return;
-        }
-
-        try {
-            const res = await fetch("/api/fans/credits/charge", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setChargeResult(data.chargeRequest);
-                setChargeAmount("");
-                fetchChargeRequests();
-            } else {
-                const error = await res.json();
-                alert(error.error);
-            }
-        } catch (error) {
-            console.error("Failed to create charge request:", error);
+            setChargeRequests([]);
         }
     };
 
@@ -128,7 +120,7 @@ export default function PureLiteCreditsPage() {
                             <span className="text-sm text-pink-600">👤</span>
                         </div>
                         <button
-                            onClick={() => signOut({ callbackUrl: "/pure-lite/login" })}
+                            onClick={() => signOut({ callbackUrl: handle ? `/${handle}/login` : "/pure-lite/login" })}
                             className="text-sm text-[#2d2a26]/60 hover:text-[#2d2a26]"
                         >
                             ログアウト
@@ -158,10 +150,10 @@ export default function PureLiteCreditsPage() {
 
                 {/* Credit Balance */}
                 <section className="mt-8 rounded-[24px] border border-[#f3e8e2] bg-white p-8">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-6">
                         <div>
                             <p className="text-sm text-[#2d2a26]/60">クレジット残高</p>
-                            <p className="text-4xl font-bold text-pink-500">¥{credits.toLocaleString()}</p>
+                            <p className="text-4xl font-bold text-pink-500">¥{(credits || 0).toLocaleString()}</p>
                         </div>
                         <button
                             onClick={() => setShowChargeModal(true)}
@@ -170,10 +162,18 @@ export default function PureLiteCreditsPage() {
                             チャージする
                         </button>
                     </div>
+
+                    {/* Trust Rank Display */}
+                    <TrustRankDisplay
+                        tier={tier}
+                        trustScore={trustScore}
+                        variant="pure-lite"
+                        className="pt-6 border-t border-[#f3e8e2]"
+                    />
                 </section>
 
                 {/* Charge Requests */}
-                {chargeRequests.length > 0 && (
+                {chargeRequests && chargeRequests.length > 0 && (
                     <section className="mt-8 rounded-[24px] border border-[#f3e8e2] bg-white p-8">
                         <h2 className="text-xl font-semibold">チャージ申請</h2>
                         <div className="mt-4 space-y-3">
@@ -226,75 +226,14 @@ export default function PureLiteCreditsPage() {
                 </section>
             </main>
 
-            {/* Charge Modal */}
             {showChargeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="w-full max-w-md rounded-[24px] bg-white p-8">
-                        {!chargeResult ? (
-                            <>
-                                <h3 className="text-xl font-semibold">クレジットをチャージ</h3>
-                                <p className="mt-2 text-sm text-[#2d2a26]/60">
-                                    チャージ金額を入力し、銀行振込でお支払いください。
-                                </p>
-                                <div className="mt-6">
-                                    <label className="block text-sm font-medium">金額（1,000円〜100,000円）</label>
-                                    <input
-                                        type="number"
-                                        value={chargeAmount}
-                                        onChange={(e) => setChargeAmount(e.target.value)}
-                                        placeholder="10000"
-                                        className="mt-2 w-full rounded-xl border border-[#f3e8e2] bg-[#fff8f5] px-4 py-3 focus:border-pink-400 focus:outline-none"
-                                    />
-                                </div>
-                                <div className="mt-6 flex gap-3">
-                                    <button
-                                        onClick={() => setShowChargeModal(false)}
-                                        className="flex-1 rounded-full border border-[#f3e8e2] px-6 py-3 text-sm font-semibold hover:bg-[#fff8f5]"
-                                    >
-                                        キャンセル
-                                    </button>
-                                    <button
-                                        onClick={handleCharge}
-                                        className="flex-1 rounded-full bg-gradient-to-r from-pink-400 to-rose-500 px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
-                                    >
-                                        申請する
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <h3 className="text-xl font-semibold text-green-600">申請完了</h3>
-                                <div className="mt-4 rounded-xl bg-[#fff8f5] p-4">
-                                    <p className="text-sm font-semibold">振込先情報</p>
-                                    <div className="mt-2 space-y-1 text-sm">
-                                        <p>銀行名: {chargeResult.bankInfo.bankName}</p>
-                                        <p>支店名: {chargeResult.bankInfo.branchName}</p>
-                                        <p>口座種別: {chargeResult.bankInfo.accountType}</p>
-                                        <p>口座番号: {chargeResult.bankInfo.accountNumber}</p>
-                                        <p>口座名義: {chargeResult.bankInfo.accountHolder}</p>
-                                    </div>
-                                    <div className="mt-4 rounded-lg bg-pink-50 p-3">
-                                        <p className="text-xs font-semibold text-pink-600">識別コード</p>
-                                        <p className="text-lg font-bold text-pink-600">{chargeResult.identifierCode}</p>
-                                        <p className="mt-1 text-xs text-[#2d2a26]/60">{chargeResult.instructions}</p>
-                                    </div>
-                                    <p className="mt-4 text-xs text-[#2d2a26]/60">
-                                        有効期限: {new Date(chargeResult.expiresAt).toLocaleDateString("ja-JP")}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setShowChargeModal(false);
-                                        setChargeResult(null);
-                                    }}
-                                    className="mt-6 w-full rounded-full bg-gradient-to-r from-pink-400 to-rose-500 px-6 py-3 text-sm font-semibold text-white"
-                                >
-                                    閉じる
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
+                <ChargeModal
+                    handle={handle}
+                    tier={tier}
+                    variant="pure-lite"
+                    onClose={() => { setShowChargeModal(false); fetchCredits(); fetchChargeRequests(); }}
+                    onSuccess={() => { fetchCredits(); fetchChargeRequests(); }}
+                />
             )}
 
             <footer className="mt-12 border-t border-[#f3e8e2] bg-white py-8">

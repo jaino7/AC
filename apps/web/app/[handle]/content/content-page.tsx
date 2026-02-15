@@ -91,6 +91,13 @@ interface Plan {
     price: number;
 }
 
+interface Media {
+    id: string;
+    url: string;
+    type: string;
+    isSample: boolean;
+}
+
 interface Post {
     id: string;
     title: string;
@@ -99,6 +106,7 @@ interface Post {
     price: number | null;
     createdAt: string;
     requiredPlan: { id: string; name: string } | null;
+    media?: Media[];
 }
 
 interface ContentPageProps {
@@ -216,8 +224,8 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
                         <button
                             onClick={() => setActiveTab("all")}
                             className={`whitespace-nowrap border-b-2 px-4 py-4 text-sm font-semibold transition ${activeTab === "all"
-                                    ? `${styles.accent} border-current`
-                                    : `${styles.subtext} border-transparent hover:border-white/20`
+                                ? `${styles.accent} border-current`
+                                : `${styles.subtext} border-transparent hover:border-white/20`
                                 }`}
                         >
                             すべて
@@ -227,8 +235,8 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
                                 key={plan.id}
                                 onClick={() => setActiveTab(plan.id)}
                                 className={`whitespace-nowrap border-b-2 px-4 py-4 text-sm font-semibold transition ${activeTab === plan.id
-                                        ? `${styles.accent} border-current`
-                                        : `${styles.subtext} border-transparent hover:border-white/20`
+                                    ? `${styles.accent} border-current`
+                                    : `${styles.subtext} border-transparent hover:border-white/20`
                                     }`}
                             >
                                 {plan.name}
@@ -254,12 +262,41 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
                                     className={`group rounded-2xl border overflow-hidden ${styles.card} ${styles.cardHover} transition`}
                                 >
                                     {post.thumbnailUrl ? (
-                                        <div className="aspect-video bg-black/20">
+                                        <div className="relative aspect-video bg-black/20">
                                             <img
                                                 src={post.thumbnailUrl}
                                                 alt={post.title}
                                                 className="h-full w-full object-cover group-hover:scale-105 transition"
                                             />
+                                            {/* メディア情報バッジ */}
+                                            {post.media && (() => {
+                                                const mainMedia = post.media.filter(m => !m.isSample);
+                                                const videos = mainMedia.filter(m => m.type === "VIDEO");
+                                                const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                                                if (mainMedia.length === 0) return null;
+
+                                                return (
+                                                    <div className="absolute bottom-2 right-2 flex gap-1.5">
+                                                        {videos.length > 0 && (
+                                                            <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                                                </svg>
+                                                                {videos.length}
+                                                            </div>
+                                                        )}
+                                                        {images.length > 0 && (
+                                                            <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                                                </svg>
+                                                                {images.length}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     ) : (
                                         <div className={`aspect-video flex items-center justify-center ${styles.bg}`}>

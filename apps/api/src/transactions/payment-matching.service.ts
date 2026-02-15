@@ -77,6 +77,7 @@ export class PaymentMatchingService {
                     where: { id: transaction.subscriptionId },
                 });
 
+                if (!subscription) return;
                 const currentEndDate = subscription.endDate || new Date();
                 const newEndDate = new Date(currentEndDate);
                 newEndDate.setMonth(newEndDate.getMonth() + 1); // 1ヶ月延長
@@ -105,9 +106,18 @@ export class PaymentMatchingService {
                     const endDate = new Date();
                     endDate.setMonth(endDate.getMonth() + 1); // 1ヶ月後
 
+                    const fanProfile = await tx.fanProfile.findFirst({
+                        where: {
+                            userId: transaction.userId,
+                            creatorId: transaction.creatorId,
+                        },
+                    });
+
+                    if (!fanProfile) return;
+
                     const newSubscription = await tx.subscription.create({
                         data: {
-                            userId: transaction.userId,
+                            fanId: fanProfile.id,
                             planId: plan.id,
                             status: 'ACTIVE',
                             endDate,

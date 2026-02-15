@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
     HomeIcon,
     VideoIcon,
-    UsersIcon,
+    ChartBarIcon,
     DollarSignIcon,
     SettingsIcon,
     CreditCardIcon
@@ -16,7 +16,7 @@ import {
 const getNavigation = (handle: string) => [
     { name: "ダッシュボード", href: `/creators/${handle}/dashboard`, icon: HomeIcon },
     { name: "コンテンツ管理", href: `/creators/${handle}/content`, icon: VideoIcon },
-    { name: "ファン管理", href: `/creators/${handle}/fans`, icon: UsersIcon },
+    { name: "アナリティクス", href: `/creators/${handle}/analytics`, icon: ChartBarIcon },
     { name: "プラン設定", href: `/creators/${handle}/c-plans`, icon: CreditCardIcon },
     { name: "収益", href: `/creators/${handle}/earnings`, icon: DollarSignIcon },
     { name: "テーマ", href: `/creators/${handle}/settings/theme`, icon: SettingsIcon },

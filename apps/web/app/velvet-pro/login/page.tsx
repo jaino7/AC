@@ -17,7 +17,7 @@ export default function VelvetProLoginPage({ handle, displayName, logoUrl }: Vel
           {displayName ? `${displayName}にログイン` : "ログインまたは登録"}
         </h1>
 
-        <VelvetProLoginForm />
+        <VelvetProLoginForm handle={handle} />
       </div>
     </div>
   );

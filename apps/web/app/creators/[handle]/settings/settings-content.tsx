@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Tab = "profile" | "plans" | "notifications" | "domain";
 
@@ -12,7 +13,48 @@ const tabs = [
     { id: "domain" as Tab, icon: "🌐", label: "ドメイン設定" }
 ];
 
+interface DomainData {
+    id: string;
+    domain: string;
+    status: string;
+    sslValidationRecords?: Array<{
+        txt_name: string;
+        txt_value: string;
+    }>;
+    lastError?: string;
+}
+
+interface CreatorProfile {
+    id: string;
+    hasAccess: boolean;
+    planType?: string;
+}
+
+interface Subscription {
+    id?: string;
+    status: string;
+    plan: {
+        type: string;
+        name: string;
+        monthlyPrice: number;
+        yearlyPrice: number;
+        feeRate: number;
+    };
+    isYearly: boolean;
+    nextBillingDate: string | null;
+    endDate: string | null;
+    billingBalance: number;
+}
+
+interface VirtualAccount {
+    accountNumber: string;
+    accountName: string;
+    branchCode: string | null;
+    branchName: string | null;
+}
+
 export default function SettingsContent() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<Tab>("profile");
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
@@ -27,6 +69,22 @@ export default function SettingsContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+
+    // Domain settings state
+    const [domainData, setDomainData] = useState<DomainData | null>(null);
+    const [domainInput, setDomainInput] = useState("");
+    const [domainLoading, setDomainLoading] = useState(false);
+    const [domainVerifying, setDomainVerifying] = useState(false);
+    const [domainError, setDomainError] = useState<string | null>(null);
+    const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+    const [domainSearchQuery, setDomainSearchQuery] = useState("");
+
+    // Subscription state
+    const [subscription, setSubscription] = useState<Subscription | null>(null);
+    const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
+    const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     // Fetch profile data on mount
     useEffect(() => {
@@ -43,6 +101,13 @@ export default function SettingsContent() {
                     setTiktokUrl(data.profile.tiktokUrl || "");
                     setDiscordUrl(data.profile.discordUrl || "");
                     setOtherUrl(data.profile.otherUrl || "");
+
+                    // Set creator profile for domain access check
+                    setCreatorProfile({
+                        id: data.profile.id,
+                        hasAccess: data.profile.hasAccess || false,
+                        planType: data.profile.planType,
+                    });
                 }
             } catch (error) {
                 console.error("Failed to fetch profile:", error);
@@ -53,6 +118,195 @@ export default function SettingsContent() {
 
         fetchProfile();
     }, []);
+
+    // Fetch domain data when domain tab is active
+    useEffect(() => {
+        if (activeTab === "domain") {
+            loadDomain();
+        }
+    }, [activeTab]);
+
+    // Fetch subscription data when plans tab is active
+    useEffect(() => {
+        if (activeTab === "plans") {
+            fetchSubscription();
+        }
+    }, [activeTab]);
+
+    const fetchSubscription = async () => {
+        setSubscriptionLoading(true);
+        try {
+            const response = await fetch("/api/creators/subscription");
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Subscription data received:', data);
+                console.log('Virtual Account:', data.virtualAccount);
+                setSubscription(data.subscription);
+                setVirtualAccount(data.virtualAccount);
+            }
+        } catch (error) {
+            console.error("Failed to fetch subscription:", error);
+        } finally {
+            setSubscriptionLoading(false);
+        }
+    };
+
+    const handleCancelSubscription = async () => {
+        setIsCancelling(true);
+        try {
+            const response = await fetch("/api/creators/subscription/cancel", {
+                method: "PATCH",
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                alert(data.message);
+                setShowCancelModal(false);
+                // Refresh subscription data
+                await fetchSubscription();
+            } else {
+                const error = await response.json();
+                alert(error.error || "キャンセルに失敗しました");
+            }
+        } catch (error) {
+            console.error("Failed to cancel subscription:", error);
+            alert("キャンセルに失敗しました");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    const loadDomain = async () => {
+        try {
+            const response = await fetch("/api/domains/me");
+            if (response.ok) {
+                const data = await response.json();
+                if (data) {
+                    setDomainData(data);
+                    setDomainInput(data.domain);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load domain:", error);
+        }
+    };
+
+    const handleSaveDomain = async () => {
+        if (!domainInput.trim()) {
+            setDomainError("ドメイン名を入力してください");
+            return;
+        }
+
+        setDomainLoading(true);
+        setDomainError(null);
+
+        try {
+            const response = await fetch("/api/domains", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ domain: domainInput.trim() }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "ドメインの登録に失敗しました");
+            }
+
+            const data = await response.json();
+            setDomainData(data);
+            alert("ドメインを登録しました。DNS設定を行ってから検証ボタンを押してください。");
+        } catch (err: any) {
+            setDomainError(err.message);
+        } finally {
+            setDomainLoading(false);
+        }
+    };
+
+    const handleVerifyDomain = async () => {
+        if (!domainData) return;
+
+        setDomainVerifying(true);
+        setDomainError(null);
+
+        try {
+            const response = await fetch(`/api/domains/${domainData.id}/verify`, {
+                method: "POST",
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "検証に失敗しました");
+            }
+
+            const data = await response.json();
+            setDomainData(data);
+
+            if (data.status === "ACTIVE") {
+                alert("ドメインの検証が完了しました！");
+            } else if (data.status === "VERIFYING") {
+                alert("検証中です。DNS設定が反映されるまで時間がかかる場合があります。");
+            } else if (data.status === "FAILED") {
+                alert(`検証に失敗しました: ${data.lastError || "不明なエラー"}`);
+            }
+        } catch (err: any) {
+            setDomainError(err.message);
+        } finally {
+            setDomainVerifying(false);
+        }
+    };
+
+    const handleDeleteDomain = async () => {
+        if (!domainData) return;
+
+        if (!confirm("ドメインを削除してもよろしいですか？")) {
+            return;
+        }
+
+        setDomainLoading(true);
+
+        try {
+            const response = await fetch(`/api/domains/${domainData.id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "削除に失敗しました");
+            }
+
+            setDomainData(null);
+            setDomainInput("");
+            alert("ドメインを削除しました");
+        } catch (err: any) {
+            setDomainError(err.message);
+        } finally {
+            setDomainLoading(false);
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        const styles: Record<string, string> = {
+            PENDING: "bg-yellow-100 text-yellow-700",
+            VERIFYING: "bg-blue-100 text-blue-700",
+            ACTIVE: "bg-green-100 text-green-700",
+            FAILED: "bg-red-100 text-red-700",
+            DISCONNECTED: "bg-gray-100 text-gray-700",
+        };
+
+        const labels: Record<string, string> = {
+            PENDING: "検証待ち",
+            VERIFYING: "検証中",
+            ACTIVE: "有効",
+            FAILED: "検証失敗",
+            DISCONNECTED: "切断済み",
+        };
+
+        return (
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${styles[status] || styles.PENDING}`}>
+                {labels[status] || status}
+            </span>
+        );
+    };
 
     const handleSaveProfile = async () => {
         setMessage(null);
@@ -333,39 +587,170 @@ export default function SettingsContent() {
                             <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                 <h2 className="mb-6 text-xl font-semibold">プランの詳細</h2>
 
-                                <div className="space-y-6">
-                                    {/* Trial Status */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-neutral-50 p-6">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm font-semibold text-neutral-700">トライアル</span>
-                                            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                                残り3日
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button className="text-sm font-semibold text-pink-600 transition-colors hover:text-pink-700">
-                                                トライアルをキャンセルする
-                                            </button>
-                                            <Link href="/creators/pricing">
-                                                <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
-                                                    プランを選択する
-                                                </button>
-                                            </Link>
-                                        </div>
+                                {subscriptionLoading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
                                     </div>
+                                ) : subscription ? (
+                                    <div className="space-y-6">
+                                        {/* Subscription Status */}
+                                        <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-neutral-50 p-6">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-semibold text-neutral-700">
+                                                        現在のプラン: {subscription.plan.name}
+                                                    </span>
+                                                    {subscription.status === "ACTIVE" && (
+                                                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                                            有効
+                                                        </span>
+                                                    )}
+                                                    {subscription.status === "CANCELLED" && (
+                                                        <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                                            キャンセル済み
+                                                        </span>
+                                                    )}
+                                                    {subscription.status === "EXPIRED" && (
+                                                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                                            期限切れ
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {subscription.nextBillingDate && (
+                                                    <p className="text-xs text-neutral-600">
+                                                        更新日: {new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}
+                                                    </p>
+                                                )}
+                                                {subscription.status === "CANCELLED" && subscription.endDate && (
+                                                    <p className="text-xs text-neutral-600">
+                                                        {new Date(subscription.endDate).toLocaleDateString("ja-JP")}まで利用可能
+                                                    </p>
+                                                )}
+                                                {subscription.status === "FREE" && (
+                                                    <p className="text-xs text-neutral-600">
+                                                        手数料率: {(subscription.plan.feeRate * 100).toFixed(0)}%
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                {subscription.status === "ACTIVE" && (
+                                                    <button
+                                                        onClick={() => setShowCancelModal(true)}
+                                                        className="text-sm font-semibold text-pink-600 transition-colors hover:text-pink-700"
+                                                    >
+                                                        キャンセルする
+                                                    </button>
+                                                )}
+                                                <Link href="/creators/pricing">
+                                                    <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
+                                                        {subscription.status === "FREE" ? "プランを選択する" : "プランを変更する"}
+                                                    </button>
+                                                </Link>
+                                            </div>
+                                        </div>
 
-                                    {/* Terms Link */}
-                                    <p className="text-sm text-neutral-600">
-                                        <a href="/terms/creators" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                            利用規約
-                                        </a>
-                                        {" "}と{" "}
-                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                            プライバシーポリシー
-                                        </a>
-                                        をご確認ください
-                                    </p>
-                                </div>
+                                        {/* Billing Balance */}
+                                        <div className="rounded-2xl border border-black/10 bg-white p-6">
+                                                <h3 className="mb-3 text-sm font-semibold text-neutral-700">現在のプリペイド残高</h3>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-3xl font-bold text-neutral-900">
+                                                        ¥{subscription.billingBalance.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-2 text-xs text-neutral-600">
+                                                    この残高から毎月のプラン料金が自動的に引き落とされます。
+                                                </p>
+                                                {/* Low balance alert */}
+                                                {subscription.nextBillingDate && (
+                                                    (() => {
+                                                        const requiredAmount = subscription.isYearly
+                                                            ? subscription.plan.yearlyPrice
+                                                            : subscription.plan.monthlyPrice;
+                                                        const isLowBalance = subscription.billingBalance < requiredAmount;
+
+                                                        if (isLowBalance) {
+                                                            return (
+                                                                <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+                                                                    <div className="flex items-start gap-3">
+                                                                        <span className="text-yellow-600">⚠️</span>
+                                                                        <div className="flex-1">
+                                                                            <p className="text-sm font-semibold text-yellow-900">
+                                                                                残高不足の可能性
+                                                                            </p>
+                                                                            <p className="mt-1 text-xs text-yellow-800">
+                                                                                次回更新日（{new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}）までに
+                                                                                ¥{requiredAmount.toLocaleString()}以上の残高が必要です。
+                                                                                残高が不足している場合、自動更新が停止されます。
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()
+                                                )}
+                                            </div>
+
+                                        {/* Virtual Account Information - Only show if assigned */}
+                                        {virtualAccount && (
+                                            <div className="rounded-2xl border border-black/10 bg-white p-6">
+                                                <h3 className="mb-3 text-sm font-semibold text-neutral-700">あなたの専用振込口座</h3>
+                                                <p className="mb-4 text-xs text-neutral-600">
+                                                    この口座に振り込むと、自動的にプリペイド残高にチャージされます。
+                                                </p>
+                                                <div className="space-y-3 rounded-2xl bg-neutral-50 p-4">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-neutral-600">銀行名</span>
+                                                        <span className="font-mono font-semibold text-neutral-900">GMOあおぞらネット銀行</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-neutral-600">支店名</span>
+                                                        <span className="font-mono font-semibold text-neutral-900">
+                                                            {virtualAccount.branchName
+                                                                ? virtualAccount.branchName.includes('（') || virtualAccount.branchName.includes('(')
+                                                                    ? virtualAccount.branchName
+                                                                    : `${virtualAccount.branchName}（${virtualAccount.branchCode}）`
+                                                                : `${virtualAccount.branchCode || "001"}支店`}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-neutral-600">口座種別</span>
+                                                        <span className="font-mono font-semibold text-neutral-900">普通</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-neutral-600">口座番号</span>
+                                                        <span className="font-mono font-semibold text-blue-600">
+                                                            {virtualAccount.accountNumber}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-neutral-600">口座名義</span>
+                                                        <span className="font-mono font-semibold text-neutral-900">
+                                                            {virtualAccount.accountName}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Terms Link */}
+                                        <p className="text-sm text-neutral-600">
+                                            <a href="/terms/creators" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                利用規約
+                                            </a>
+                                            {" "}と{" "}
+                                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                プライバシーポリシー
+                                            </a>
+                                            をご確認ください
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-neutral-600">
+                                        サブスクリプション情報を取得できませんでした
+                                    </div>
+                                )}
                             </section>
                         )}
 
@@ -397,98 +782,145 @@ export default function SettingsContent() {
                         )}
 
                         {activeTab === "domain" && (
-                            <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                            <section className="relative rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                {/* Upgrade Overlay */}
+                                {creatorProfile && !creatorProfile.hasAccess && (
+                                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/95 backdrop-blur-sm">
+                                        <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
+                                            <h2 className="mb-4 text-2xl font-bold text-gray-900">
+                                                独自ドメイン機能
+                                            </h2>
+                                            <p className="mb-6 text-gray-600">
+                                                独自ドメインを使用するには、LiteまたはBusinessプランへのアップグレードが必要です。
+                                            </p>
+                                            <button
+                                                onClick={() => router.push("/creators/pricing")}
+                                                className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+                                            >
+                                                プランをアップグレード
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <h2 className="mb-2 text-2xl font-semibold">独自ドメイン設定</h2>
                                 <p className="mb-6 text-sm text-gray-600">
                                     独自ドメインを接続して、プロフェッショナルなサイトを運営できます。
+                                    {creatorProfile?.planType && ` (現在のプラン: ${creatorProfile.planType})`}
                                 </p>
 
-                                <button className="mb-8 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                                    新しいドメインを追加
-                                </button>
-
-                                {/* DNS設定手順 */}
-                                <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50 p-6">
-                                    <h3 className="mb-3 text-sm font-semibold text-blue-900">DNS設定手順</h3>
-                                    <ol className="space-y-2 text-sm text-blue-800">
-                                        <li>1. 上記のボタンからドメインを追加</li>
-                                        <li>2. 表示されるDNSレコードをドメインプロバイダーで設定</li>
-                                        <li>3. 「検証」ボタンをクリックして確認</li>
-                                        <li>4. 検証が完了すると、ドメインが有効になります</li>
-                                    </ol>
-                                </div>
-
-                                {/* 検索入力 */}
-                                <div className="mb-6">
-                                    <input
-                                        type="text"
-                                        placeholder="ドメインを検索"
-                                        className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
-                                    />
-                                </div>
-
-                                {/* ドメイン一覧 */}
-                                <div className="space-y-4">
-                                    {/* サンプルドメイン1 - 有効 */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
-                                        <div>
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black">example.com</span>
-                                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                                                    有効
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-600">プライマリードメイン</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-                                                削除
-                                            </button>
-                                        </div>
+                                {domainError && (
+                                    <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+                                        <p className="text-sm text-red-800">{domainError}</p>
                                     </div>
+                                )}
 
-                                    {/* サンプルドメイン2 - 検証待ち */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
+                                {/* Domain Input */}
+                                {!domainData ? (
+                                    <div className="mb-8 space-y-4">
                                         <div>
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black">www.my-creator-site.com</span>
-                                                <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700">
-                                                    検証待ち
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-600">DNS設定を確認してください</p>
+                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                ドメイン名
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={domainInput}
+                                                onChange={(e) => setDomainInput(e.target.value)}
+                                                placeholder="example.com"
+                                                className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                            />
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                サブドメインは含めず、メインドメインのみを入力してください
+                                            </p>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                                                検証
-                                            </button>
-                                            <button className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-                                                削除
-                                            </button>
-                                        </div>
+                                        <button
+                                            onClick={handleSaveDomain}
+                                            disabled={domainLoading || !domainInput.trim()}
+                                            className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                            {domainLoading ? "登録中..." : "ドメインを登録"}
+                                        </button>
                                     </div>
+                                ) : (
+                                    <>
+                                        {/* Current Domain */}
+                                        <div className="mb-8 flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
+                                            <div>
+                                                <div className="mb-1 flex items-center gap-2">
+                                                    <span className="text-sm font-semibold text-black">{domainData.domain}</span>
+                                                    {getStatusBadge(domainData.status)}
+                                                </div>
+                                                {domainData.lastError && (
+                                                    <p className="text-xs text-red-600">{domainData.lastError}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={handleVerifyDomain}
+                                                    disabled={domainVerifying || domainData.status === "ACTIVE"}
+                                                    className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                                                >
+                                                    {domainVerifying ? "検証中..." : "検証"}
+                                                </button>
+                                                <button
+                                                    onClick={handleDeleteDomain}
+                                                    disabled={domainLoading}
+                                                    className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 disabled:opacity-50"
+                                                >
+                                                    削除
+                                                </button>
+                                            </div>
+                                        </div>
 
-                                    {/* サンプルドメイン3 - 検証失敗 */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
-                                        <div>
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black">shop.my-brand.com</span>
-                                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                                                    検証失敗
-                                                </span>
+                                        {/* DNS Setup Instructions */}
+                                        {domainData.sslValidationRecords && domainData.sslValidationRecords.length > 0 && (
+                                            <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+                                                <h3 className="mb-3 text-sm font-semibold text-blue-900">DNS設定手順</h3>
+                                                <p className="mb-4 text-sm text-blue-800">
+                                                    以下のDNSレコードをドメインのDNS設定に追加してください。
+                                                </p>
+
+                                                <div className="space-y-4">
+                                                    {domainData.sslValidationRecords.map((record, index) => (
+                                                        <div key={index} className="rounded-2xl border border-blue-200 bg-white p-4">
+                                                            <div className="grid gap-2">
+                                                                <div>
+                                                                    <span className="text-xs font-medium text-gray-500">レコードタイプ:</span>
+                                                                    <p className="font-mono text-sm">TXT</p>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-xs font-medium text-gray-500">名前:</span>
+                                                                    <p className="break-all font-mono text-sm">{record.txt_name}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-xs font-medium text-gray-500">値:</span>
+                                                                    <p className="break-all font-mono text-sm">{record.txt_value}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <p className="mt-4 text-xs text-blue-700">
+                                                    DNS設定の反映には最大48時間かかる場合がありますが、通常は数分から数時間で完了します。
+                                                </p>
                                             </div>
-                                            <p className="text-xs text-red-600">DNSレコードが見つかりません</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                                                再検証
-                                            </button>
-                                            <button className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-                                                削除
-                                            </button>
-                                        </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* General DNS Setup Instructions */}
+                                {!domainData && (
+                                    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6">
+                                        <h3 className="mb-3 text-sm font-semibold text-blue-900">DNS設定手順</h3>
+                                        <ol className="space-y-2 text-sm text-blue-800">
+                                            <li>1. 上記のフォームからドメインを登録</li>
+                                            <li>2. 表示されるDNSレコードをドメインプロバイダーで設定</li>
+                                            <li>3. 「検証」ボタンをクリックして確認</li>
+                                            <li>4. 検証が完了すると、ドメインが有効になります</li>
+                                        </ol>
                                     </div>
-                                </div>
+                                )}
                             </section>
                         )}
                     </div>
@@ -511,6 +943,41 @@ export default function SettingsContent() {
                     </div>
                 </footer>
             </div>
+
+            {/* Cancel Subscription Modal */}
+            {showCancelModal && subscription && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 shadow-xl">
+                        <h3 className="mb-4 text-xl font-semibold">サブスクリプションのキャンセル</h3>
+                        <p className="mb-6 text-sm text-neutral-600">
+                            {subscription.plan.name}プランをキャンセルしますか？
+                            {subscription.endDate && (
+                                <>
+                                    <br />
+                                    <br />
+                                    {new Date(subscription.endDate).toLocaleDateString("ja-JP")}まで引き続き利用できますが、その後は自動更新されません。
+                                </>
+                            )}
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={isCancelling}
+                                className="flex-1 rounded-2xl border border-black/10 px-6 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                            >
+                                戻る
+                            </button>
+                            <button
+                                onClick={handleCancelSubscription}
+                                disabled={isCancelling}
+                                className="flex-1 rounded-2xl bg-pink-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-pink-700 disabled:opacity-50"
+                            >
+                                {isCancelling ? "キャンセル中..." : "キャンセルする"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

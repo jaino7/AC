@@ -23,22 +23,30 @@ type Fan = {
 };
 
 type AnalyticsData = {
-    plans: {
+    overall?: {
+        totalRevenue: number;
+        purchaseRevenue: number;
+        subscriptionRevenue: number;
+        revenueChange: number;
+    };
+    plans?: {
         revenue30d: number;
         planMembers: number;
         acquiredMembers30d: number;
         cancellations30d: number;
+        revenueChange?: number;
     };
-    purchases: {
+    purchases?: {
         revenue30d: number;
         purchaseCount30d: number;
         purchaserCount30d: number;
         averagePrice: number;
+        revenueChange?: number;
+        purchaseCountChange?: number;
     };
-    charts: {
-        planA: Array<{ date: string; count: number }>;
-        planB: Array<{ date: string; count: number }>;
-        purchases: Array<{ date: string; count: number }>;
+    charts?: {
+        [planId: string]: Array<{ date: string; count: number }>;
+        purchases?: Array<{ date: string; count: number }>;
     };
 };
 
@@ -46,10 +54,11 @@ export default function FanManagementPage() {
     const params = useParams();
     const handle = params.handle as string;
 
-    const [activeTab, setActiveTab] = useState<"plans" | "purchases">("plans");
+    const [activeTab, setActiveTab] = useState<"revenue" | "plans" | "purchases">("revenue");
     const [searchQuery, setSearchQuery] = useState("");
     const [planFilter, setPlanFilter] = useState("全て");
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [selectedPeriod, setSelectedPeriod] = useState(30); // 30, 90, 180, 365
 
     const [fans, setFans] = useState<Fan[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -59,6 +68,13 @@ export default function FanManagementPage() {
     // Fetch fans data
     useEffect(() => {
         const fetchFans = async () => {
+            // Only fetch fans for plans and purchases tabs, not for revenue tab
+            if (activeTab === "revenue") {
+                setFans([]);
+                setIsLoading(false);
+                return;
+            }
+
             try {
                 setIsLoading(true);
                 const response = await fetch(
@@ -88,7 +104,8 @@ export default function FanManagementPage() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const response = await fetch(`/api/creators/${handle}/analytics/fans`);
+                const tab = activeTab === "revenue" ? "plans" : activeTab;
+                const response = await fetch(`/api/creators/analytics?tab=${tab}&days=${selectedPeriod}`);
 
                 if (!response.ok) {
                     throw new Error("Failed to fetch analytics");
@@ -101,10 +118,8 @@ export default function FanManagementPage() {
             }
         };
 
-        if (handle) {
-            fetchAnalytics();
-        }
-    }, [handle]);
+        fetchAnalytics();
+    }, [activeTab, selectedPeriod]);
 
     // Filter fans based on active tab
     const filteredFans = fans
@@ -141,12 +156,21 @@ export default function FanManagementPage() {
         <main className="min-h-screen bg-white text-black">
             {/* ページヘッダー */}
             <header className="px-6 py-10 lg:px-12">
-                <h1 className="text-3xl font-semibold">ファン管理</h1>
+                <h1 className="text-3xl font-semibold">アナリティクス</h1>
             </header>
 
             {/* タブ切り替え - 固定 */}
             <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 lg:px-12">
                 <nav className="-mb-px flex gap-8">
+                    <button
+                        onClick={() => setActiveTab("revenue")}
+                        className={`border-b-2 py-4 text-sm font-medium transition-colors ${activeTab === "revenue"
+                            ? "border-blue-600 text-blue-600"
+                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                            }`}
+                    >
+                        合計収益
+                    </button>
                     <button
                         onClick={() => setActiveTab("plans")}
                         className={`border-b-2 py-4 text-sm font-medium transition-colors ${activeTab === "plans"
@@ -173,46 +197,114 @@ export default function FanManagementPage() {
                 <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                     <h2 className="mb-6 text-lg font-semibold">主要なアナリティクス</h2>
                     <div className="grid gap-6 md:grid-cols-4">
-                        {activeTab === "plans" ? (
+                        {activeTab === "revenue" ? (
+                            <>
+                                {/* 合計収益 */}
+                                <div>
+                                    <p className="text-xs text-neutral-500">合計収益</p>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.overall?.totalRevenue?.toLocaleString() || 0}
+                                    </p>
+                                    {analytics?.overall?.revenueChange !== undefined && (
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
+                                            analytics.overall.revenueChange >= 0 ? "text-green-600" : "text-red-600"
+                                        }`}>
+                                            <span>{analytics.overall.revenueChange >= 0 ? "↑" : "↓"}</span>
+                                            <span>
+                                                {analytics.overall.revenueChange >= 999
+                                                    ? "999%超"
+                                                    : `${Math.abs(analytics.overall.revenueChange)}%`}
+                                            </span>
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* サブスク収益 */}
+                                <div>
+                                    <p className="text-xs text-neutral-500">サブスク収益</p>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.overall?.subscriptionRevenue?.toLocaleString() || 0}
+                                    </p>
+                                    <p className="mt-1 text-xs text-neutral-400">
+                                        {analytics?.overall && analytics.overall.totalRevenue > 0
+                                            ? `${Math.round((analytics.overall.subscriptionRevenue / analytics.overall.totalRevenue) * 100)}% of total`
+                                            : "0% of total"}
+                                    </p>
+                                </div>
+
+                                {/* 単体購入収益 */}
+                                <div>
+                                    <p className="text-xs text-neutral-500">単体購入収益</p>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.overall?.purchaseRevenue?.toLocaleString() || 0}
+                                    </p>
+                                    <p className="mt-1 text-xs text-neutral-400">
+                                        {analytics?.overall && analytics.overall.totalRevenue > 0
+                                            ? `${Math.round((analytics.overall.purchaseRevenue / analytics.overall.totalRevenue) * 100)}% of total`
+                                            : "0% of total"}
+                                    </p>
+                                </div>
+
+                                {/* 平均日収 */}
+                                <div>
+                                    <p className="text-xs text-neutral-500">平均日収</p>
+                                    <p className="text-xs text-neutral-400">&nbsp;</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.overall ? Math.round(analytics.overall.totalRevenue / selectedPeriod).toLocaleString() : 0}
+                                    </p>
+                                </div>
+                            </>
+                        ) : activeTab === "plans" ? (
                             <>
                                 {/* 収益 */}
                                 <div>
                                     <p className="text-xs text-neutral-500">収益</p>
-                                    <p className="text-xs text-neutral-400">過去 30 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">¥5,525</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
-                                        <span>↑</span>
-                                        <span>240%</span>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.plans?.revenue30d?.toLocaleString() || 0}
                                     </p>
+                                    {analytics?.plans?.revenueChange !== undefined && (
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
+                                            analytics.plans.revenueChange >= 0 ? "text-green-600" : "text-red-600"
+                                        }`}>
+                                            <span>{analytics.plans.revenueChange >= 0 ? "↑" : "↓"}</span>
+                                            <span>
+                                                {analytics.plans.revenueChange >= 999
+                                                    ? "999%超"
+                                                    : `${Math.abs(analytics.plans.revenueChange)}%`}
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* プランメンバー */}
                                 <div>
                                     <p className="text-xs text-neutral-500">プランメンバー</p>
                                     <p className="text-xs text-neutral-400">&nbsp;</p>
-                                    <p className="mt-2 text-3xl font-bold">29</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
-                                        <span>↑</span>
-                                        <span>263%</span>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {analytics?.plans?.planMembers || 0}
                                     </p>
                                 </div>
 
                                 {/* 新規獲得 */}
                                 <div>
                                     <p className="text-xs text-neutral-500">新規獲得</p>
-                                    <p className="text-xs text-neutral-400">過去 30 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">23</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
-                                        <span>↑</span>
-                                        <span>999%超</span>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {analytics?.plans?.acquiredMembers30d || 0}
                                     </p>
                                 </div>
 
                                 {/* 解約 */}
                                 <div>
                                     <p className="text-xs text-neutral-500">解約</p>
-                                    <p className="text-xs text-neutral-400">過去 30 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">4</p>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {analytics?.plans?.cancellations30d || 0}
+                                    </p>
                                 </div>
                             </>
                         ) : (
@@ -220,33 +312,51 @@ export default function FanManagementPage() {
                                 {/* 収益 */}
                                 <div>
                                     <p className="text-xs text-neutral-500">収益</p>
-                                    <p className="text-xs text-neutral-400">過去 30 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">¥3,240</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
-                                        <span>↑</span>
-                                        <span>185%</span>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.purchases?.revenue30d?.toLocaleString() || 0}
                                     </p>
+                                    {analytics?.purchases?.revenueChange !== undefined && (
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
+                                            analytics.purchases.revenueChange >= 0 ? "text-green-600" : "text-red-600"
+                                        }`}>
+                                            <span>{analytics.purchases.revenueChange >= 0 ? "↑" : "↓"}</span>
+                                            <span>
+                                                {analytics.purchases.revenueChange >= 999
+                                                    ? "999%超"
+                                                    : `${Math.abs(analytics.purchases.revenueChange)}%`}
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/*購入本数 */}
                                 <div>
                                     <p className="text-xs text-neutral-500">購入本数</p>
-                                    <p className="text-xs text-neutral-400">過去 30 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">127</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
-                                        <span>↑</span>
-                                        <span>312%</span>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {analytics?.purchases?.purchaseCount30d || 0}
                                     </p>
+                                    {analytics?.purchases?.purchaseCountChange !== undefined && (
+                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${
+                                            analytics.purchases.purchaseCountChange >= 0 ? "text-green-600" : "text-red-600"
+                                        }`}>
+                                            <span>{analytics.purchases.purchaseCountChange >= 0 ? "↑" : "↓"}</span>
+                                            <span>
+                                                {analytics.purchases.purchaseCountChange >= 999
+                                                    ? "999%超"
+                                                    : `${Math.abs(analytics.purchases.purchaseCountChange)}%`}
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* 購入者数 */}
                                 <div>
                                     <p className="text-xs text-neutral-500">購入者数</p>
-                                    <p className="text-xs text-neutral-400">過去 30 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">89</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-green-600">
-                                        <span>↑</span>
-                                        <span>267%</span>
+                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {analytics?.purchases?.purchaserCount30d || 0}
                                     </p>
                                 </div>
 
@@ -254,10 +364,8 @@ export default function FanManagementPage() {
                                 <div>
                                     <p className="text-xs text-neutral-500">平均購入単価</p>
                                     <p className="text-xs text-neutral-400">&nbsp;</p>
-                                    <p className="mt-2 text-3xl font-bold">¥1,200</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-red-600">
-                                        <span>↓</span>
-                                        <span>12%</span>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        ¥{analytics?.purchases?.averagePrice?.toLocaleString() || 0}
                                     </p>
                                 </div>
                             </>
@@ -308,7 +416,7 @@ export default function FanManagementPage() {
                                     // サンプルデータ生成
                                     const generateData = (baseValue: number, variance: number) => {
                                         const data: number[] = [];
-                                        for (let i = 0; i < 30; i++) {
+                                        for (let i = 0; i < selectedPeriod; i++) {
                                             const trend = i * 0.3;
                                             const random = (Math.random() - 0.5) * variance;
                                             data.push(Math.max(0, baseValue + trend + random));
@@ -317,13 +425,16 @@ export default function FanManagementPage() {
                                     };
 
                                     const max = activeTab === "plans" ? 30 : 150;
-                                    const pointGap = chartWidth / 29;
+                                    const pointGap = chartWidth / (selectedPeriod - 1);
 
-                                    // 日付ラベルを生成
+                                    // 日付ラベルを生成（期間に応じて調整）
                                     const today = new Date();
-                                    const labels = [0, 7, 14, 21, 29].map(i => {
+                                    const labelCount = 5;
+                                    const labelInterval = Math.floor((selectedPeriod - 1) / (labelCount - 1));
+                                    const labels = Array.from({ length: labelCount }, (_, i) => {
+                                        const index = i === labelCount - 1 ? selectedPeriod - 1 : i * labelInterval;
                                         const date = new Date(today);
-                                        date.setDate(date.getDate() - (29 - i));
+                                        date.setDate(date.getDate() - (selectedPeriod - 1 - index));
                                         return `${date.getMonth() + 1}/${date.getDate()}`;
                                     });
 
@@ -487,16 +598,22 @@ export default function FanManagementPage() {
 
                     {/* 期間選択 */}
                     <div className="mt-4">
-                        <select className="rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select
+                            value={selectedPeriod}
+                            onChange={(e) => setSelectedPeriod(parseInt(e.target.value, 10))}
+                            className="rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
                             <option value="7">過去 7 日間</option>
-                            <option value="30" selected>過去 30 日間</option>
+                            <option value="30">過去 {selectedPeriod} 日間</option>
                             <option value="90">過去 90 日間</option>
+                            <option value="180">過去 180 日間</option>
                             <option value="365">過去 1 年間</option>
                         </select>
                     </div>
                 </div>
 
-                {/* 検索・フィルター */}
+                {/* 検索・フィルター - Only show for plans and purchases tabs */}
+                {activeTab !== "revenue" && (
                 <div className="flex flex-wrap gap-4">
                     <div className="flex flex-1 items-center gap-3 rounded-2xl border border-black/10 px-4 py-3">
                         <span className="text-neutral-400">🔍</span>
@@ -521,8 +638,10 @@ export default function FanManagementPage() {
                         </select>
                     )}
                 </div>
+                )}
 
-                {/* ファンリストテーブル */}
+                {/* ファンリストテーブル - Only show for plans and purchases tabs */}
+                {activeTab !== "revenue" && (
                 <div className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -663,6 +782,7 @@ export default function FanManagementPage() {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
         </main>
     );

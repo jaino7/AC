@@ -1,0 +1,26 @@
+[
+  {
+    "accountNumber": "1234567001",
+    "accountName": "CREATOR_PLAN_001",
+    "branchCode": "001",
+    "purpose": "CREATOR_PLAN"
+  },
+  {
+    "accountNumber": "1234567002",
+    "accountName": "CREATOR_PLAN_002",
+    "branchCode": "001",
+    "purpose": "CREATOR_PLAN"
+  },
+  {
+    "accountNumber": "1234568001",
+    "accountName": "FAN_CREDIT_001",
+    "branchCode": "001",
+    "purpose": "FAN_CREDIT"
+  },
+  {
+    "accountNumber": "1234568002",
+    "accountName": "FAN_CREDIT_002",
+    "branchCode": "001",
+    "purpose": "FAN_CREDIT"
+  }
+]

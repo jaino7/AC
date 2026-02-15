@@ -17,7 +17,7 @@ export default function PureLiteLoginPage({ handle, displayName, logoUrl }: Pure
           {displayName ? `${displayName}にログイン` : "ログインまたは登録"}
         </h1>
 
-        <PureLiteLoginForm />
+        <PureLiteLoginForm handle={handle} />
       </div>
     </div>
   );

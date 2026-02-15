@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
 
-// POST - Create a credit charge request
+// POST - Create a credit charge request with virtual account assignment
 export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -14,27 +14,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Find user and fan profile
+        // Find user
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            include: {
-                fanProfile: {
-                    select: { id: true },
-                },
-            },
+            select: { id: true },
         });
 
-        if (!user?.fanProfile) {
+        if (!user) {
             return NextResponse.json(
-                { error: "ファンプロフィールが見つかりません" },
+                { error: "ユーザーが見つかりません" },
                 { status: 404 }
             );
         }
 
         const body = await request.json();
-        const { amount } = body;
+        const { amount, creatorId } = body;
 
-        // Validate amount
+        // Validate inputs
+        if (!creatorId || typeof creatorId !== "string") {
+            return NextResponse.json(
+                { error: "クリエイターIDが必要です" },
+                { status: 400 }
+            );
+        }
+
         if (!amount || typeof amount !== "number" || amount < 1000) {
             return NextResponse.json(
                 { error: "チャージ金額は1,000円以上である必要があります" },
@@ -49,42 +52,56 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate unique identifier code
-        const identifierCode = `CR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        // Call backend API to create ChargeRequest and assign virtual account
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 
-        // Calculate expiration date (7 days from now)
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
-
-        // Create charge request
-        const chargeRequest = await prisma.chargeRequest.create({
-            data: {
-                fanId: user.fanProfile.id,
-                amount,
-                identifierCode,
-                expiresAt,
+        const response = await fetch(`${API_BASE_URL}/payments/charge`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-User-Id": user.id, // Pass user ID for authentication
             },
+            body: JSON.stringify({
+                creatorId,
+                amount,
+            }),
         });
 
-        // Bank information (TODO: Get from config or database)
-        const bankInfo = {
-            bankName: "三菱UFJ銀行",
-            branchName: "渋谷支店",
-            accountType: "普通",
-            accountNumber: "1234567",
-            accountHolder: "カ)サンプル"
-        };
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            // NestJS returns error in 'message' field, not 'error.message'
+            const errorMessage = error.message || error.error || "";
+            const isInventoryError = errorMessage.toLowerCase().includes("inventory");
 
+            return NextResponse.json(
+                {
+                    error: isInventoryError
+                        ? "現在、入金窓口が大変混み合っております。数時間後にもう一度お試しください"
+                        : errorMessage || "チャージ申請の作成に失敗しました"
+                },
+                { status: response.status }
+            );
+        }
+
+        const result = await response.json();
+
+        // Return formatted response
         return NextResponse.json({
             chargeRequest: {
-                id: chargeRequest.id,
-                amount: chargeRequest.amount,
-                identifierCode: chargeRequest.identifierCode,
-                status: chargeRequest.status,
-                expiresAt: chargeRequest.expiresAt,
-                bankInfo,
-                instructions: `振込名義人の前に識別コード「${chargeRequest.identifierCode}」を付けてください。\n例: ${chargeRequest.identifierCode} ヤマダタロウ`
-            }
+                id: result.chargeRequestId,
+                amount: result.amount,
+                identifierCode: result.identifierCode,
+                expiresAt: result.expiresAt,
+                bankInfo: {
+                    bankName: "GMOあおぞらネット銀行",
+                    branchName: result.virtualAccount.branchName || "法人第一営業部",
+                    branchCode: result.virtualAccount.branchCode,
+                    accountType: "普通",
+                    accountNumber: result.virtualAccount.accountNumber,
+                    accountHolder: result.virtualAccount.accountName,
+                },
+                instructions: `この口座に振り込んだ金額が自動的にクレジットとしてチャージされます。\n振込期限: ${new Date(result.expiresAt).toLocaleDateString("ja-JP")}まで`,
+            },
         });
     } catch (error) {
         console.error("Error creating charge request:", error);

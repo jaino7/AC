@@ -8,15 +8,23 @@ export const banks = Object.entries(zenginCode).map(([code, data]) => ({
     hira: data.hira,
 }));
 
+// 文字列の正規化（全角→半角、大文字→小文字）
+function normalizeString(str: string): string {
+    return str
+        .normalize('NFKC') // 全角英数字を半角に変換
+        .toLowerCase()
+        .replace(/[\s　]+/g, ''); // 空白削除
+}
+
 // 銀行名で検索
 export function searchBanks(query: string) {
     if (!query) return banks;
-    const lowerQuery = query.toLowerCase();
+    const normalizedQuery = normalizeString(query);
     return banks.filter(
         (bank) =>
-            bank.name.toLowerCase().includes(lowerQuery) ||
-            bank.kana?.toLowerCase().includes(lowerQuery) ||
-            bank.hira?.toLowerCase().includes(lowerQuery) ||
+            normalizeString(bank.name).includes(normalizedQuery) ||
+            normalizeString(bank.kana || '').includes(normalizedQuery) ||
+            normalizeString(bank.hira || '').includes(normalizedQuery) ||
             bank.code.includes(query)
     );
 }
@@ -39,12 +47,12 @@ export function searchBranches(bankCode: string, query: string) {
     const branches = getBranches(bankCode);
     if (!query) return branches;
 
-    const lowerQuery = query.toLowerCase();
+    const normalizedQuery = normalizeString(query);
     return branches.filter(
         (branch) =>
-            branch.name.toLowerCase().includes(lowerQuery) ||
-            branch.kana?.toLowerCase().includes(lowerQuery) ||
-            branch.hira?.toLowerCase().includes(lowerQuery) ||
+            normalizeString(branch.name).includes(normalizedQuery) ||
+            normalizeString(branch.kana || '').includes(normalizedQuery) ||
+            normalizeString(branch.hira || '').includes(normalizedQuery) ||
             branch.code.includes(query)
     );
 }

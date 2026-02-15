@@ -1,110 +1,220 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+
 export default function LiteMonthlyPlanPage() {
+    const [showModal, setShowModal] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [paymentInfo, setPaymentInfo] = useState<any>(null);
+    const router = useRouter();
+    const { data: session, status } = useSession();
+
+    const planDetails = {
+        name: "Lite",
+        type: "LITE",
+        isYearly: false,
+        price: 4980,
+        period: "月",
+        description: "成長中のクリエイターに最適なプラン",
+        features: [
+            { title: "500GB ストレージ", description: "画像、動画、ファイルを大量にアップロード可能" },
+            { title: "販売手数料 7.0%", description: "収益の93%があなたのもの" },
+            { title: "独自ドメイン", description: "自分のブランドでサイトを運営" },
+            { title: "追加テーマ", description: "プロフェッショナルなデザインテンプレートにアクセス" },
+            { title: "優先サポート", description: "問題が発生した際に迅速に対応" },
+        ],
+    };
+
+    const handlePurchase = async () => {
+        // Check authentication
+        if (status === "unauthenticated") {
+            alert("このプランを利用するにはログインが必要です");
+            router.push("/creators/login");
+            return;
+        }
+
+        if (status === "loading") {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await fetch("/api/payments/creator-plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    planType: planDetails.type,
+                    isYearly: planDetails.isYearly,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "支払い情報の取得に失敗しました");
+            }
+
+            const data = await response.json();
+            setPaymentInfo(data);
+            setShowModal(true);
+        } catch (error) {
+            console.error("Error:", error);
+            alert(error instanceof Error ? error.message : "エラーが発生しました。もう一度お試しください。");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white px-6 py-16">
             <div className="mx-auto max-w-md">
                 <div className="rounded-3xl border-2 border-neutral-200 bg-white p-8 shadow-lg">
                     {/* プラン名と説明 */}
                     <div className="text-center">
-                        <h1 className="text-3xl font-bold text-neutral-900">Lite</h1>
-                        <p className="mt-3 text-neutral-600">
-                            成長中のクリエイターに最適なプラン
-                        </p>
+                        <h1 className="text-3xl font-bold text-neutral-900">{planDetails.name}</h1>
+                        <p className="mt-3 text-neutral-600">{planDetails.description}</p>
                     </div>
 
                     {/* 価格表示 */}
                     <div className="mt-8 text-center">
                         <div className="flex items-baseline justify-center gap-1">
                             <span className="text-5xl font-bold text-neutral-900">
-                                ¥4,980
+                                ¥{planDetails.price.toLocaleString()}
                             </span>
-                            <span className="text-xl text-neutral-600">/月</span>
+                            <span className="text-xl text-neutral-600">/{planDetails.period}</span>
                         </div>
-                        <p className="mt-2 text-sm text-neutral-500">
-                            月払いプラン
-                        </p>
+                        <p className="mt-2 text-sm text-neutral-500">月払いプラン</p>
                     </div>
 
                     {/* CTAボタン */}
-                    <button className="mt-8 w-full rounded-full bg-blue-600 py-4 text-center font-semibold text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg">
-                        Liteを利用
+                    <button
+                        onClick={handlePurchase}
+                        disabled={loading || status === "loading"}
+                        className="mt-8 w-full rounded-full bg-blue-600 py-4 text-center font-semibold text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-50"
+                    >
+                        {loading ? "処理中..." : status === "unauthenticated" ? "ログインして利用" : "Liteを利用"}
                     </button>
 
                     {/* 特典リスト */}
                     <div className="mt-10 space-y-6">
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
+                        {planDetails.features.map((feature, index) => (
+                            <div key={index} className="flex gap-4">
+                                <div className="flex-shrink-0">
+                                    <svg
+                                        className="h-6 w-6 text-blue-600"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-neutral-900">{feature.title}</h3>
+                                    <p className="mt-1 text-sm text-neutral-600">{feature.description}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-neutral-900">500GB ストレージ</h3>
-                                <p className="mt-1 text-sm text-neutral-600">
-                                    画像、動画、ファイルを大量にアップロード可能
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-neutral-900">販売手数料 7.0%</h3>
-                                <p className="mt-1 text-sm text-neutral-600">
-                                    収益の93%があなたのもの
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-neutral-900">独自ドメイン</h3>
-                                <p className="mt-1 text-sm text-neutral-600">
-                                    自分のブランドでサイトを運営
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-neutral-900">追加テーマ</h3>
-                                <p className="mt-1 text-sm text-neutral-600">
-                                    プロフェッショナルなデザインテンプレートにアクセス
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-neutral-900">優先サポート</h3>
-                                <p className="mt-1 text-sm text-neutral-600">
-                                    問題が発生した際に迅速に対応
-                                </p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>
+
+            {/* 振込案内モーダル */}
+            {showModal && paymentInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                    <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-neutral-900">お振込のご案内</h2>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="text-neutral-400 hover:text-neutral-600"
+                            >
+                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* プラン情報 */}
+                            <div className="rounded-lg bg-blue-50 p-6">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-neutral-600">お支払い金額</span>
+                                    <span className="text-3xl font-bold text-blue-600">
+                                        ¥{paymentInfo.amount.toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="mt-2 text-sm text-neutral-600">
+                                    {planDetails.name}プラン（{planDetails.isYearly ? "年払い" : "月払い"}）
+                                </div>
+                            </div>
+
+                            {/* 振込先情報 */}
+                            <div className="space-y-4 rounded-lg border-2 border-neutral-200 p-6">
+                                <h3 className="font-bold text-neutral-900">振込先口座</h3>
+
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-600">金融機関</span>
+                                        <span className="font-semibold">GMOあおぞらネット銀行</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-600">支店名</span>
+                                        <span className="font-semibold">
+                                            {paymentInfo.virtualAccount.branchName || `${paymentInfo.virtualAccount.branchCode || "法人第一"}支店`}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-600">口座種別</span>
+                                        <span className="font-semibold">普通</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-600">口座番号</span>
+                                        <span className="font-mono text-lg font-bold text-blue-600">
+                                            {paymentInfo.virtualAccount.accountNumber}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-600">口座名義</span>
+                                        <span className="font-semibold">
+                                            {paymentInfo.virtualAccount.accountName}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 注意事項 */}
+                            <div className="rounded-lg bg-neutral-50 p-6">
+                                <h4 className="mb-3 font-bold text-neutral-900">ご注意</h4>
+                                <ul className="space-y-2 text-sm text-neutral-600">
+                                    <li>• 振込手数料はお客様のご負担となります</li>
+                                    <li>• 入金確認は10分〜1日程度かかる場合があります</li>
+                                    <li>• 入金確認後、自動的にプランが有効化されます</li>
+                                    <li>• プリペイド残高にプラン額を入れておくと、更新日に自動引き落としされます</li>
+                                </ul>
+                            </div>
+
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="w-full rounded-full bg-blue-600 py-4 font-semibold text-white hover:bg-blue-700"
+                            >
+                                閉じる
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

@@ -21,7 +21,7 @@ export default function NeonProLoginPage({ handle, displayName, logoUrl }: NeonP
             </p>
           </header>
 
-          <NeonProLoginForm />
+          <NeonProLoginForm handle={handle} />
         </div>
       </div>
     </div>

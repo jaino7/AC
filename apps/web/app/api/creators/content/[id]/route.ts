@@ -37,7 +37,7 @@ export async function GET(
             );
         }
 
-        // Get post with tags and folder
+        // Get post with tags, folder, and media
         const post = await prisma.post.findFirst({
             where: {
                 id: params.id,
@@ -61,6 +61,21 @@ export async function GET(
                         },
                     },
                 },
+                media: {
+                    select: {
+                        id: true,
+                        url: true,
+                        type: true,
+                        isSample: true,
+                    },
+                },
+                requiredPlan: {
+                    select: {
+                        id: true,
+                        name: true,
+                        price: true,
+                    },
+                },
             },
         });
 
@@ -71,7 +86,19 @@ export async function GET(
             );
         }
 
-        return NextResponse.json({ post });
+        // Get creator profile details
+        const creator = await prisma.creatorProfile.findUnique({
+            where: { id: creatorProfile.id },
+            select: {
+                id: true,
+                handle: true,
+                displayName: true,
+                bio: true,
+                theme: true,
+            },
+        });
+
+        return NextResponse.json({ post, creator });
     } catch (error) {
         console.error("Error fetching post:", error);
         return NextResponse.json(
@@ -93,7 +120,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { visibility, title, content, thumbnailUrl, mediaUrl, folderId, tagIds, isLocked, requiredPlanId } = await request.json();
+        const { visibility, title, content, thumbnailUrl, sampleMediaUrls, mediaUrls, folderId, tagIds, isLocked, requiredPlanId, singleSalePrice } = await request.json();
 
         // Get user
         const user = await prisma.user.findUnique({
@@ -139,16 +166,47 @@ export async function PATCH(
         if (content !== undefined) updateData.content = content;
         if (visibility !== undefined) updateData.visibility = visibility;
         if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl;
-        if (mediaUrl !== undefined) updateData.mediaUrl = mediaUrl;
         if (folderId !== undefined) updateData.folderId = folderId || null;
         if (isLocked !== undefined) updateData.isLocked = isLocked;
         if (requiredPlanId !== undefined) updateData.requiredPlanId = requiredPlanId || null;
+        if (singleSalePrice !== undefined) updateData.price = singleSalePrice;
 
         // Update post
         const updatedPost = await prisma.post.update({
             where: { id: params.id },
             data: updateData,
         });
+
+        // 既存のメディアを削除
+        if (sampleMediaUrls !== undefined || mediaUrls !== undefined) {
+            await prisma.media.deleteMany({
+                where: { postId: params.id },
+            });
+        }
+
+        // サンプルメディアを保存
+        if (sampleMediaUrls && Array.isArray(sampleMediaUrls) && sampleMediaUrls.length > 0) {
+            await prisma.media.createMany({
+                data: sampleMediaUrls.map((url: string) => ({
+                    postId: params.id,
+                    url,
+                    type: url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    isSample: true,
+                })),
+            });
+        }
+
+        // 限定コンテンツメディアを保存
+        if (mediaUrls && Array.isArray(mediaUrls) && mediaUrls.length > 0) {
+            await prisma.media.createMany({
+                data: mediaUrls.map((url: string) => ({
+                    postId: params.id,
+                    url,
+                    type: url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    isSample: false,
+                })),
+            });
+        }
 
         // Handle tags if provided
         if (tagIds !== undefined) {

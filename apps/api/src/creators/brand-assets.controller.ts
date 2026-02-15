@@ -11,6 +11,15 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { BrandAssetsService } from "./brand-assets.service";
 
+interface MulterFile {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    buffer: Buffer;
+    size: number;
+}
+
 @Controller("creators/brand-assets")
 export class BrandAssetsController {
     constructor(private readonly brandAssetsService: BrandAssetsService) { }
@@ -22,7 +31,7 @@ export class BrandAssetsController {
     @Post("upload")
     @UseInterceptors(FileInterceptor("file"))
     async uploadAsset(
-        @UploadedFile() file: Express.Multer.File,
+        @UploadedFile() file: MulterFile,
         @Query("creatorId") creatorId: string,
         @Query("type") type: "logo" | "favicon"
     ) {

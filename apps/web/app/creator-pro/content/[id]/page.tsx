@@ -3,6 +3,8 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
+import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
 
 const LockIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
     <svg
@@ -88,6 +90,12 @@ export default function ContentDetailPage() {
     const [hasAccess, setHasAccess] = useState(false);
     const [liked, setLiked] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+    const [isPurchasing, setIsPurchasing] = useState(false);
+
+    // クレジット情報を取得
+    const { data: creditsData } = useCredits(handle || undefined);
+    const invalidateCredits = useInvalidateCredits();
 
     const postId = params.id as string;
 
@@ -111,6 +119,57 @@ export default function ContentDetailPage() {
 
         fetchPost();
     }, [postId]);
+
+    // 購入処理
+    const handlePurchase = async () => {
+        if (!post?.price) {
+            alert("この投稿には価格が設定されていません");
+            return;
+        }
+
+        const currentCredits = creditsData?.credits || 0;
+
+        // クレジット不足チェック
+        if (currentCredits < post.price) {
+            setShowInsufficientModal(true);
+            return;
+        }
+
+        setIsPurchasing(true);
+
+        try {
+            const response = await fetch("/api/fans/content/purchase", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    contentId: post.id,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // 購入成功
+                setHasAccess(true);
+                // クレジット情報を更新
+                invalidateCredits(handle || undefined);
+                alert("購入が完了しました");
+            } else {
+                const error = await response.json();
+                if (error.shortage) {
+                    // クレジット不足エラー
+                    setShowInsufficientModal(true);
+                } else {
+                    alert(error.error || "購入に失敗しました");
+                }
+            }
+        } catch (error) {
+            alert("購入処理に失敗しました");
+        } finally {
+            setIsPurchasing(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -136,9 +195,32 @@ export default function ContentDetailPage() {
         );
     }
 
-    // Determine primary media
-    const primaryMedia = post.media[0] || { url: post.mediaUrl || post.thumbnailUrl, type: post.mediaUrl ? "VIDEO" : "IMAGE" };
+    // サンプルメディアと本編メディアを分離
+    const sampleMedia = post.media?.filter(m => m.isSample) || [];
+    const mainMedia = post.media?.filter(m => !m.isSample) || [];
+
+    // 表示するメディアを決定（アクセス権がある場合は本編、ない場合はサンプルまたはサムネイル）
+    const displayMedia = hasAccess && mainMedia.length > 0
+        ? mainMedia
+        : sampleMedia.length > 0
+        ? sampleMedia
+        : [];
+
+    const primaryMedia = displayMedia[0] || { url: post.mediaUrl || post.thumbnailUrl, type: post.mediaUrl ? "VIDEO" : "IMAGE" };
     const isVideo = primaryMedia?.type === "VIDEO";
+
+    // 動画のMIMEタイプを取得
+    const getVideoMimeType = (url: string) => {
+        const ext = url.split('.').pop()?.toLowerCase();
+        const mimeTypes: Record<string, string> = {
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'mkv': 'video/x-matroska',
+            'mov': 'video/quicktime',
+            'avi': 'video/x-msvideo',
+        };
+        return mimeTypes[ext || ''] || 'video/mp4';
+    };
 
     return (
         <div className="min-h-screen bg-[#0d1117] text-white">
@@ -188,8 +270,9 @@ export default function ContentDetailPage() {
                                         className="w-full"
                                         style={{ maxHeight: "600px" }}
                                         poster={post.thumbnailUrl || undefined}
+                                        key={primaryMedia.url}
                                     >
-                                        <source src={primaryMedia.url} type="video/mp4" />
+                                        <source src={primaryMedia.url} type={getVideoMimeType(primaryMedia.url)} />
                                         お使いのブラウザは動画の再生に対応していません。
                                     </video>
                                 ) : (
@@ -218,8 +301,12 @@ export default function ContentDetailPage() {
                                                 {post.requiredPlan.name} (¥{post.requiredPlan.price}/月) に登録
                                             </button>
                                         ) : post.price ? (
-                                            <button className="rounded-lg bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700">
-                                                ¥{post.price}で購入
+                                            <button
+                                                onClick={handlePurchase}
+                                                disabled={isPurchasing}
+                                                className="rounded-lg bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                            >
+                                                {isPurchasing ? "処理中..." : `¥${post.price}で購入`}
                                             </button>
                                         ) : null}
                                     </div>
@@ -267,6 +354,16 @@ export default function ContentDetailPage() {
                     </div>
                 </div>
             </main>
+
+            {/* クレジット不足モーダル */}
+            <InsufficientCreditsModal
+                isOpen={showInsufficientModal}
+                onClose={() => setShowInsufficientModal(false)}
+                currentCredits={creditsData?.credits || 0}
+                requiredAmount={post?.price || 0}
+                handle={handle || undefined}
+                contentTitle={post?.title}
+            />
         </div>
     );
 }

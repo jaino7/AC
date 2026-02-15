@@ -27,7 +27,7 @@ export default function CreatorProLoginPage({ handle, displayName, logoUrl }: Cr
         </div>
 
         <section className="w-full max-w-sm rounded-[26px] border border-white/10 bg-[#070f1b]/80 px-8 py-9 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur">
-          <CreatorProLoginForm />
+          <CreatorProLoginForm handle={handle} />
         </section>
       </main>
     </div>

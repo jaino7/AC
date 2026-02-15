@@ -56,20 +56,16 @@ export const SignupForm = () => {
     onSuccess: async (data, variables) => {
       reset();
 
-      // サインアップ後に自動ログインしてセッションを取得
+      // サインアップ後に自動ログイン
       await signIn("credentials", {
         email: variables.email,
         password: variables.password,
         redirect: false
       });
 
-      // セッションからhandleを取得してリダイレクト
-      const { getSession } = await import("next-auth/react");
-      const session = await getSession();
-      const handle = (session?.user as any)?.handle;
-
-      if (handle) {
-        router.push(`/creators/${handle}/dashboard`);
+      // APIレスポンスからhandleを取得してリダイレクト
+      if (data.handle) {
+        router.push(`/creators/${data.handle}/dashboard`);
       } else {
         router.push("/creators/dashboard");
       }

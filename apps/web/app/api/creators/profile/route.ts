@@ -54,12 +54,33 @@ export async function GET(request: NextRequest) {
                             tiktokUrl: true,
                             discordUrl: true,
                             otherUrl: true,
+                            creatorSubscription: {
+                                select: {
+                                    status: true,
+                                    plan: {
+                                        select: {
+                                            type: true,
+                                        },
+                                    },
+                                },
+                            },
                         },
                     },
                 },
             });
 
             creatorProfile = user?.creatorProfile;
+
+            // Add plan access information
+            if (creatorProfile) {
+                const hasAccess =
+                    creatorProfile.creatorSubscription?.status === "ACTIVE" &&
+                    (creatorProfile.creatorSubscription.plan.type === "LITE" ||
+                        creatorProfile.creatorSubscription.plan.type === "BUSINESS");
+
+                (creatorProfile as any).hasAccess = hasAccess;
+                (creatorProfile as any).type = creatorProfile.creatorSubscription?.plan.type;
+            }
         }
 
         if (!creatorProfile) {

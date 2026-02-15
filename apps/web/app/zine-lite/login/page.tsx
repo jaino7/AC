@@ -17,7 +17,7 @@ export default function ZineLiteLoginPage({ handle, displayName, logoUrl }: Zine
           {displayName ? `${displayName}にログイン` : "ログインまたは登録"}
         </h1>
 
-        <ZineLiteLoginForm />
+        <ZineLiteLoginForm handle={handle} />
       </div>
     </div>
   );
