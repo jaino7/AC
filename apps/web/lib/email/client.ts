@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
-import { EmailType, EmailStatus } from '@prisma/client';
 import React from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -9,7 +8,7 @@ interface SendEmailParams {
     to: string;
     subject: string;
     react: React.ReactElement;
-    emailType: EmailType;
+    emailType: string;
     recipientId?: string;
     metadata?: Record<string, any>;
 }
@@ -30,7 +29,7 @@ export async function sendEmail({
         data: {
             toEmail: to,
             subject,
-            emailType,
+            emailType: emailType as any,
             recipientId,
             metadata,
             status: 'PENDING',
@@ -102,7 +101,7 @@ export async function sendEmailDev(params: SendEmailParams) {
         data: {
             toEmail: params.to,
             subject: params.subject,
-            emailType: params.emailType,
+            emailType: params.emailType as any,
             recipientId: params.recipientId,
             metadata: params.metadata,
             status: 'SENT',
