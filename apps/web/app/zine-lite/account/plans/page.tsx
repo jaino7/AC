@@ -11,26 +11,26 @@ type Plan = {
 const plans: Plan[] = [
   {
     id: "basic",
-    name: "ベ�EシチE��",
-    price: "¥980 /朁E,
-    description: "クリエイターの世界を覗く第一歩、E,
-    features: ["限定記事�E閲覧", "コミュニティへの参加", "朁E回�Eニュースレター"]
+    name: "ベーシック",
+    price: "¥980 /月",
+    description: "クリエイターの世界を覗く第一歩",
+    features: ["限定記事の閲覧", "コミュニティへの参加", "月1回のニュースレター"]
   },
   {
     id: "premium",
     name: "プレミアム",
-    price: "¥2,980 /朁E,
-    description: "全ての限定コンチE��チE��最大限に楽し�E、E,
-    features: ["スタンダード�E全機�E", "限定ビチE��コンチE��チE, "クリエイターとのQ&AセチE��ョン", "早期アクセス"],
+    price: "¥2,980 /月",
+    description: "全ての限定コンテンツを最大限に楽しむ",
+    features: ["スタンダードの全機能", "限定ビデオコンテンツ", "クリエイターとのQ&Aセッション", "早期アクセス"],
     highlight: true,
     badge: "おすすめ"
   },
   {
     id: "standard",
-    name: "スタンダーチE,
-    price: "¥1,980 /朁E,
-    description: "より深くコンチE��チE��体験したいあなたへ、E,
-    features: ["ベ�EシチE��の全機�E", "高解像度画像�EダウンローチE, "過去コンチE��チE��のアクセス", "メンバ�E限定チャチE��"]
+    name: "スタンダード",
+    price: "¥1,980 /月",
+    description: "より深くコンテンツを体験したいあなたへ",
+    features: ["ベーシックの全機能", "高解像度画像のダウンロード", "過去コンテンツへのアクセス", "メンバー限定チャット"]
   }
 ];
 
@@ -52,11 +52,12 @@ export default function ZineLitePlansPage() {
       <div className="w-full max-w-5xl rounded-[32px] border border-white/15 bg-[#101010]/95 p-10 shadow-[0_0_80px_rgba(0,255,0,0.15)]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">プランを選抁E/h1>
+            <h1 className="text-3xl font-semibold">プランを選択</h1>
             <p className="mt-2 text-sm text-white/70">
-              あなたに最適なプランを見つけて、E��定コンチE��チE��アクセスしましょぁE��E            </p>
+              あなたに最適なプランを見つけて、限定コンテンツにアクセスしましょう。
+            </p>
           </div>
-          <button className="text-white/60">✁E/button>
+          <button className="text-white/60">&#x2715;</button>
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -92,7 +93,7 @@ export default function ZineLitePlansPage() {
                   plan.highlight ? "bg-green-500 text-black" : "border border-white/20"
                 }`}
               >
-                こ�Eプランを選ぶ
+                このプランを選ぶ
               </button>
             </article>
           ))}
@@ -101,4 +102,3 @@ export default function ZineLitePlansPage() {
     </div>
   );
 }
-

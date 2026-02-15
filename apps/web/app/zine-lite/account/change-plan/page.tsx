@@ -2,21 +2,21 @@ const plans = [
   {
     id: "basic",
     name: "BASIC",
-    price: "¥500 /朁E,
-    features: ["基本皁E��機�E", "限定記事へのアクセス", "コミュニティ参加"]
+    price: "¥500 /月",
+    features: ["基本的な機能", "限定記事へのアクセス", "コミュニティ参加"]
   },
   {
     id: "pro",
     name: "PRO",
-    price: "¥1,500 /朁E,
-    features: ["全ての基本機�E", "限定ビチE��コンチE��チE, "ソースコードアクセス", "朁E回�EQ&AセチE��ョン"],
+    price: "¥1,500 /月",
+    features: ["全ての基本機能", "限定ビデオコンテンツ", "ソースコードアクセス", "月1回のQ&Aセッション"],
     current: true
   },
   {
     id: "premium",
     name: "PREMIUM",
-    price: "¥3,000 /朁E,
-    features: ["全てのプロ機�E", "直接DMサポ�EチE, "ベ�Eタ機�Eの早期アクセス", "限定グチE��"],
+    price: "¥3,000 /月",
+    features: ["全てのプロ機能", "直接DMサポート", "ベータ機能の早期アクセス", "限定グループ"],
     highlight: true
   }
 ];
@@ -39,7 +39,7 @@ export default function ZineLiteChangePlanPage() {
       <div className="w-full max-w-5xl rounded-[32px] border border-green-800 bg-[#112411] p-10 shadow-[0_0_80px_rgba(0,255,0,0.1)]">
         <div>
           <h1 className="text-3xl font-semibold">プラン変更</h1>
-          <p className="mt-2 text-sm text-white/70">現在のプラン�E�PRO - ¥1,500/朁E/p>
+          <p className="mt-2 text-sm text-white/70">現在のプラン：PRO - ¥1,500/月</p>
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
@@ -75,18 +75,18 @@ export default function ZineLiteChangePlanPage() {
 
         <section className="mt-8 space-y-2 rounded-[20px] border border-green-900 bg-[#0f1e0f] px-6 py-4 text-sm text-white/80">
           <div className="flex items-center justify-between">
-            <span>本日のお支払い差顁E/span>
+            <span>本日のお支払い差額</span>
             <span>¥1,500</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>次回�E請求日</span>
-            <span>2024年08朁E5日</span>
+            <span>次回の請求日</span>
+            <span>2024年08月15日</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>次回�E請求顁E/span>
+            <span>次回の請求額</span>
             <span>¥3,000</span>
           </div>
-          <p className="text-xs text-white/60">新しいプランは即時適用されます、E/p>
+          <p className="text-xs text-white/60">新しいプランは即時適用されます。</p>
         </section>
 
         <div className="mt-8 flex flex-wrap justify-end gap-4">
@@ -99,4 +99,3 @@ export default function ZineLiteChangePlanPage() {
     </div>
   );
 }
-

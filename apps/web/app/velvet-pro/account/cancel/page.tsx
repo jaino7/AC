@@ -3,7 +3,8 @@ export default function VelvetProCancelPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#141418] px-4 py-16 text-white">
       <div className="w-full max-w-md rounded-[32px] border border-red-500/40 bg-[#121214] p-8 shadow-[0_0_120px_rgba(255,0,0,0.15)]">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#2c1818] text-red-400">
-          ⚠�E�E        </div>
+          &#9888;
+        </div>
         <div className="mt-4 text-center">
           <h1 className="text-2xl font-semibold text-red-400">Cancel Subscription</h1>
           <p className="mt-2 text-sm text-white/75">
@@ -34,4 +35,3 @@ export default function VelvetProCancelPage() {
     </div>
   );
 }
-

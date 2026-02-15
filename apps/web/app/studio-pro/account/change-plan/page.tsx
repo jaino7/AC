@@ -1,22 +1,22 @@
 const plans = [
   {
     id: "basic",
-    name: "ベ�EシチE��",
+    name: "ベーシック",
     price: "¥500",
-    features: ["HD画質", "1チE��イス"]
+    features: ["HD画質", "1デバイス"]
   },
   {
     id: "premium",
     name: "プレミアム",
     price: "¥1,000",
-    features: ["フルHD画質", "2チE��イス"],
+    features: ["フルHD画質", "2デバイス"],
     current: true
   },
   {
     id: "pro",
     name: "プロ",
     price: "¥1,500",
-    features: ["4K画質", "褁E��チE��イス"]
+    features: ["4K画質", "複数デバイス"]
   }
 ];
 
@@ -38,7 +38,7 @@ export default function StudioProChangePlanPage() {
       <div className="w-full max-w-5xl rounded-[32px] border border-white/10 bg-[#0b1426] p-10 shadow-[0_60px_160px_rgba(0,0,0,0.6)]">
         <header>
           <h1 className="text-3xl font-semibold">プランを変更</h1>
-          <p className="mt-2 text-sm text-white/60">現在のプラン�E��Eレミアム�E�¥1,000/月！E/p>
+          <p className="mt-2 text-sm text-white/60">現在のプラン：プレミアム - ¥1,000/月</p>
         </header>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
@@ -59,7 +59,7 @@ export default function StudioProChangePlanPage() {
               </div>
               <div className="mt-4 text-3xl font-bold">
                 {plan.price}
-                <span className="text-base font-normal text-white/70"> /朁E/span>
+                <span className="text-base font-normal text-white/70"> /月</span>
               </div>
 
               <ul className="mt-4 space-y-2 text-sm text-white/80">
@@ -75,7 +75,8 @@ export default function StudioProChangePlanPage() {
         </div>
 
         <p className="mt-8 text-sm text-white/60">
-          次回�E請求から新しい料��が適用されます。差額�E○○冁E��す、E        </p>
+          次回の請求から新しい料金が適用されます。差額は日割り計算されます。
+        </p>
 
         <div className="mt-6 flex flex-wrap justify-end gap-4">
           <button className="rounded-full border border-white/20 px-6 py-2 text-sm text-white/70">
@@ -89,4 +90,3 @@ export default function StudioProChangePlanPage() {
     </div>
   );
 }
-
