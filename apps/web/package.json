@@ -24,7 +24,7 @@
     "react-hook-form": "^7.66.1",
     "resend": "^3.5.0",
     "tailwind-merge": "^2.2.0",
-    "zengin-code": "^2.0.0",
+    "zengin-code": "^1.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
