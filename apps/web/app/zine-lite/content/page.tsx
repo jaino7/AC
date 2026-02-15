@@ -37,13 +37,10 @@ type CreatorProfile = {
 
 type TabType = "all" | "bronze" | "free" | "gold";
 
-interface ZineLiteContentPageProps {
-  handle?: string;
-}
-
-export default function ZineLiteContentPage({ handle: propHandle }: ZineLiteContentPageProps = {}) {
+export default function ZineLiteContentPage() {
   const searchParams = useSearchParams();
-  const handle = propHandle || searchParams.get("handle");
+  const propHandle = searchParams.get("handle") || undefined;
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 

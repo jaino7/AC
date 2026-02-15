@@ -1,12 +1,12 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
 import { NeonProSignupForm } from "./signup-form";
 
-interface NeonProSignupPageProps {
-    handle?: string;
-    displayName?: string;
-    logoUrl?: string | null;
-}
+export default function NeonProSignupPage() {
+    const searchParams = useSearchParams();
+    const handle = searchParams.get("handle") || undefined;
 
-export default function NeonProSignupPage({ handle, displayName, logoUrl }: NeonProSignupPageProps = {}) {
     return (
         <main className="flex min-h-screen items-center justify-center bg-[#041024] px-4">
             {/* Neon glow effects */}
@@ -17,12 +17,9 @@ export default function NeonProSignupPage({ handle, displayName, logoUrl }: Neon
 
             <section className="relative w-full max-w-md rounded-3xl border border-cyan-500/20 bg-[#0a1628]/80 p-8 backdrop-blur shadow-[0_0_50px_rgba(0,255,255,0.1)]">
                 <div className="mb-6 text-center">
-                    {logoUrl && (
-                        <img src={logoUrl} alt={displayName || "Creator"} className="mx-auto mb-4 h-12 w-12 rounded-lg object-cover" />
-                    )}
                     <h1 className="text-2xl font-bold tracking-wider">
                         <span className="bg-gradient-to-r from-cyan-400 to-fuchsia-400 bg-clip-text text-transparent">
-                            {displayName ? `${displayName}に登録` : "アカウント作成"}
+                            アカウント作成
                         </span>
                     </h1>
                     <p className="mt-2 text-sm text-white/60">
@@ -34,4 +31,3 @@ export default function NeonProSignupPage({ handle, displayName, logoUrl }: Neon
         </main>
     );
 }
-

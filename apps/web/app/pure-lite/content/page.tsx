@@ -38,13 +38,10 @@ type CreatorProfile = {
 
 type TabType = "all" | "premium" | "free" | "gallery";
 
-interface PureLiteContentPageProps {
-  handle?: string;
-}
-
-export default function PureLiteContentPage({ handle: propHandle }: PureLiteContentPageProps = {}) {
+export default function PureLiteContentPage() {
   const searchParams = useSearchParams();
-  const handle = propHandle || searchParams.get("handle");
+  const propHandle = searchParams.get("handle") || undefined;
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 

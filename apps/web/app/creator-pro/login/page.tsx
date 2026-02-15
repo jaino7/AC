@@ -1,12 +1,12 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
 import { CreatorProLoginForm } from "./login-form";
 
-interface CreatorProLoginPageProps {
-  handle?: string;
-  displayName?: string;
-  logoUrl?: string | null;
-}
+export default function CreatorProLoginPage() {
+  const searchParams = useSearchParams();
+  const handle = searchParams.get("handle") || undefined;
 
-export default function CreatorProLoginPage({ handle, displayName, logoUrl }: CreatorProLoginPageProps = {}) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#02070e] text-white">
       <div className="pointer-events-none absolute inset-0">
@@ -18,11 +18,8 @@ export default function CreatorProLoginPage({ handle, displayName, logoUrl }: Cr
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center px-4 py-16">
         <div className="mb-12 text-center">
-          {logoUrl && (
-            <img src={logoUrl} alt={displayName || "Creator"} className="mx-auto mb-4 h-16 w-16 rounded-lg object-cover" />
-          )}
           <h1 className="text-4xl font-semibold text-white/90">
-            {displayName ? `${displayName}にログイン` : "ログインまたは登録"}
+            ログインまたは登録
           </h1>
         </div>
 

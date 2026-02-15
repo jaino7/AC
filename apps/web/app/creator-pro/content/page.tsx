@@ -53,10 +53,6 @@ type Plan = {
 
 type TabType = "all" | "single" | "saved" | string;
 
-interface CreatorProContentPageProps {
-  handle?: string;
-}
-
 // Helper function to calculate time ago
 const getTimeAgo = (date: Date): string => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -84,9 +80,10 @@ const getTimeAgo = (date: Date): string => {
   return Math.floor(seconds) + "秒前";
 };
 
-export default function CreatorProContentPage({ handle: propHandle }: CreatorProContentPageProps = {}) {
+export default function CreatorProContentPage() {
   const searchParams = useSearchParams();
-  const handle = propHandle || searchParams.get("handle");
+  const propHandle = searchParams.get("handle") || undefined;
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 

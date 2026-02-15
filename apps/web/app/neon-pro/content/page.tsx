@@ -42,13 +42,10 @@ type CreatorProfile = {
 
 type TabType = "all" | "images" | "videos" | "archive";
 
-interface NeonProContentPageProps {
-  handle?: string;
-}
-
-export default function NeonProContentPage({ handle: propHandle }: NeonProContentPageProps = {}) {
+export default function NeonProContentPage() {
   const searchParams = useSearchParams();
-  const handle = propHandle || searchParams.get("handle");
+  const propHandle = searchParams.get("handle") || undefined;
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 

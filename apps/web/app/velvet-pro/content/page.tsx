@@ -43,13 +43,10 @@ type CreatorProfile = {
 
 type TabType = "all" | "velvet-elite" | "gold" | "video" | "backstage";
 
-interface VelvetProContentPageProps {
-  handle?: string;
-}
-
-export default function VelvetProContentPage({ handle: propHandle }: VelvetProContentPageProps = {}) {
+export default function VelvetProContentPage() {
   const searchParams = useSearchParams();
-  const handle = propHandle || searchParams.get("handle");
+  const propHandle = searchParams.get("handle") || undefined;
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 

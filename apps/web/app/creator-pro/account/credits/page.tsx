@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { TrustRankDisplay } from "@/components/credits/TrustRankDisplay";
@@ -24,13 +25,9 @@ type ChargeRequest = {
     createdAt: string;
 };
 
-interface CreatorProCreditsPageProps {
-    handle?: string;
-    displayName?: string;
-    logoUrl?: string | null;
-}
-
-export default function CreatorProCreditsPage({ handle }: CreatorProCreditsPageProps = {}) {
+export default function CreatorProCreditsPage() {
+    const searchParams = useSearchParams();
+    const handle = searchParams.get("handle") || undefined;
     const [credits, setCredits] = useState(0);
     const [tier, setTier] = useState(0);
     const [trustScore, setTrustScore] = useState(0);

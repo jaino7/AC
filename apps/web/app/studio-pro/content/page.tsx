@@ -37,10 +37,6 @@ type CreatorProfile = {
   otherUrl: string | null;
 };
 
-interface StudioProContentPageProps {
-  handle?: string;
-}
-
 // Helper function to calculate time ago
 const getTimeAgo = (date: Date): string => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -68,9 +64,10 @@ const getTimeAgo = (date: Date): string => {
   return "たった今";
 };
 
-export default function StudioProContentPage({ handle: propHandle }: StudioProContentPageProps = {}) {
+export default function StudioProContentPage() {
   const searchParams = useSearchParams();
-  const handle = propHandle || searchParams.get("handle");
+  const propHandle = searchParams.get("handle") || undefined;
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 
