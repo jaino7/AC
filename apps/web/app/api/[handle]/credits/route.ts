@@ -30,11 +30,16 @@ export async function GET(
             );
         }
 
-        // Find user and fan profile
+        // Find user and fan profile for this creator
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
             include: {
                 fanProfile: {
+                    where: {
+                        creator: {
+                            handle: params.handle
+                        }
+                    },
                     select: {
                         id: true,
                         credits: true,
@@ -54,7 +59,9 @@ export async function GET(
             },
         });
 
-        if (!user?.fanProfile) {
+        const fanProfile = user?.fanProfile?.[0];
+
+        if (!fanProfile) {
             return NextResponse.json(
                 { error: "ファンプロフィールが見つかりません" },
                 { status: 404 }
@@ -62,9 +69,9 @@ export async function GET(
         }
 
         return NextResponse.json({
-            credits: user.fanProfile.credits,
-            history: user.fanProfile.creditHistory,
-            chargeRequests: user.fanProfile.chargeRequests
+            credits: fanProfile.credits,
+            history: fanProfile.creditHistory,
+            chargeRequests: fanProfile.chargeRequests
         });
     } catch (error) {
         console.error("Error fetching credits:", error);
