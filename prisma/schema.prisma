@@ -10,6 +10,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Web app (apps/web) 向けに明示的に生成先を指定
+// apps/web/node_modules に @prisma/client が個別インストールされている場合も動作するよう両方に生成する
+generator clientWeb {
+  provider = "prisma-client-js"
+  output   = "../apps/web/node_modules/.prisma/client"
+}
+
 // Enums
 enum Role {
   USER
