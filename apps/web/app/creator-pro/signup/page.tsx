@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { usePathname, useSearchParams } from "next/navigation";
 import { CreatorProSignupForm } from "./signup-form";
 

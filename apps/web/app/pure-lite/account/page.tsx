@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { SimpleAccountPage } from "@/components/account/simple-account-page";
 import { usePathname, useSearchParams } from "next/navigation";
 
