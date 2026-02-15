@@ -12,7 +12,8 @@
     "dev:api": "npm run start:dev --workspace=api",
     "build:api": "npm run build --workspace=api",
     "dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:web\" \"wait-on http://localhost:3000 && start http://localhost:3000\"",
-    "create-admin": "tsx scripts/create-admin-user.ts"
+    "create-admin": "tsx scripts/create-admin-user.ts",
+    "postinstall": "prisma generate"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
