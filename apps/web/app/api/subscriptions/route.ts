@@ -1,4 +1,4 @@
-import { Next Request, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmailSafe } from '@/lib/email/client';
 import { PaymentInstructionsEmail } from '@/lib/email/templates/fan/PaymentInstructionsEmail';
