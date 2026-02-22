@@ -4,7 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { generatePresignedUrl } from "@/lib/r2";
 import { generatePresignedUrlMock } from "@/lib/r2-mock";
 import { prisma } from "@creator/shared";
-import { STORAGE_LIMITS } from "@/app/api/creators/storage/route";
+
+// プランごとのストレージ上限（バイト）
+const STORAGE_LIMITS: Record<string, number> = {
+    FREE: 15 * 1024 * 1024 * 1024,           // 15 GB
+    LITE: 200 * 1024 * 1024 * 1024,          // 200 GB
+    BUSINESS: 1 * 1024 * 1024 * 1024 * 1024, // 1 TB
+};
 
 export async function POST(request: Request) {
     // 認証チェック（セッションの存在確認のみ）
