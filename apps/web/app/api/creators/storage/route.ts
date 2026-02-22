@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
 
 // プランごとのストレージ上限（バイト）
-export const STORAGE_LIMITS: Record<string, number> = {
+const STORAGE_LIMITS: Record<string, number> = {
   FREE: 15 * 1024 * 1024 * 1024,           // 15 GB
   LITE: 200 * 1024 * 1024 * 1024,          // 200 GB
   BUSINESS: 1 * 1024 * 1024 * 1024 * 1024, // 1 TB
