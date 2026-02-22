@@ -266,7 +266,7 @@ export class CreatorsService {
     });
 
     // Always return success to prevent email enumeration
-    if (!user) {
+    if (!user || !user.email) {
       return { message: 'パスワード再設定用のメールを送信しました（登録済みの場合）' };
     }
 

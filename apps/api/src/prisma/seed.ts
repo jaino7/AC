@@ -40,9 +40,14 @@ async function main() {
         monthlyPrice: plan.monthlyPrice,
         yearlyPrice: plan.yearlyPrice,
         feeRate: plan.feeRate,
-        storageLimitBytes: plan.storageLimitBytes,
       },
-      create: plan as any,
+      create: {
+        type: plan.type,
+        name: plan.name,
+        monthlyPrice: plan.monthlyPrice,
+        yearlyPrice: plan.yearlyPrice,
+        feeRate: plan.feeRate,
+      } as any,
     })
   }
 

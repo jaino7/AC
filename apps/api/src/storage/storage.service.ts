@@ -5,7 +5,7 @@ import { CreatorPlanType } from '@prisma/client';
 
 @Injectable()
 export class StorageService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * クリエイターのストレージ上限を取得
@@ -24,11 +24,6 @@ export class StorageService {
       throw new BadRequestException('Creator not found');
     }
 
-    // カスタム上限が設定されている場合はそれを使用
-    if (creator.storageLimitBytes !== null) {
-      return creator.storageLimitBytes;
-    }
-
     // プランに基づいた上限を返す
     const planType =
       creator.creatorSubscription?.plan?.type || CreatorPlanType.FREE;
@@ -41,10 +36,6 @@ export class StorageService {
   async getStorageUsage(creatorId: string) {
     const creator = await this.prisma.creatorProfile.findUnique({
       where: { id: creatorId },
-      select: {
-        storageUsedBytes: true,
-        storageLimitBytes: true,
-      },
     });
 
     if (!creator) {
@@ -52,8 +43,8 @@ export class StorageService {
     }
 
     const limitBytes = await this.getStorageLimit(creatorId);
-    const usedBytes = creator.storageUsedBytes;
-    const availableBytes = limitBytes - usedBytes;
+    const usedBytes = await this.recalculateStorageUsage(creatorId);
+    const availableBytes = limitBytes - usedBytes > BigInt(0) ? limitBytes - usedBytes : BigInt(0);
     const usagePercent =
       limitBytes > BigInt(0)
         ? Number((usedBytes * BigInt(100)) / limitBytes)
@@ -77,20 +68,12 @@ export class StorageService {
     creatorId: string,
     fileSizeBytes: bigint,
   ): Promise<void> {
-    const creator = await this.prisma.creatorProfile.findUnique({
-      where: { id: creatorId },
-      select: { storageUsedBytes: true },
-    });
-
-    if (!creator) {
-      throw new BadRequestException('Creator not found');
-    }
-
     const limitBytes = await this.getStorageLimit(creatorId);
-    const newUsage = creator.storageUsedBytes + fileSizeBytes;
+    const usedBytes = await this.recalculateStorageUsage(creatorId);
+    const newUsage = usedBytes + fileSizeBytes;
 
     if (newUsage > limitBytes) {
-      const available = limitBytes - creator.storageUsedBytes;
+      const available = limitBytes - usedBytes > BigInt(0) ? limitBytes - usedBytes : BigInt(0);
       throw new BadRequestException(
         `ストレージ容量が不足しています。利用可能容量: ${formatBytes(available)}, 必要容量: ${formatBytes(fileSizeBytes)}`,
       );
@@ -99,82 +82,50 @@ export class StorageService {
 
   /**
    * ファイルアップロード後にストレージ使用量を増加
+   * (動的計算に変更されたため何もしない)
    */
   async incrementStorageUsage(
     creatorId: string,
     fileSizeBytes: bigint,
   ): Promise<void> {
-    await this.prisma.creatorProfile.update({
-      where: { id: creatorId },
-      data: {
-        storageUsedBytes: {
-          increment: fileSizeBytes,
-        },
-      },
-    });
+    // dynamically calculated
   }
 
   /**
    * ファイル削除後にストレージ使用量を減少
+   * (動的計算に変更されたため何もしない)
    */
   async decrementStorageUsage(
     creatorId: string,
     fileSizeBytes: bigint,
   ): Promise<void> {
-    await this.prisma.creatorProfile.update({
-      where: { id: creatorId },
-      data: {
-        storageUsedBytes: {
-          decrement: fileSizeBytes,
-        },
-      },
-    });
+    // dynamically calculated
   }
 
   /**
    * クリエイターのストレージ使用量を再計算
-   * （Media テーブルの fileSize を合計）
    */
   async recalculateStorageUsage(creatorId: string): Promise<bigint> {
-    // クリエイターの全メディアを取得
-    const media = await this.prisma.media.findMany({
+    const result = await this.prisma.media.aggregate({
       where: {
         post: {
           creatorId: creatorId,
         },
       },
-      select: {
-        fileSize: true,
+      _sum: {
+        size: true,
       },
     });
 
-    // 合計を計算
-    const totalBytes = media.reduce((sum, m) => {
-      return sum + (m.fileSize || BigInt(0));
-    }, BigInt(0));
-
-    // CreatorProfile を更新
-    await this.prisma.creatorProfile.update({
-      where: { id: creatorId },
-      data: {
-        storageUsedBytes: totalBytes,
-      },
-    });
-
-    return totalBytes;
+    return BigInt(result._sum.size || 0);
   }
 
   /**
    * 全クリエイターのストレージ使用量を再計算
-   * （メンテナンス用）
+   * （メンテナンス用・動的計算に変更されたため何もしない）
    */
   async recalculateAllStorageUsage(): Promise<void> {
-    const creators = await this.prisma.creatorProfile.findMany({
-      select: { id: true },
-    });
-
-    for (const creator of creators) {
-      await this.recalculateStorageUsage(creator.id);
-    }
+    // dynamically calculated
   }
 }
+
