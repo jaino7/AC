@@ -38,9 +38,9 @@ function PlanCard({
 }) {
     const [showMenu, setShowMenu] = React.useState(false);
     return (
-        <div className="flex items-stretch gap-4 rounded-xl border border-black/10 bg-white p-4 shadow-sm">
+        <div className="relative flex flex-col md:flex-row md:items-stretch gap-4 rounded-xl border border-black/10 bg-white p-5 shadow-sm">
 
-            <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-1 flex-col gap-2 pr-8 md:pr-0">
                 <h3 className="text-xl font-bold text-black">{plan.name}</h3>
 
                 <div className="flex items-baseline gap-1">
@@ -81,7 +81,7 @@ function PlanCard({
                 ) : null}
             </div>
 
-            <div className="relative flex items-center gap-2">
+            <div className="absolute right-4 top-4 md:relative md:right-auto md:top-auto flex items-center gap-2">
                 <button
                     onClick={() => setShowMenu(!showMenu)}
                     className="p-2 text-black/40 transition-colors hover:text-black"
@@ -205,8 +205,6 @@ function PlanEditModal({
         includesPurchasedContent: initialData?.includesPurchasedContent ?? false
     });
 
-    const [isFree, setIsFree] = useState(formData.price === 0);
-
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 py-10">
             <div className="relative w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl">
@@ -251,29 +249,15 @@ function PlanEditModal({
 
                             <div>
                                 <label className="block text-sm text-black/70">料金 (円/月)</label>
-                                <div className="mt-2 flex items-center gap-4">
+                                <div className="mt-2">
                                     <input
                                         type="number"
-                                        value={isFree ? 0 : formData.price}
+                                        value={formData.price}
                                         onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                                        disabled={isFree || !!planId}
+                                        disabled={!!planId}
+                                        min={100}
                                         className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-black disabled:opacity-50 focus:border-[#223C7D] focus:outline-none"
                                     />
-                                    <label className="flex items-center gap-2 whitespace-nowrap text-sm text-black/70">
-                                        <input
-                                            type="checkbox"
-                                            checked={isFree}
-                                            disabled={!!planId}
-                                            onChange={(e) => {
-                                                setIsFree(e.target.checked);
-                                                if (e.target.checked) {
-                                                    setFormData({ ...formData, price: 0 });
-                                                }
-                                            }}
-                                            className="h-4 w-4 rounded border-black/20 bg-white accent-[#223C7D]"
-                                        />
-                                        無料にする
-                                    </label>
                                 </div>
                                 {planId && (
                                     <p className="mt-2 text-xs text-black/50">
@@ -540,55 +524,45 @@ export default function PlansSettingsPage() {
 
     if (status === "loading" || loading) {
         return (
-            <main className="min-h-screen bg-neutral-50 px-6 py-10 text-black lg:px-12">
-                <div className="mx-auto max-w-5xl">
+            <main className="min-h-screen bg-white px-0 py-6 md:px-6 md:py-10 text-black lg:px-12">
+                <div className="mx-auto max-w-5xl px-4 md:px-0">
                     <p className="text-center text-black/60">読み込み中...</p>
                 </div>
             </main>
         );
     }
 
-    const freePlan = plans.find((p) => p.price === 0);
-    const paidPlans = plans.filter((p) => p.price > 0);
+    const hasPlan = plans.length > 0;
 
     return (
-        <main className="min-h-screen bg-neutral-50 px-6 py-10 text-black lg:px-12">
+        <main className="min-h-screen bg-white px-0 py-6 md:px-6 md:py-10 text-black lg:px-12">
             <div className="mx-auto max-w-5xl space-y-8">
                 {/* ページヘッダー */}
-                <header className="flex items-start justify-between">
+                <header className="flex items-start justify-between px-4 md:px-0">
                     <div>
                         <h1 className="text-3xl font-bold">プラン設定</h1>
                         <p className="mt-1 text-sm text-black/60">
-                            ファンのためのサブスクリプションプランを管理・設定します。
+                            ファンクラブのサブスクリプションプランを設定します。現在は1プランのみ設定できます。
                         </p>
                     </div>
-                    <button
-                        onClick={handleCreatePlan}
-                        className="flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-medium text-white transition-colors hover:bg-black/80"
-                    >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        新しいプランを作成
-                    </button>
+                    {!hasPlan && (
+                        <button
+                            onClick={handleCreatePlan}
+                            className="flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-medium text-white transition-colors hover:bg-black/80"
+                        >
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            プランを作成
+                        </button>
+                    )}
                 </header>
 
-                {/* 無料プラン */}
-                {freePlan && (
-                    <section>
-                        <PlanCard
-                            plan={freePlan}
-                            onEdit={() => handleEditPlan(freePlan)}
-                            onDelete={() => handleDeletePlan(freePlan)}
-                        />
-                    </section>
-                )}
-
-                {/* 有料プラン */}
-                <section>
-                    <div className="space-y-4">
-                        {paidPlans.map((plan) => (
+                {/* プラン一覧 */}
+                {hasPlan ? (
+                    <section className="space-y-4 px-4 md:px-0">
+                        {plans.map((plan) => (
                             <PlanCard
                                 key={plan.id}
                                 plan={plan}
@@ -596,21 +570,22 @@ export default function PlansSettingsPage() {
                                 onDelete={() => handleDeletePlan(plan)}
                             />
                         ))}
+                    </section>
+                ) : (
+                    /* プランなし状態 */
+                    <div className="px-4 md:px-0">
+                        <button
+                            onClick={handleCreatePlan}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-black/20 bg-white py-12 text-black/60 transition-colors hover:border-black/30 hover:bg-black/5"
+                        >
+                            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="16" />
+                                <line x1="8" y1="12" x2="16" y2="12" />
+                            </svg>
+                        </button>
                     </div>
-                </section>
-
-                {/* 新しいプランを追加ボタン */}
-                <button
-                    onClick={handleCreatePlan}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-black/20 bg-white py-6 text-black/60 transition-colors hover:border-black/30 hover:bg-black/5"
-                >
-                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="16" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                    </svg>
-                    新しいプランを追加
-                </button>
+                )}
             </div>
 
             {/* 編集モーダル */}

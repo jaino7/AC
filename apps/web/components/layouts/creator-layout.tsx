@@ -13,7 +13,7 @@ export function CreatorLayout({ children }: CreatorLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-neutral-50">
+        <div className="min-h-screen bg-white">
             {/* ヘッダー */}
             <CreatorHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
 
@@ -44,7 +44,7 @@ export function CreatorLayout({ children }: CreatorLayoutProps) {
                     "lg:pl-60" // デスクトップではサイドバー分の左パディング
                 )}
             >
-                <div className="mx-auto max-w-7xl p-6">{children}</div>
+                <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">{children}</div>
             </main>
         </div>
     );

@@ -9,6 +9,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
 import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
+import { samplePosts } from "@/lib/sampleContent";
 
 type Media = {
   id: string;
@@ -46,6 +47,7 @@ type CreatorProfile = {
   tiktokUrl: string | null;
   discordUrl: string | null;
   otherUrl: string | null;
+  otherUrlName?: string | null;
 };
 
 type Plan = {
@@ -105,6 +107,7 @@ function CreatorProContentPageContent() {
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // クレジット情報を取得
   const { data: creditsData } = useCredits(handle || undefined);
@@ -113,6 +116,25 @@ function CreatorProContentPageContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // ハンドルがない場合（テーマページとして直接アクセス）はサンプルデータを表示
+        if (!handle && !isPreview) {
+          setCreatorProfile({
+            handle: "creator-pro",
+            displayName: "Creator Pro Demo",
+            bio: "これはCreator Proテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            logoUrl: null,
+            twitterUrl: null,
+            instagramUrl: null,
+            tiktokUrl: null,
+            discordUrl: null,
+            otherUrl: null,
+            otherUrlName: null,
+          });
+          setPosts(samplePosts as Post[]);
+          setLoading(false);
+          return;
+        }
+
         // Fetch creator profile
         let profileResponse;
         if (handle) {
@@ -161,6 +183,8 @@ function CreatorProContentPageContent() {
             timeAgo: getTimeAgo(new Date(post.createdAt)),
             media: post.media || [],
             requiredPlan: post.requiredPlan,
+            price: post.price,
+            isLocked: post.isLocked,
           }));
 
           setPosts(transformedPosts);
@@ -217,7 +241,7 @@ function CreatorProContentPageContent() {
 
   const filteredPosts = displayPosts.filter((post) => {
     if (activeTab === "all") return true;
-    if (activeTab === "single") return post.isLocked && post.unlockPrice && !post.requiredPlan;
+    if (activeTab === "single") return post.isLocked && post.price && post.price > 0 && !post.requiredPlan;
     if (activeTab === "saved") return true; // Already filtered by displayPosts
     // プランIDの場合
     const plan = plans.find(p => p.id === activeTab);
@@ -320,7 +344,7 @@ function CreatorProContentPageContent() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="border-b border-gray-800 bg-[#0d1117] px-6 py-4">
           <div className="flex items-center justify-between">
@@ -335,7 +359,7 @@ function CreatorProContentPageContent() {
               <span className="text-lg font-semibold">{creatorProfile?.displayName || "Creator"}</span>
             </div>
             <div className="flex items-center gap-3">
-              {!session && (
+              {!session ? (
                 <>
                   <Link href={handle ? `/${handle}/login` : "/creators/login"} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
                     ログイン
@@ -344,10 +368,56 @@ function CreatorProContentPageContent() {
                     新規登録
                   </Link>
                 </>
+              ) : (
+                <button
+                  onClick={() => setIsMenuOpen(true)}
+                  className="md:hidden flex h-10 w-10 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-gray-400 hover:text-white transition"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                  </svg>
+                </button>
               )}
             </div>
           </div>
         </header>
+
+        {/* Mobile Menu Overlay */}
+        {isMenuOpen && (
+          <div className="fixed inset-0 z-[100] md:hidden">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}></div>
+            <div className="absolute right-0 top-0 bottom-0 w-64 bg-[#0d1117] border-l border-gray-800 shadow-2xl flex flex-col">
+              <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+                <span className="font-semibold text-white">メニュー</span>
+                <button onClick={() => setIsMenuOpen(false)} className="text-gray-400 hover:text-white p-2">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-4 flex flex-col gap-2">
+                <button onClick={() => setIsMenuOpen(false)} className="flex w-full items-center gap-3 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                  </svg>
+                  ホーム
+                </button>
+                <Link onClick={() => setIsMenuOpen(false)} href={handle ? `/${handle}/account` : "/creator-pro/account"} className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                  アカウント
+                </Link>
+                <button onClick={() => { setIsMenuOpen(false); signOut({ callbackUrl: handle ? `/${handle}/content` : "/" }); }} className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                  </svg>
+                  ログアウト
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Profile Section */}
         {(creatorProfile?.bio || creatorProfile?.twitterUrl || creatorProfile?.instagramUrl || creatorProfile?.tiktokUrl || creatorProfile?.discordUrl || creatorProfile?.otherUrl) && (
@@ -377,62 +447,62 @@ function CreatorProContentPageContent() {
                       <div className="h-1 w-1 rounded-full bg-blue-500"></div>
                       <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">Social Links</h3>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="flex flex-wrap gap-3 lg:grid lg:grid-cols-1">
                       {creatorProfile?.twitterUrl && (
-                        <a href={creatorProfile.twitterUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-blue-900/10 hover:-translate-y-0.5">
+                        <a href={creatorProfile.twitterUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center lg:justify-start gap-3 rounded-lg border border-gray-800 bg-gray-900/50 p-3 lg:px-4 lg:py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-blue-900/10 hover:-translate-y-0.5">
                           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition-colors group-hover:bg-blue-600">
                             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                             </svg>
                           </div>
-                          <span className="font-medium">X (Twitter)</span>
-                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="font-medium hidden lg:block">X (Twitter)</span>
+                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-blue-500 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                           </svg>
                         </a>
                       )}
                       {creatorProfile?.instagramUrl && (
-                        <a href={creatorProfile.instagramUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-pink-900/10 hover:-translate-y-0.5">
+                        <a href={creatorProfile.instagramUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center lg:justify-start gap-3 rounded-lg border border-gray-800 bg-gray-900/50 p-3 lg:px-4 lg:py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-pink-900/10 hover:-translate-y-0.5">
                           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition-colors group-hover:bg-pink-600">
                             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                             </svg>
                           </div>
-                          <span className="font-medium">Instagram</span>
-                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="font-medium hidden lg:block">Instagram</span>
+                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-pink-500 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                           </svg>
                         </a>
                       )}
                       {creatorProfile?.tiktokUrl && (
-                        <a href={creatorProfile.tiktokUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-teal-900/10 hover:-translate-y-0.5">
+                        <a href={creatorProfile.tiktokUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center lg:justify-start gap-3 rounded-lg border border-gray-800 bg-gray-900/50 p-3 lg:px-4 lg:py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-teal-900/10 hover:-translate-y-0.5">
                           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition-colors group-hover:bg-teal-500 hover:text-black">
                             <span>🎵</span>
                           </div>
-                          <span className="font-medium">TikTok</span>
-                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="font-medium hidden lg:block">TikTok</span>
+                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-teal-500 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                           </svg>
                         </a>
                       )}
                       {creatorProfile?.discordUrl && (
-                        <a href={creatorProfile.discordUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-indigo-900/10 hover:-translate-y-0.5">
+                        <a href={creatorProfile.discordUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center lg:justify-start gap-3 rounded-lg border border-gray-800 bg-gray-900/50 p-3 lg:px-4 lg:py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-indigo-900/10 hover:-translate-y-0.5">
                           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition-colors group-hover:bg-indigo-600">
                             <span>💬</span>
                           </div>
-                          <span className="font-medium">Discord</span>
-                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="font-medium hidden lg:block">Discord</span>
+                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-indigo-500 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                           </svg>
                         </a>
                       )}
                       {creatorProfile?.otherUrl && (
-                        <a href={creatorProfile.otherUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-purple-900/10 hover:-translate-y-0.5">
+                        <a href={creatorProfile.otherUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center lg:justify-start gap-3 rounded-lg border border-gray-800 bg-gray-900/50 p-3 lg:px-4 lg:py-3 text-sm text-gray-400 transition-all hover:border-gray-700 hover:bg-gray-800 hover:text-white hover:shadow-lg hover:shadow-purple-900/10 hover:-translate-y-0.5">
                           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition-colors group-hover:bg-purple-600">
                             <span>🔗</span>
                           </div>
-                          <span className="font-medium">Other</span>
-                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="font-medium hidden lg:block">{creatorProfile.otherUrlName || "Other"}</span>
+                          <svg className="ml-auto h-4 w-4 text-gray-600 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-purple-500 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                           </svg>
                         </a>
@@ -446,11 +516,11 @@ function CreatorProContentPageContent() {
         )}
 
         {/* Tabs */}
-        <nav className="border-b border-gray-800 bg-[#0d1117] px-6">
-          <div className="flex items-center gap-2 overflow-x-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-md border-t border-gray-800 md:relative md:bottom-auto md:bg-[#0d1117] md:backdrop-blur-none md:border-t-0 md:border-b md:px-6">
+          <nav className="flex items-center gap-2 overflow-x-auto px-4 pb-[env(safe-area-inset-bottom)] md:px-0 md:pb-0">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${activeTab === "all"
+              className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "all"
                 ? "border-b-2 border-blue-600 text-blue-500"
                 : "text-gray-400 hover:text-white"
                 }`}
@@ -461,17 +531,17 @@ function CreatorProContentPageContent() {
               <button
                 key={plan.id}
                 onClick={() => setActiveTab(plan.id)}
-                className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${activeTab === plan.id
+                className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === plan.id
                   ? "border-b-2 border-blue-600 text-blue-500"
                   : "text-gray-400 hover:text-white"
                   }`}
               >
-                {plan.name}
+                プラン
               </button>
             ))}
             <button
               onClick={() => setActiveTab("single")}
-              className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${activeTab === "single"
+              className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "single"
                 ? "border-b-2 border-blue-600 text-blue-500"
                 : "text-gray-400 hover:text-white"
                 }`}
@@ -480,19 +550,19 @@ function CreatorProContentPageContent() {
             </button>
             <button
               onClick={() => setActiveTab("saved")}
-              className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${activeTab === "saved"
+              className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "saved"
                 ? "border-b-2 border-blue-600 text-blue-500"
                 : "text-gray-400 hover:text-white"
                 }`}
             >
               保存済み
             </button>
-          </div>
-        </nav>
+          </nav>
+        </div>
 
         {/* Feed */}
-        <main className="bg-[#010409] p-6">
-          <div className="mx-auto grid max-w-5xl gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <main className="flex-1 bg-[#010409] p-6 pb-20 md:pb-6 flex flex-col">
+          <div className="mx-auto grid max-w-5xl w-full gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {filteredPosts.length === 0 ? (
               <div className="col-span-full text-center py-12 text-gray-400">
                 {posts.length === 0 ? "投稿がありません" : "該当する投稿がありません"}
@@ -572,13 +642,16 @@ function CreatorProContentPageContent() {
                       <p className="mb-3 text-sm text-gray-400 line-clamp-2">{post.description}</p>
                     )}
                     {post.unlockPrice && (
-                      <button
-                        onClick={(e) => handlePurchase(e, post)}
-                        disabled={isPurchasing}
-                        className="w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      <div
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isPurchasing) handlePurchase(e, post);
+                        }}
+                        className={`w-full text-center rounded-lg bg-blue-600 py-2 text-sm font-semibold transition ${isPurchasing ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"}`}
                       >
                         {isPurchasing ? "処理中..." : `¥${post.unlockPrice}でアンロック`}
-                      </button>
+                      </div>
                     )}
                   </div>
                 </Link>
@@ -587,18 +660,16 @@ function CreatorProContentPageContent() {
           </div>
 
           {/* Footer */}
-          <footer className="mt-8 border-t border-gray-800 bg-[#010409] px-6 py-4">
-            <div className="mx-auto max-w-5xl">
-              <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-                <a href="/terms/fans" target="_blank" className="hover:text-blue-500 hover:underline">
+          <footer className="mt-auto border-t border-gray-800 bg-[#010409] py-4 pt-8 md:pt-4 w-full">
+            <div className="mx-auto max-w-5xl px-4 sm:px-0">
+              <div className="flex flex-wrap items-center justify-start gap-4 sm:gap-6 text-xs text-gray-500">
+                <a href="/terms/fans" target="_blank" className="hover:text-blue-500 hover:underline whitespace-nowrap">
                   利用規約
                 </a>
-                <span>•</span>
-                <a href="/legal/commercial-transaction/fans" target="_blank" className="hover:text-blue-500 hover:underline">
+                <a href="/legal/commercial-transaction/fans" target="_blank" className="hover:text-blue-500 hover:underline whitespace-nowrap">
                   特定商取引法に基づく表記
                 </a>
-                <span>•</span>
-                <a href="/privacy" target="_blank" className="hover:text-blue-500 hover:underline">
+                <a href="/privacy" target="_blank" className="hover:text-blue-500 hover:underline whitespace-nowrap">
                   プライバシーポリシー
                 </a>
               </div>

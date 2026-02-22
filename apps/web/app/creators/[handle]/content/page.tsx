@@ -38,6 +38,86 @@ const PostBadge = ({ text }: { text: string }) => (
 
 type ViewMode = "grid" | "list";
 
+const PLAN_LABELS: Record<string, string> = {
+  FREE: "フリー",
+  LITE: "Lite",
+  BUSINESS: "Business",
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function StorageUsage() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["storage"],
+    queryFn: async () => {
+      const res = await fetch("/api/creators/storage");
+      if (!res.ok) throw new Error("Failed to fetch storage");
+      return res.json() as Promise<{
+        usedBytes: number;
+        limitBytes: number;
+        storagePlan: string;
+      }>;
+    },
+    retry: 1,
+    staleTime: 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2 pt-4 border-t border-black/10">
+        <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">ストレージ</p>
+        <div className="h-2 w-full rounded-full bg-neutral-100 animate-pulse" />
+        <p className="text-xs text-neutral-400">読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="space-y-2 pt-4 border-t border-black/10">
+        <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">ストレージ</p>
+        <div className="h-2 w-full rounded-full bg-neutral-100" />
+        <p className="text-xs text-neutral-400">取得できませんでした</p>
+      </div>
+    );
+  }
+
+  const { usedBytes, limitBytes, storagePlan } = data;
+  const usagePercent = limitBytes > 0 ? Math.min((usedBytes / limitBytes) * 100, 100) : 0;
+  const isOverLimit = usedBytes >= limitBytes;
+
+  const barColor = isOverLimit
+    ? "bg-red-500"
+    : usagePercent > 80
+      ? "bg-amber-500"
+      : "bg-blue-500";
+
+  return (
+    <div className="space-y-2 pt-4 border-t border-black/10">
+      <div className="h-2 w-full rounded-full bg-neutral-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${usagePercent}%` }}
+        />
+      </div>
+      <p className="text-xs text-neutral-600">
+        {formatBytes(usedBytes)} / {formatBytes(limitBytes)}
+      </p>
+      {isOverLimit && (
+        <p className="text-xs text-red-500 font-medium">
+          容量上限に達しています
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function ContentPage() {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -49,6 +129,11 @@ export default function ContentPage() {
   const [showNewTagModal, setShowNewTagModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newTagName, setNewTagName] = useState("");
+
+  // アコーディオン・スマホメニュー状態
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFoldersOpen, setIsFoldersOpen] = useState(true);
+  const [isTagsOpen, setIsTagsOpen] = useState(true);
 
   // 一括選択・削除
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
@@ -225,15 +310,32 @@ export default function ContentPage() {
   });
 
   return (
-    <main className="min-h-screen bg-white px-6 py-10 text-black lg:px-12">
+    <main className="min-h-screen bg-white px-0 py-6 text-black lg:px-12 lg:py-10">
       <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
-        <aside className="rounded-3xl border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-          <nav className="space-y-4 text-sm font-semibold">
+        <aside className="h-fit rounded-2xl border border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] lg:rounded-3xl lg:p-6">
+          <div className="lg:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="flex w-full items-center justify-between text-sm font-semibold text-neutral-800"
+            >
+              <span>フィルター・メニュー</span>
+              <span
+                className={`transition-transform duration-200 ${isMobileMenuOpen ? "rotate-180" : ""}`}
+              >
+                ▼
+              </span>
+            </button>
+          </div>
+
+          <nav
+            className={`mt-4 space-y-6 text-sm font-semibold lg:mt-0 lg:block ${isMobileMenuOpen ? "block" : "hidden"
+              }`}
+          >
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">投稿</p>
               <button
                 onClick={() => setSelectedVisibility("all")}
-                className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${selectedVisibility === "all"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-left transition-colors lg:py-3 ${selectedVisibility === "all"
                   ? "border-black bg-black text-white"
                   : "border-black/10 hover:border-black/40"
                   }`}
@@ -242,7 +344,7 @@ export default function ContentPage() {
               </button>
               <button
                 onClick={() => setSelectedVisibility("public")}
-                className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${selectedVisibility === "public"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-left transition-colors lg:py-3 ${selectedVisibility === "public"
                   ? "border-black bg-black text-white"
                   : "border-black/10 hover:border-black/40"
                   }`}
@@ -251,7 +353,7 @@ export default function ContentPage() {
               </button>
               <button
                 onClick={() => setSelectedVisibility("draft")}
-                className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${selectedVisibility === "draft"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-left transition-colors lg:py-3 ${selectedVisibility === "draft"
                   ? "border-black bg-black text-white"
                   : "border-black/10 hover:border-black/40"
                   }`}
@@ -261,61 +363,86 @@ export default function ContentPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-neutral-500">
+              <button
+                onClick={() => setIsFoldersOpen(!isFoldersOpen)}
+                className="flex w-full items-center justify-between text-xs uppercase tracking-[0.3em] text-neutral-500"
+              >
                 <span>フォルダ</span>
-                <span>▼</span>
-              </div>
-              <ul className="space-y-2 text-sm">
-                {folders.map((folder) => (
-                  <li
-                    key={folder.id}
-                    onClick={() => setSelectedFolderId(folder.id === selectedFolderId ? "" : folder.id)}
-                    className={`cursor-pointer rounded-2xl border px-4 py-2 transition-colors ${selectedFolderId === folder.id
-                      ? "border-black bg-black text-white"
-                      : "border-black/10 hover:border-black/40"
-                      }`}
-                  >
-                    {folder.name}
-                  </li>
-                ))}
-              </ul>
+                <span
+                  className={`transition-transform duration-200 ${isFoldersOpen ? "rotate-180" : ""
+                    }`}
+                >
+                  ▼
+                </span>
+              </button>
+              {isFoldersOpen && (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {folders.map((folder) => (
+                    <li
+                      key={folder.id}
+                      onClick={() =>
+                        setSelectedFolderId(folder.id === selectedFolderId ? "" : folder.id)
+                      }
+                      className={`cursor-pointer rounded-2xl border px-4 py-2 transition-colors ${selectedFolderId === folder.id
+                        ? "border-black bg-black text-white"
+                        : "border-black/10 hover:border-black/40"
+                        }`}
+                    >
+                      {folder.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-neutral-500">
+              <button
+                onClick={() => setIsTagsOpen(!isTagsOpen)}
+                className="flex w-full items-center justify-between text-xs uppercase tracking-[0.3em] text-neutral-500"
+              >
                 <span>タグ</span>
-                <span>▼</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    onClick={() => setSelectedTagId(tag.id === selectedTagId ? "" : tag.id)}
-                    className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${selectedTagId === tag.id
-                      ? "border-black bg-black text-white"
-                      : "border-black/10 hover:border-black/40"
-                      }`}
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
+                <span
+                  className={`transition-transform duration-200 ${isTagsOpen ? "rotate-180" : ""
+                    }`}
+                >
+                  ▼
+                </span>
+              </button>
+              {isTagsOpen && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      onClick={() => setSelectedTagId(tag.id === selectedTagId ? "" : tag.id)}
+                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${selectedTagId === tag.id
+                        ? "border-black bg-black text-white"
+                        : "border-black/10 hover:border-black/40"
+                        }`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2">
               <button
                 onClick={() => setShowNewFolderModal(true)}
-                className="w-full rounded-2xl border border-black/10 px-4 py-3 font-semibold hover:border-black/40"
+                className="w-full rounded-2xl border border-black/10 px-4 py-2.5 font-semibold hover:border-black/40 lg:py-3"
               >
                 新規フォルダ
               </button>
               <button
                 onClick={() => setShowNewTagModal(true)}
-                className="w-full rounded-2xl border border-black/10 px-4 py-3 font-semibold hover:border-black/40"
+                className="w-full rounded-2xl border border-black/10 px-4 py-2.5 font-semibold hover:border-black/40 lg:py-3"
               >
                 新規タグ
               </button>
             </div>
+
+            {/* ストレージ使用量 */}
+            <StorageUsage />
           </nav>
         </aside>
 
@@ -399,7 +526,7 @@ export default function ContentPage() {
               投稿がありません。新規投稿を作成してください。
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {posts.map((post) => (
                 <div
                   key={post.id}

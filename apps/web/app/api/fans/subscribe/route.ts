@@ -3,6 +3,56 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
 
+// GET - Get active subscriptions for a fan
+export async function GET(request: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+        }
+
+        const url = new URL(request.url);
+        const handle = url.searchParams.get("handle");
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: "ユーザーが見つかりません" }, { status: 404 });
+        }
+
+        // Search for active subscriptions
+        const whereClause: any = {
+            fan: { userId: user.id },
+            status: "ACTIVE"
+        };
+
+        if (handle) {
+            whereClause.plan = { creator: { handle } };
+        }
+
+        const subscriptions = await prisma.subscription.findMany({
+            where: whereClause,
+            include: {
+                plan: {
+                    include: {
+                        creator: {
+                            select: { handle: true, displayName: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { startDate: "desc" }
+        });
+
+        return NextResponse.json({ subscriptions });
+    } catch (error) {
+        console.error("Fetch subscriptions error:", error);
+        return NextResponse.json({ error: "プラン情報の取得に失敗しました" }, { status: 500 });
+    }
+}
+
 // POST - Subscribe to a plan using credits
 export async function POST(request: NextRequest) {
     try {
@@ -103,6 +153,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // 購入発生時点のクリエイターのプランの手数料率を取得
+        const creatorSubscription = await prisma.creatorSubscription.findUnique({
+            where: { creatorId: plan.creatorId },
+            include: { plan: true },
+        });
+        const freePlan = await prisma.creatorPlan.findUnique({ where: { type: "FREE" } });
+        const rawFeeRate =
+            creatorSubscription?.status === "ACTIVE" && creatorSubscription.plan
+                ? creatorSubscription.plan.feeRate
+                : (freePlan?.feeRate ?? 10);
+        const feeRate = rawFeeRate / 100; // 10.0 → 0.10
+        const platformFee = Math.floor(plan.price * feeRate);
+        const netAmount = plan.price - platformFee;
+
+        // 締め月（YYYY-MM）
+        const now = new Date();
+        const settlementMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
         // Create subscription and deduct credits in a transaction
         const result = await prisma.$transaction(async (tx) => {
             // Deduct credits
@@ -135,6 +203,21 @@ export async function POST(request: NextRequest) {
                     amount: -plan.price,
                     balance: updatedFanProfile.credits,
                     description: `${plan.name}プランに登録`,
+                },
+            });
+
+            // 収益記録（手数料控除後のクリエイター受取額をスナップショット）
+            await tx.creatorEarning.create({
+                data: {
+                    creatorId: plan.creatorId,
+                    grossAmount: plan.price,
+                    platformFee,
+                    netAmount,
+                    feeRate,
+                    earningType: "SUBSCRIPTION",
+                    referenceId: subscription.id,
+                    settlementMonth,
+                    status: "PENDING",
                 },
             });
 

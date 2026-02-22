@@ -45,6 +45,8 @@ type AnalyticsData = {
         purchaseCountChange?: number;
     };
     charts?: Record<string, Array<{ date: string; count: number }>>;
+    revenueChart?: Array<{ date: string; amount: number }>;
+    planNames?: Record<string, string>;
 };
 
 export default function FanManagementPage() {
@@ -56,9 +58,11 @@ export default function FanManagementPage() {
     const [planFilter, setPlanFilter] = useState("全て");
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState(30); // 30, 90, 180, 365
+    const [chartMode, setChartMode] = useState<"count" | "revenue">("count"); // グラフ切替
 
     const [fans, setFans] = useState<Fan[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+    const [planNames, setPlanNames] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -101,8 +105,7 @@ export default function FanManagementPage() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const tab = activeTab === "revenue" ? "plans" : activeTab;
-                const response = await fetch(`/api/creators/analytics?tab=${tab}&days=${selectedPeriod}`);
+                const response = await fetch(`/api/creators/analytics?tab=${activeTab}&days=${selectedPeriod}`);
 
                 if (!response.ok) {
                     throw new Error("Failed to fetch analytics");
@@ -110,6 +113,9 @@ export default function FanManagementPage() {
 
                 const data = await response.json();
                 setAnalytics(data);
+                if (data.planNames) {
+                    setPlanNames(data.planNames);
+                }
             } catch (err) {
                 console.error("Error fetching analytics:", err);
             }
@@ -149,15 +155,43 @@ export default function FanManagementPage() {
             }
         });
 
+    // Compute dynamic chart max from real data
+    const chartMax = (() => {
+        if (!analytics?.charts) return 10;
+        if (activeTab === "revenue") {
+            const data = (analytics.charts as any)?.revenue || [];
+            const values = (data as Array<{ amount: number }>).map((d) => d.amount);
+            const m = values.length > 0 ? Math.max(...values) : 0;
+            if (m === 0) return 1000;
+            return Math.ceil(m / 500) * 500;
+        }
+        // 収益モードの場合はrevenueChartを使う
+        if (chartMode === "revenue" && analytics?.revenueChart) {
+            const values = analytics.revenueChart.map((d) => d.amount);
+            const m = values.length > 0 ? Math.max(...values) : 0;
+            if (m === 0) return 1000;
+            return Math.ceil(m / 500) * 500;
+        }
+        if (activeTab === "purchases") {
+            const data = (analytics.charts as any)?.purchases || [];
+            const values = (data as Array<{ count: number }>).map((d) => d.count);
+            const m = values.length > 0 ? Math.max(...values) : 0;
+            return Math.max(10, Math.ceil(m / 5) * 5);
+        }
+        const allValues = Object.values(analytics.charts).flat().map((d) => d.count);
+        const m = allValues.length > 0 ? Math.max(...allValues) : 0;
+        return Math.max(10, Math.ceil(m / 5) * 5);
+    })();
+
     return (
         <main className="min-h-screen bg-white text-black">
             {/* ページヘッダー */}
-            <header className="px-6 py-10 lg:px-12">
+            <header className="px-4 py-8 md:px-6 lg:px-12 lg:py-10">
                 <h1 className="text-3xl font-semibold">アナリティクス</h1>
             </header>
 
             {/* タブ切り替え - 固定 */}
-            <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 lg:px-12">
+            <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 md:px-6 lg:px-12">
                 <nav className="-mb-px flex gap-8">
                     <button
                         onClick={() => setActiveTab("revenue")}
@@ -175,7 +209,7 @@ export default function FanManagementPage() {
                             : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                             }`}
                     >
-                        プラン購入者
+                        プラン購入
                     </button>
                     <button
                         onClick={() => setActiveTab("purchases")}
@@ -184,16 +218,16 @@ export default function FanManagementPage() {
                             : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                             }`}
                     >
-                        単体購入者
+                        単体購入
                     </button>
                 </nav>
             </div>
 
-            <div className="space-y-8 px-6 py-10 lg:px-12">
+            <div className="space-y-6 md:space-y-8 px-4 py-6 md:px-6 lg:px-12 lg:py-10">
                 {/* 主要なアナリティクス */}
-                <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                    <h2 className="mb-6 text-lg font-semibold">主要なアナリティクス</h2>
-                    <div className="grid gap-6 md:grid-cols-4">
+                <div className="rounded-2xl md:rounded-3xl border border-black/10 bg-white p-5 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                    <h2 className="mb-4 md:mb-6 text-lg font-semibold">主要なアナリティクス</h2>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                         {activeTab === "revenue" ? (
                             <>
                                 {/* 合計収益 */}
@@ -367,28 +401,55 @@ export default function FanManagementPage() {
                 </div>
 
                 {/* 購入者数チャート */}
-                <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                    {/* 凡例 - プランのみ */}
-                    {activeTab === "plans" && (
-                        <div className="mb-4 flex gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                                <div className="h-3 w-3 rounded-full bg-blue-500"></div>
-                                <span className="text-neutral-600">プランA</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                                <span className="text-neutral-600">プランB</span>
-                            </div>
+                <div className="rounded-2xl md:rounded-3xl border border-black/10 bg-white p-5 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                    {/* グラフモード切替 + 凡例 */}
+                    <div className="mb-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                        <div>
+                            {activeTab === "plans" && Object.keys(planNames).length > 0 && chartMode === "count" && (
+                                <div className="flex gap-4 text-sm">
+                                    {Object.entries(planNames).map(([planId, name], idx) => {
+                                        const LEGEND_COLORS = ["bg-blue-500", "bg-yellow-500", "bg-red-500", "bg-green-500", "bg-purple-500"];
+                                        return (
+                                            <div key={planId} className="flex items-center gap-2">
+                                                <div className={`h-3 w-3 rounded-full ${LEGEND_COLORS[idx % LEGEND_COLORS.length]}`}></div>
+                                                <span className="text-neutral-600">{name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    )}
+                        {activeTab !== "revenue" && (
+                            <div className="flex rounded-xl border border-neutral-200 overflow-hidden">
+                                <button
+                                    onClick={() => setChartMode("revenue")}
+                                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${chartMode === "revenue"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-white text-neutral-600 hover:bg-neutral-50"
+                                        }`}
+                                >
+                                    収益
+                                </button>
+                                <button
+                                    onClick={() => setChartMode("count")}
+                                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${chartMode === "count"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-white text-neutral-600 hover:bg-neutral-50"
+                                        }`}
+                                >
+                                    {activeTab === "plans" ? "購入者数" : "購入回数"}
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     {/* グラフ */}
-                    <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-b from-neutral-50 to-white p-6">
-                        <div className="flex gap-4">
+                    <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-neutral-200 bg-gradient-to-b from-neutral-50 to-white px-2 py-4 md:p-6">
+                        <div className="flex gap-2 md:gap-4">
                             {/* Y軸ラベル */}
                             <div className="flex flex-col justify-between text-xs text-neutral-500" style={{ height: '220px' }}>
                                 {(() => {
-                                    const max = activeTab === "plans" ? 30 : 150;
+                                    const max = chartMax;
                                     return [4, 3, 2, 1, 0].map(i => {
                                         const value = (max * i) / 4;
                                         return (
@@ -406,19 +467,8 @@ export default function FanManagementPage() {
                                     const chartWidth = 600;
                                     const chartHeight = 220;
 
-                                    // サンプルデータ生成
-                                    const generateData = (baseValue: number, variance: number) => {
-                                        const data: number[] = [];
-                                        for (let i = 0; i < selectedPeriod; i++) {
-                                            const trend = i * 0.3;
-                                            const random = (Math.random() - 0.5) * variance;
-                                            data.push(Math.max(0, baseValue + trend + random));
-                                        }
-                                        return data;
-                                    };
-
-                                    const max = activeTab === "plans" ? 30 : 150;
-                                    const pointGap = chartWidth / (selectedPeriod - 1);
+                                    const max = chartMax;
+                                    const pointGap = chartWidth / Math.max(selectedPeriod - 1, 1);
 
                                     // 日付ラベルを生成（期間に応じて調整）
                                     const today = new Date();
@@ -431,22 +481,138 @@ export default function FanManagementPage() {
                                         return `${date.getMonth() + 1}/${date.getDate()}`;
                                     });
 
-                                    if (activeTab === "plans") {
-                                        // プラン購入: 2本のライン（プランA・プランB）
-                                        const planAData = generateData(15, 5);
-                                        const planBData = generateData(10, 4);
+                                    const PLAN_STROKE_COLORS = ["#3b82f6", "#eab308", "#ef4444", "#22c55e", "#a855f7"];
 
-                                        const planASvgPoints = planAData
+                                    if (activeTab === "revenue") {
+                                        // 合計収益: 日別金額のライングラフ
+                                        const revenueChartEntries = (analytics?.charts as any)?.revenue || [];
+                                        const revenueData = (revenueChartEntries as Array<{ date: string; amount: number }>).map((d) => d.amount);
+
+                                        const revenueSvgPoints = revenueData
                                             .map((value, index) =>
                                                 `${index * pointGap},${chartHeight - (value / max) * (chartHeight - 20)}`
                                             )
                                             .join(" ");
 
-                                        const planBSvgPoints = planBData
+                                        return (
+                                            <>
+                                                <svg
+                                                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                                                    className="h-56 w-full"
+                                                    preserveAspectRatio="none"
+                                                >
+                                                    {[0, 1, 2, 3, 4].map((i) => {
+                                                        const y = (chartHeight * i) / 4;
+                                                        return (
+                                                            <line
+                                                                key={`grid-${i}`}
+                                                                x1="0"
+                                                                y1={y}
+                                                                x2={chartWidth}
+                                                                y2={y}
+                                                                stroke="#e5e7eb"
+                                                                strokeWidth="1"
+                                                                strokeDasharray="4 4"
+                                                            />
+                                                        );
+                                                    })}
+
+                                                    {revenueSvgPoints && (
+                                                        <polyline
+                                                            fill="none"
+                                                            stroke="#3b82f6"
+                                                            strokeWidth="4"
+                                                            points={revenueSvgPoints}
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                    )}
+
+                                                    {revenueData.map((value, index) => (
+                                                        <circle
+                                                            key={index}
+                                                            cx={index * pointGap}
+                                                            cy={chartHeight - (value / max) * (chartHeight - 20)}
+                                                            r={5}
+                                                            fill="#3b82f6"
+                                                        />
+                                                    ))}
+                                                </svg>
+                                                <div className="mt-4 flex justify-between text-xs text-neutral-500">
+                                                    {labels.map((label, index) => (
+                                                        <span key={`${label}-${index}`}>{label}</span>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        );
+                                    } else if (chartMode === "revenue" && analytics?.revenueChart) {
+                                        // 収益モード: 日別金額のライングラフ
+                                        const revenueData = analytics.revenueChart.map((d) => d.amount);
+
+                                        const revenueSvgPoints = revenueData
                                             .map((value, index) =>
                                                 `${index * pointGap},${chartHeight - (value / max) * (chartHeight - 20)}`
                                             )
                                             .join(" ");
+
+                                        return (
+                                            <>
+                                                <svg
+                                                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                                                    className="h-56 w-full"
+                                                    preserveAspectRatio="none"
+                                                >
+                                                    {[0, 1, 2, 3, 4].map((i) => {
+                                                        const y = (chartHeight * i) / 4;
+                                                        return (
+                                                            <line
+                                                                key={`grid-${i}`}
+                                                                x1="0"
+                                                                y1={y}
+                                                                x2={chartWidth}
+                                                                y2={y}
+                                                                stroke="#e5e7eb"
+                                                                strokeWidth="1"
+                                                                strokeDasharray="4 4"
+                                                            />
+                                                        );
+                                                    })}
+
+                                                    {revenueSvgPoints && (
+                                                        <polyline
+                                                            fill="none"
+                                                            stroke="#3b82f6"
+                                                            strokeWidth="4"
+                                                            points={revenueSvgPoints}
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                    )}
+
+                                                    {revenueData.map((value, index) => (
+                                                        <circle
+                                                            key={index}
+                                                            cx={index * pointGap}
+                                                            cy={chartHeight - (value / max) * (chartHeight - 20)}
+                                                            r={5}
+                                                            fill="#3b82f6"
+                                                        />
+                                                    ))}
+                                                </svg>
+                                                <div className="mt-4 flex justify-between text-xs text-neutral-500">
+                                                    {labels.map((label, index) => (
+                                                        <span key={`${label}-${index}`}>{label}</span>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        );
+                                    } else if (activeTab === "plans") {
+                                        // プラン購入: プランごとに1本のライン
+                                        const planIds = Object.keys(analytics?.charts || {});
+                                        const planDataArrays = planIds.map((planId) => {
+                                            const entries = analytics?.charts?.[planId] || [];
+                                            return entries.map((d: { date: string; count: number }) => d.count);
+                                        });
 
                                         return (
                                             <>
@@ -472,47 +638,36 @@ export default function FanManagementPage() {
                                                         );
                                                     })}
 
-                                                    {/* プランAライン */}
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="#3b82f6"
-                                                        strokeWidth="4"
-                                                        points={planASvgPoints}
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    />
-
-                                                    {/* プランBライン */}
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="#eab308"
-                                                        strokeWidth="4"
-                                                        points={planBSvgPoints}
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    />
-
-                                                    {/* プランAのデータポイント */}
-                                                    {planAData.map((value, index) => (
-                                                        <circle
-                                                            key={`a-${index}`}
-                                                            cx={index * pointGap}
-                                                            cy={chartHeight - (value / max) * (chartHeight - 20)}
-                                                            r={5}
-                                                            fill="#3b82f6"
-                                                        />
-                                                    ))}
-
-                                                    {/* プランBのデータポイント */}
-                                                    {planBData.map((value, index) => (
-                                                        <circle
-                                                            key={`b-${index}`}
-                                                            cx={index * pointGap}
-                                                            cy={chartHeight - (value / max) * (chartHeight - 20)}
-                                                            r={5}
-                                                            fill="#eab308"
-                                                        />
-                                                    ))}
+                                                    {planDataArrays.map((data, planIdx) => {
+                                                        const color = PLAN_STROKE_COLORS[planIdx % PLAN_STROKE_COLORS.length];
+                                                        const svgPoints = data
+                                                            .map((value, index) =>
+                                                                `${index * pointGap},${chartHeight - (value / max) * (chartHeight - 20)}`
+                                                            )
+                                                            .join(" ");
+                                                        if (!svgPoints) return null;
+                                                        return (
+                                                            <g key={planIds[planIdx]}>
+                                                                <polyline
+                                                                    fill="none"
+                                                                    stroke={color}
+                                                                    strokeWidth="4"
+                                                                    points={svgPoints}
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                                {data.map((value, index) => (
+                                                                    <circle
+                                                                        key={index}
+                                                                        cx={index * pointGap}
+                                                                        cy={chartHeight - (value / max) * (chartHeight - 20)}
+                                                                        r={5}
+                                                                        fill={color}
+                                                                    />
+                                                                ))}
+                                                            </g>
+                                                        );
+                                                    })}
                                                 </svg>
                                                 <div className="mt-4 flex justify-between text-xs text-neutral-500">
                                                     {labels.map((label, index) => (
@@ -523,7 +678,8 @@ export default function FanManagementPage() {
                                         );
                                     } else {
                                         // 単体購入: 購入本数（1本のライン）
-                                        const purchaseData = generateData(80, 40);
+                                        const purchaseChartEntries = (analytics?.charts as any)?.purchases || [];
+                                        const purchaseData = (purchaseChartEntries as Array<{ date: string; count: number }>).map((d) => d.count);
 
                                         const purchaseSvgPoints = purchaseData
                                             .map((value, index) =>
@@ -555,17 +711,17 @@ export default function FanManagementPage() {
                                                         );
                                                     })}
 
-                                                    {/* データライン */}
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="4"
-                                                        points={purchaseSvgPoints}
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    />
+                                                    {purchaseSvgPoints && (
+                                                        <polyline
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="4"
+                                                            points={purchaseSvgPoints}
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                    )}
 
-                                                    {/* データポイント */}
                                                     {purchaseData.map((value, index) => (
                                                         <circle
                                                             key={index}
@@ -597,7 +753,7 @@ export default function FanManagementPage() {
                             className="rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="7">過去 7 日間</option>
-                            <option value="30">過去 {selectedPeriod} 日間</option>
+                            <option value="30">過去 30 日間</option>
                             <option value="90">過去 90 日間</option>
                             <option value="180">過去 180 日間</option>
                             <option value="365">過去 1 年間</option>
@@ -626,8 +782,9 @@ export default function FanManagementPage() {
                                 className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold focus:outline-none"
                             >
                                 <option value="全て">プラン: 全て</option>
-                                <option value="プランA">プランA</option>
-                                <option value="プランB">プランB</option>
+                                {Object.values(planNames).map((name) => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
                             </select>
                         )}
                     </div>

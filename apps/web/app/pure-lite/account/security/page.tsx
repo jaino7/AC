@@ -18,7 +18,7 @@ function PureLiteSecurityPageContent() {
     return (
         <SimpleAccountSecurityPage
             handle={handle}
-            displayName="ユーザー"
+            
             logoUrl={null}
         />
     );

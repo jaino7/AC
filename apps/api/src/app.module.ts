@@ -12,6 +12,8 @@ import { DomainsModule } from './domains/domains.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { RevenueModule } from './revenue/revenue.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     WebhooksModule,
     AdminModule,
     NotificationsModule,
+    RevenueModule,
+    StorageModule,
   ],
   providers: [
     // グローバルにレート制限ガードを適用

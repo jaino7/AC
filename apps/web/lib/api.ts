@@ -100,3 +100,14 @@ export const createChargeRequest = async (payload: {
   amount: number;
 }) => request("/payments/charge", payload);
 
+// Password reset APIs
+export const requestPasswordReset = async (payload: {
+  email: string;
+}) => request("/creators/password-reset/request", payload);
+
+export const confirmPasswordReset = async (payload: {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => request("/creators/password-reset/confirm", payload);
+

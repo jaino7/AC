@@ -105,7 +105,7 @@ export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
 
             {/* アクションボタン */}
             {previewTheme && previewTheme !== activeTheme && (
-                <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl gap-4 md:gap-0">
                     <div>
                         <p className="font-medium text-blue-900">
                             「{THEMES.find(t => t.id === previewTheme)?.name}」を選択中
@@ -114,17 +114,17 @@ export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
                             下のプレビューで確認してから適用してください
                         </p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={() => setPreviewTheme(null)}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                            className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
                         >
                             キャンセル
                         </button>
                         <button
                             onClick={handleApplyTheme}
                             disabled={isPending}
-                            className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            className="w-full sm:w-auto px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                         >
                             {isPending ? "適用中..." : "このテーマを適用"}
                         </button>

@@ -82,6 +82,7 @@ interface Creator {
     tiktokUrl: string | null;
     discordUrl: string | null;
     otherUrl: string | null;
+    otherUrlName?: string | null;
 }
 
 interface Plan {
@@ -165,6 +166,17 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
                                 {creator.tiktokUrl && (
                                     <a href={creator.tiktokUrl} target="_blank" rel="noopener noreferrer" className={`${styles.accent} hover:opacity-80`}>
                                         🎵
+                                    </a>
+                                )}
+                                {creator.discordUrl && (
+                                    <a href={creator.discordUrl} target="_blank" rel="noopener noreferrer" className={`${styles.accent} hover:opacity-80`}>
+                                        💬
+                                    </a>
+                                )}
+                                {creator.otherUrl && (
+                                    <a href={creator.otherUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1 ${styles.accent} hover:opacity-80`}>
+                                        <span>🔗</span>
+                                        <span className="text-sm border-b border-transparent hover:border-current leading-none whitespace-nowrap">{creator.otherUrlName || "リンク"}</span>
                                     </a>
                                 )}
                             </div>

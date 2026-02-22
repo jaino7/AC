@@ -97,6 +97,23 @@ enum BankTransferStatus {
   FAILED // 処理失敗
 }
 
+enum EarningType {
+  SUBSCRIPTION // ファンのプランサブスクリプション
+  PURCHASE     // ファンのコンテンツ単体購入
+}
+
+enum EarningStatus {
+  PENDING  // 精算待ち（未払い）
+  SETTLED  // 精算済み（支払い確定）
+}
+
+enum PayoutStatus {
+  PENDING    // 支払い待ち（月末に自動作成）
+  COMPLETED  // 支払い完了
+  FAILED     // 支払い失敗
+  SKIPPED    // 残高不足でスキップ（翌月繰越）
+}
+
 // 2. モデル定義
 
 model Account {
@@ -141,9 +158,10 @@ model User {
   sessions Session[]
 
   // Relations
-  creatorProfile CreatorProfile?
-  fanProfile     FanProfile[] // 1ユーザーが複数クリエイターに登録可能
-  emailLogs      EmailLog[]
+  creatorProfile      CreatorProfile?
+  fanProfile          FanProfile[] // 1ユーザーが複数クリエイターに登録可能
+  emailLogs           EmailLog[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 // ファンプロフィール（ファン専用情報）
@@ -201,6 +219,18 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 // --- Creator Platform Models ---
 
 model CreatorProfile {
@@ -217,6 +247,7 @@ model CreatorProfile {
 
   // ブランドアセット
   logoUrl    String? // ロゴ画像URL
+  headerUrl  String? // ヘッダー画像URL
   faviconUrl String? // ファビコン画像URL
 
   // ソーシャルメディア
@@ -225,6 +256,10 @@ model CreatorProfile {
   tiktokUrl    String? // TikTok URL
   discordUrl   String? // Discord URL
   otherUrl     String? // その他のURL
+  otherUrlName String? // その他のURLの表示名
+
+  // ストレージプラン
+  storagePlan String @default("FREE") // FREE, BASIC, PRO, UNLIMITED
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -246,6 +281,10 @@ model CreatorProfile {
   // クリエイター向けプラン
   creatorSubscription CreatorSubscription?
   virtualAccounts     VirtualAccount[]
+
+  // 収益・支払い
+  earnings CreatorEarning[]
+  payouts  CreatorPayout[]
 }
 
 model SubscriptionPlan {
@@ -454,6 +493,7 @@ model Media {
 
   url      String
   type     String // IMAGE, VIDEO
+  size     Int      @default(0) // ファイルサイズ（バイト）
   isSample Boolean @default(false) // サンプルメディア（誰でも閲覧可能）
   duration Int? // 動画の長さ（秒数、動画のみ）
 
@@ -561,6 +601,8 @@ model BankAccount {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  payouts CreatorPayout[]
 }
 
 model ProcessedEmail {
@@ -895,6 +937,65 @@ model BankTransfer {
   @@index([gmoTransactionId])
   @@index([status])
   @@index([transferDate])
+}
+
+// --- クリエイター収益・支払いシステム ---
+
+// ファンの購入/サブスク発生時に記録するクリエイター収益（手数料控除後）
+model CreatorEarning {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // 金額詳細
+  grossAmount Int   // ファンが支払った金額（円）
+  platformFee Int   // プラットフォーム手数料（円）
+  netAmount   Int   // クリエイター受取額 = grossAmount - platformFee（円）
+  feeRate     Float // 適用手数料率スナップショット（例: 0.10）
+
+  // 収益種別
+  earningType EarningType
+  referenceId String?     // Subscription.id または Purchase.id
+
+  // 精算管理
+  settlementMonth String        // 締め月（"2026-02" 形式、YYYY-MM）
+  status          EarningStatus @default(PENDING)
+
+  // 支払い紐付け
+  payoutId String?
+  payout   CreatorPayout? @relation(fields: [payoutId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([creatorId, status])
+  @@index([creatorId, settlementMonth])
+  @@index([payoutId])
+}
+
+// 月次支払いレコード（毎月末に自動生成）
+model CreatorPayout {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  amount      Int          // 支払い合計額（円）
+  status      PayoutStatus @default(PENDING)
+  periodMonth String       // 締め月 "2026-01"（YYYY-MM）
+
+  // 振込先
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+
+  processedAt DateTime?
+  note        String?   @db.Text // 備考（失敗理由など）
+
+  earnings CreatorEarning[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId, status])
+  @@index([periodMonth, status])
 }
 
 // Cron Job実行ログ

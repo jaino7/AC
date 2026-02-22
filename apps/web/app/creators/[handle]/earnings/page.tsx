@@ -82,20 +82,19 @@ export default function EarningsPage() {
     };
 
     return (
-        <main className="min-h-screen bg-white px-6 py-10 text-black lg:px-12">
+        <main className="min-h-screen bg-white px-0 py-6 md:px-6 md:py-10 text-black lg:px-12">
             <div className="mx-auto max-w-5xl">
                 {/* Header */}
-                <header className="mb-8">
+                <header className="mb-8 px-4 md:px-0">
                     <h1 className="text-3xl font-semibold">収益と支払い</h1>
                 </header>
 
-                <div className="space-y-6">
+                <div className="space-y-6 md:space-y-8">
                     {/* ウォレットカード */}
-                    <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                        <h2 className="mb-6 text-lg font-semibold">ウォレット</h2>
+                    <div className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                        <h2 className="mb-6 text-lg font-semibold">お支払い額</h2>
                         <div className="space-y-4">
                             <div>
-                                <p className="mb-2 text-sm text-neutral-500">お支払い額</p>
                                 {isLoading ? (
                                     <div className="h-12 w-48 animate-pulse rounded bg-neutral-100"></div>
                                 ) : (
@@ -112,7 +111,7 @@ export default function EarningsPage() {
                     </div>
 
                     {/* 振込口座カード */}
-                    <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                    <div className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                         <div className="mb-6 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">振込口座</h2>
                             <Link href={`/creators/${handle}/earnings/edit-bank-account`}>
@@ -149,7 +148,7 @@ export default function EarningsPage() {
                     </div>
 
                     {/* 支払い履歴カード */}
-                    <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                    <div className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                         <h2 className="mb-6 text-lg font-semibold">支払い履歴</h2>
                         <div className="overflow-x-auto">
                             <table className="w-full">

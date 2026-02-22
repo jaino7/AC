@@ -144,11 +144,13 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
+        token.image = user.image;
       }
 
-      // セッション更新時にnameを更新
-      if (trigger === "update" && updateData?.name) {
-        token.name = updateData.name;
+      // セッション更新時にnameとimageを更新
+      if (trigger === "update" && updateData) {
+        if (updateData.name) token.name = updateData.name;
+        if (updateData.image) token.image = updateData.image;
       }
 
       // 常に最新のCreatorProfileを取得してhandleを更新
@@ -240,6 +242,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).handle = token.handle;
         (session.user as any).name = token.name;
         (session.user as any).email = token.email;
+        (session.user as any).image = token.image;
       }
       return session;
     }

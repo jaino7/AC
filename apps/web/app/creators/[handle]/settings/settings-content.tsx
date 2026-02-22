@@ -59,15 +59,18 @@ export default function SettingsContent() {
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [headerUrl, setHeaderUrl] = useState<string | null>(null);
     const [twitterUrl, setTwitterUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
     const [tiktokUrl, setTiktokUrl] = useState("");
     const [discordUrl, setDiscordUrl] = useState("");
     const [otherUrl, setOtherUrl] = useState("");
+    const [otherUrlName, setOtherUrlName] = useState("");
     const [maintenanceNotification, setMaintenanceNotification] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [isUploadingHeader, setIsUploadingHeader] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
 
     // Domain settings state
@@ -96,11 +99,13 @@ export default function SettingsContent() {
                     setDisplayName(data.profile.displayName || "");
                     setBio(data.profile.bio || "");
                     setAvatarUrl(data.profile.logoUrl || null);
+                    setHeaderUrl(data.profile.headerUrl || null);
                     setTwitterUrl(data.profile.twitterUrl || "");
                     setInstagramUrl(data.profile.instagramUrl || "");
                     setTiktokUrl(data.profile.tiktokUrl || "");
                     setDiscordUrl(data.profile.discordUrl || "");
                     setOtherUrl(data.profile.otherUrl || "");
+                    setOtherUrlName(data.profile.otherUrlName || "");
 
                     // Set creator profile for domain access check
                     setCreatorProfile({
@@ -324,7 +329,9 @@ export default function SettingsContent() {
                     instagramUrl,
                     tiktokUrl,
                     discordUrl,
-                    otherUrl
+                    otherUrl,
+                    otherUrlName,
+                    headerUrl
                 }),
             });
 
@@ -374,24 +381,57 @@ export default function SettingsContent() {
         }
     };
 
+    const handleHeaderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setMessage(null);
+        setIsUploadingHeader(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("headerImage", file);
+
+            const response = await fetch("/api/creators/header-image", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setHeaderUrl(data.headerUrl);
+                setMessage("ヘッダー画像を更新しました。");
+            } else {
+                const error = await response.json();
+                setMessage(error.error || "アップロードに失敗しました。");
+            }
+        } catch (error) {
+            console.error("Failed to upload header image:", error);
+            setMessage("アップロードに失敗しました。");
+        } finally {
+            setIsUploadingHeader(false);
+        }
+    };
+
+
 
     return (
-        <main className="min-h-screen bg-neutral-50 px-6 py-10 text-black lg:px-12">
+        <main className="min-h-screen bg-neutral-50 px-0 py-6 md:px-6 md:py-10 text-black lg:px-12">
             <div className="mx-auto max-w-7xl">
                 {/* ページヘッダー */}
-                <header className="mb-8">
+                <header className="mb-6 md:mb-8 px-4 md:px-0">
                     <h1 className="text-3xl font-semibold">設定</h1>
                 </header>
 
-                <div className="flex gap-8">
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                     {/* 左サイドタブナビゲーション */}
-                    <aside className="w-64 flex-shrink-0">
-                        <nav className="space-y-2">
+                    <aside className="w-full md:w-64 flex-shrink-0 px-4 md:px-0">
+                        <nav className="flex md:flex-col overflow-x-auto md:overflow-visible space-x-2 md:space-x-0 md:space-y-2 pb-2 md:pb-0 scrollbar-hide">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-colors ${activeTab === tab.id
+                                    className={`flex md:w-full flex-shrink-0 items-center gap-2 md:gap-3 rounded-2xl px-4 py-2 md:py-3 text-left text-sm font-medium transition-colors ${activeTab === tab.id
                                         ? "bg-blue-100 text-blue-600"
                                         : "bg-white text-neutral-700 hover:bg-neutral-100"
                                         }`}
@@ -408,7 +448,7 @@ export default function SettingsContent() {
                         {activeTab === "profile" && (
                             <>
                                 {/* Basic Info */}
-                                <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                     <h2 className="mb-6 text-xl font-semibold">基本情報</h2>
 
                                     <div className="space-y-6">
@@ -417,7 +457,7 @@ export default function SettingsContent() {
                                             <label className="mb-2 block text-sm font-semibold text-neutral-700">
                                                 プロフィール画像
                                             </label>
-                                            <div className="flex items-center gap-6">
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                                                 {/* Avatar Preview */}
                                                 <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-black/10 bg-neutral-100">
                                                     {avatarUrl ? (
@@ -451,6 +491,50 @@ export default function SettingsContent() {
                                                     />
                                                     <p className="mt-2 text-xs text-neutral-500">
                                                         推奨: 正方形の画像、最大5MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Header Image */}
+                                        <div>
+                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
+                                                ヘッダー画像
+                                            </label>
+                                            <div className="flex flex-col gap-4">
+                                                {/* Header Preview */}
+                                                <div className="relative h-40 w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-black/10 bg-neutral-100">
+                                                    {headerUrl ? (
+                                                        <img
+                                                            src={headerUrl}
+                                                            alt="Header"
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-4xl text-neutral-400">
+                                                            🖼️
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Upload Button */}
+                                                <div>
+                                                    <label
+                                                        htmlFor="header-upload"
+                                                        className="inline-block cursor-pointer rounded-2xl border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+                                                    >
+                                                        {isUploadingHeader ? "アップロード中..." : "画像を選択"}
+                                                    </label>
+                                                    <input
+                                                        id="header-upload"
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                                        onChange={handleHeaderUpload}
+                                                        disabled={isUploadingHeader}
+                                                        className="hidden"
+                                                    />
+                                                    <p className="mt-2 text-xs text-neutral-500">
+                                                        推奨: 長方形の画像（1200x400など）、最大10MB
                                                     </p>
                                                 </div>
                                             </div>
@@ -544,17 +628,29 @@ export default function SettingsContent() {
                                             </div>
 
                                             <div>
-                                                <label htmlFor="otherUrl" className="mb-2 block text-sm font-semibold text-neutral-700">
-                                                    🔗 その他
-                                                </label>
-                                                <input
-                                                    id="otherUrl"
-                                                    type="url"
-                                                    value={otherUrl}
-                                                    onChange={(e) => setOtherUrl(e.target.value)}
-                                                    placeholder="https://example.com"
-                                                    className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
-                                                />
+                                                <div className="mb-2 flex items-center gap-2 block text-sm font-semibold text-neutral-700">
+                                                    <label htmlFor="otherUrlName" className="cursor-pointer">
+                                                        🔗 その他 (表示名)
+                                                    </label>
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row gap-2">
+                                                    <input
+                                                        id="otherUrlName"
+                                                        type="text"
+                                                        value={otherUrlName}
+                                                        onChange={(e) => setOtherUrlName(e.target.value)}
+                                                        placeholder="リンク名 (例: YouTube)"
+                                                        className="w-full sm:w-1/3 rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                    />
+                                                    <input
+                                                        id="otherUrl"
+                                                        type="url"
+                                                        value={otherUrl}
+                                                        onChange={(e) => setOtherUrl(e.target.value)}
+                                                        placeholder="https://example.com"
+                                                        className="w-full sm:w-2/3 rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -584,7 +680,7 @@ export default function SettingsContent() {
 
 
                         {activeTab === "plans" && (
-                            <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                            <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                 <h2 className="mb-6 text-xl font-semibold">プランの詳細</h2>
 
                                 {subscriptionLoading ? (
@@ -594,7 +690,7 @@ export default function SettingsContent() {
                                 ) : subscription ? (
                                     <div className="space-y-6">
                                         {/* Subscription Status */}
-                                        <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-neutral-50 p-6">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-black/10 bg-neutral-50 p-6">
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-sm font-semibold text-neutral-700">
@@ -632,7 +728,7 @@ export default function SettingsContent() {
                                                     </p>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                                                 {subscription.status === "ACTIVE" && (
                                                     <button
                                                         onClick={() => setShowCancelModal(true)}
@@ -651,46 +747,46 @@ export default function SettingsContent() {
 
                                         {/* Billing Balance */}
                                         <div className="rounded-2xl border border-black/10 bg-white p-6">
-                                                <h3 className="mb-3 text-sm font-semibold text-neutral-700">現在のプリペイド残高</h3>
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-3xl font-bold text-neutral-900">
-                                                        ¥{subscription.billingBalance.toLocaleString()}
-                                                    </span>
-                                                </div>
-                                                <p className="mt-2 text-xs text-neutral-600">
-                                                    この残高から毎月のプラン料金が自動的に引き落とされます。
-                                                </p>
-                                                {/* Low balance alert */}
-                                                {subscription.nextBillingDate && (
-                                                    (() => {
-                                                        const requiredAmount = subscription.isYearly
-                                                            ? subscription.plan.yearlyPrice
-                                                            : subscription.plan.monthlyPrice;
-                                                        const isLowBalance = subscription.billingBalance < requiredAmount;
+                                            <h3 className="mb-3 text-sm font-semibold text-neutral-700">現在のプリペイド残高</h3>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-3xl font-bold text-neutral-900">
+                                                    ¥{subscription.billingBalance.toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <p className="mt-2 text-xs text-neutral-600">
+                                                この残高から毎月のプラン料金が自動的に引き落とされます。
+                                            </p>
+                                            {/* Low balance alert */}
+                                            {subscription.nextBillingDate && (
+                                                (() => {
+                                                    const requiredAmount = subscription.isYearly
+                                                        ? subscription.plan.yearlyPrice
+                                                        : subscription.plan.monthlyPrice;
+                                                    const isLowBalance = subscription.billingBalance < requiredAmount;
 
-                                                        if (isLowBalance) {
-                                                            return (
-                                                                <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-                                                                    <div className="flex items-start gap-3">
-                                                                        <span className="text-yellow-600">⚠️</span>
-                                                                        <div className="flex-1">
-                                                                            <p className="text-sm font-semibold text-yellow-900">
-                                                                                残高不足の可能性
-                                                                            </p>
-                                                                            <p className="mt-1 text-xs text-yellow-800">
-                                                                                次回更新日（{new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}）までに
-                                                                                ¥{requiredAmount.toLocaleString()}以上の残高が必要です。
-                                                                                残高が不足している場合、自動更新が停止されます。
-                                                                            </p>
-                                                                        </div>
+                                                    if (isLowBalance) {
+                                                        return (
+                                                            <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+                                                                <div className="flex items-start gap-3">
+                                                                    <span className="text-yellow-600">⚠️</span>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-sm font-semibold text-yellow-900">
+                                                                            残高不足の可能性
+                                                                        </p>
+                                                                        <p className="mt-1 text-xs text-yellow-800">
+                                                                            次回更新日（{new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}）までに
+                                                                            ¥{requiredAmount.toLocaleString()}以上の残高が必要です。
+                                                                            残高が不足している場合、自動更新が停止されます。
+                                                                        </p>
                                                                     </div>
                                                                 </div>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()
-                                                )}
-                                            </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()
+                                            )}
+                                        </div>
 
                                         {/* Virtual Account Information - Only show if assigned */}
                                         {virtualAccount && (
@@ -755,7 +851,7 @@ export default function SettingsContent() {
                         )}
 
                         {activeTab === "notifications" && (
-                            <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                            <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                 <h2 className="mb-6 text-xl font-semibold">メール受信を設定</h2>
 
                                 <div className="space-y-4">
@@ -782,7 +878,7 @@ export default function SettingsContent() {
                         )}
 
                         {activeTab === "domain" && (
-                            <section className="relative rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                            <section className="relative rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                 {/* Upgrade Overlay */}
                                 {creatorProfile && !creatorProfile.hasAccess && (
                                     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/95 backdrop-blur-sm">
@@ -844,7 +940,7 @@ export default function SettingsContent() {
                                 ) : (
                                     <>
                                         {/* Current Domain */}
-                                        <div className="mb-8 flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
+                                        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 rounded-2xl border border-black/10 bg-white p-4">
                                             <div>
                                                 <div className="mb-1 flex items-center gap-2">
                                                     <span className="text-sm font-semibold text-black">{domainData.domain}</span>
@@ -927,8 +1023,8 @@ export default function SettingsContent() {
                 </div>
 
                 {/* Footer with Legal Links */}
-                <footer className="mt-12 border-t border-neutral-200 pt-6">
-                    <div className="flex items-center justify-center gap-6 text-sm text-neutral-600">
+                <footer className="mt-8 md:mt-12 border-t border-neutral-200 pt-6 px-4 md:px-0 pb-8 md:pb-0">
+                    <div className="flex flex-wrap items-center justify-center gap-y-2 gap-x-4 md:gap-6 text-sm text-neutral-600">
                         <a href="/terms/creators" target="_blank" className="hover:text-blue-600 hover:underline">
                             利用規約
                         </a>

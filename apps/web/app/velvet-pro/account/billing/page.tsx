@@ -18,7 +18,7 @@ function VelvetProBillingPageContent() {
   return (
     <SimpleAccountBillingPage
       handle={handle}
-      displayName="ユーザー"
+      
       logoUrl={null}
     />
   );

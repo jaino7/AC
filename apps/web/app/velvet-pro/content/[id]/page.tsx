@@ -81,6 +81,7 @@ export default function VelvetProContentDetailPage() {
     const sampleMedia = post.media.filter((m) => m.isSample);
     const mainMedia = post.media.filter((m) => !m.isSample);
     const hasAccess: boolean = data.hasAccess || false;
+    const isLoggedIn: boolean = data.isLoggedIn || false;
 
     const handlePurchase = async () => {
         if (!post?.price) return;
@@ -213,7 +214,14 @@ export default function VelvetProContentDetailPage() {
                                             ? `¥${post.price.toLocaleString()}で本編を購入できます`
                                             : "本編を視聴するにはアクセス権が必要です"}
                                 </p>
-                                {post.requiredPlan ? (
+                                {!isLoggedIn ? (
+                                    <a
+                                        href={`/velvet-pro/login?handle=${creator.handle}`}
+                                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-8 py-3 font-semibold text-black hover:from-yellow-500 hover:to-yellow-400 transition"
+                                    >
+                                        ログインして本編を見る
+                                    </a>
+                                ) : post.requiredPlan ? (
                                     <Link
                                         href="/velvet-pro/content"
                                         className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 px-8 py-3 font-semibold text-black hover:from-yellow-500 hover:to-yellow-400 transition"

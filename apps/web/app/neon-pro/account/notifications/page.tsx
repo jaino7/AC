@@ -18,7 +18,7 @@ function NeonProNotificationsPageContent() {
     return (
         <SimpleAccountNotificationsPage
             handle={handle}
-            displayName="ユーザー"
+            
             logoUrl={null}
         />
     );

@@ -127,6 +127,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // 購入発生時点のクリエイターのプランの手数料率を取得
+        const creatorSubscription = await prisma.creatorSubscription.findUnique({
+            where: { creatorId: content.creatorId },
+            include: { plan: true },
+        });
+        const freePlan = await prisma.creatorPlan.findUnique({ where: { type: "FREE" } });
+        const rawFeeRate =
+            creatorSubscription?.status === "ACTIVE" && creatorSubscription.plan
+                ? creatorSubscription.plan.feeRate
+                : (freePlan?.feeRate ?? 10);
+        const feeRate = rawFeeRate / 100; // 10.0 → 0.10
+        const platformFee = Math.floor(content.price! * feeRate);
+        const netAmount = content.price! - platformFee;
+
+        // 締め月（YYYY-MM）
+        const now = new Date();
+        const settlementMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
         // Execute purchase transaction
         console.log("Starting transaction with fanId:", fanProfile.id);
         console.log("Content price:", content.price);
@@ -163,6 +181,21 @@ export async function POST(request: NextRequest) {
                     amount: -content.price!,
                     balance: updatedFan.credits,
                     description: `コンテンツ購入: ${content.title}`,
+                },
+            });
+
+            // 収益記録（手数料控除後のクリエイター受取額をスナップショット）
+            await tx.creatorEarning.create({
+                data: {
+                    creatorId: content.creatorId,
+                    grossAmount: content.price!,
+                    platformFee,
+                    netAmount,
+                    feeRate,
+                    earningType: "PURCHASE",
+                    referenceId: purchase.id,
+                    settlementMonth,
+                    status: "PENDING",
                 },
             });
 

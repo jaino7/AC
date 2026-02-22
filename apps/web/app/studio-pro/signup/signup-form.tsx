@@ -99,7 +99,7 @@ export const StudioProSignupForm = () => {
             <div className="space-y-3">
                 <label className="flex items-start gap-3 text-sm text-white/70">
                     <input type="checkbox" className="mt-1 h-4 w-4 accent-[#2f6dff]" {...register("acceptTerms")} />
-                    <span><Link href="/terms" className="text-[#2f6dff] underline">利用規約</Link>と<Link href="/privacy" className="text-[#2f6dff] underline">プライバシーポリシー</Link>に同意します</span>
+                    <span><Link href="/terms/fans" className="text-[#2f6dff] underline">利用規約</Link>と<Link href="/privacy" className="text-[#2f6dff] underline">プライバシーポリシー</Link>に同意します</span>
                 </label>
                 {errors.acceptTerms && <p className="text-xs text-red-400">{errors.acceptTerms.message}</p>}
 

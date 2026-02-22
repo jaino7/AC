@@ -22,6 +22,8 @@ export interface ChargeRequest {
 
 export interface CreditsData {
   credits: number;
+  tier: number;
+  trustScore: number;
   history: CreditHistory[];
   chargeRequests: ChargeRequest[];
 }

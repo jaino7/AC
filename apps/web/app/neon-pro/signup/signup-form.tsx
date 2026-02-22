@@ -197,7 +197,7 @@ export const NeonProSignupForm = () => {
                         {...register("acceptTerms")}
                     />
                     <span>
-                        <Link href="/terms" className="text-cyan-400 underline">利用規約</Link>
+                        <Link href="/terms/fans" className="text-cyan-400 underline">利用規約</Link>
                         と
                         <Link href="/privacy" className="text-cyan-400 underline">プライバシーポリシー</Link>
                         に同意します

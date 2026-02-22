@@ -83,17 +83,23 @@ export async function GET(
             // For now, return the post but mark as locked if required
         }
 
-        // Check if user has access to locked content
-        let hasAccess = !post.isLocked;
+        // Check login status first - main content always requires login
+        const session = await getServerSession(authOptions);
+        const isLoggedIn = !!session?.user?.email;
+
+        let hasAccess = false;
         let hasPurchased = false;
         let hasSubscription = false;
+        let isSaved = false;
 
-        if (post.isLocked) {
-            const session = await getServerSession(authOptions);
-
-            if (session?.user?.email) {
+        if (isLoggedIn) {
+            if (!post.isLocked) {
+                // Free content: logged-in users always have access
+                hasAccess = true;
+            } else {
+                // Locked content: check subscription or purchase
                 const user = await prisma.user.findUnique({
-                    where: { email: session.user.email },
+                    where: { email: session!.user!.email! },
                     include: {
                         fanProfile: {
                             where: { creatorId: post.creatorId },
@@ -118,9 +124,25 @@ export async function GET(
                 const fanProfile = user?.fanProfile?.[0];
                 hasSubscription = (fanProfile?.subscriptions?.length ?? 0) > 0;
                 hasPurchased = (fanProfile?.purchases?.length ?? 0) > 0;
-
                 hasAccess = hasSubscription || hasPurchased;
             }
+
+            // Check if saved
+            const userForSave = await prisma.user.findUnique({
+                where: { email: session!.user!.email! },
+                include: {
+                    fanProfile: {
+                        where: { creatorId: post.creatorId },
+                        include: {
+                            savedPosts: {
+                                where: { postId: post.id }
+                            }
+                        }
+                    }
+                }
+            });
+            const fanProfileForSave = userForSave?.fanProfile?.[0];
+            isSaved = (fanProfileForSave?.savedPosts?.length ?? 0) > 0;
         }
 
         // Filter out main media URLs when user doesn't have access
@@ -133,6 +155,8 @@ export async function GET(
             hasAccess,
             hasPurchased,
             hasSubscription,
+            isLoggedIn,
+            isSaved,
         });
     } catch (error) {
         console.error("Error fetching post:", error);

@@ -13,9 +13,10 @@ import { PageViewsController } from "./page-views.controller";
 import { PageViewsService } from "./page-views.service";
 import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
+import { StorageModule } from "../storage/storage.module";
 
 @Module({
-  imports: [PrismaModule, MailModule],
+  imports: [PrismaModule, MailModule, StorageModule],
   controllers: [CreatorsController, DomainsController, BrandAssetsController, AnalyticsController, PageViewsController, NotificationsController],
   providers: [CreatorsService, DomainsService, BrandAssetsService, AnalyticsService, PageViewsService, NotificationsService],
   exports: [DomainsService, BrandAssetsService, AnalyticsService, PageViewsService, NotificationsService]

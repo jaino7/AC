@@ -2,19 +2,19 @@ import { SignupForm } from "./signup-form";
 
 const features = [
   {
-    title: "高い収益性",
+    title: "業界最安水準の手数料（3.0%〜）",
     description:
-      "アダルト対応の決済連携と柔軟なサブスク設計で、収益を最大化できます。"
+      "Businessプラン3.0%、Liteプラン6.0%の低手数料で、手残りを最大化。"
   },
   {
-    title: "シンプルな管理",
+    title: "凍結リスクゼロ・完全自立型",
     description:
-      "投稿・メッセージ・テーマ編集をひとつのダッシュボードで完結。"
+      "独自ドメインで運営。突然のアカウント凍結や一方的な規約変更から解放されます。"
   },
   {
-    title: "ファンとの強い繋がり",
+    title: "シンプルな管理画面",
     description:
-      "限定コンテンツ配信やメッセージ機能で、濃いコミュニティを育てられます。"
+      "コンテンツ投稿、ファン管理、収益確認を一つのダッシュボードで完結。"
   }
 ];
 
@@ -26,16 +26,17 @@ export default function SignupPage() {
         <section className="space-y-10">
           <div className="space-y-4">
             <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
-              クリエイター向けマイクロファンディング
+              完全自立型クリエイタープラットフォーム
             </p>
             <h1 className="text-4xl font-semibold leading-tight">
-              あなたのブランドで
+              プラットフォームの都合に
               <br />
-              ファンとの関係を築こう
+              振り回されない。
+              <br />
+              あなた自身のブランドで収益化。
             </h1>
             <p className="text-base text-neutral-600">
-              独自ドメイン、アダルト対応決済、Twitter最適化を一つにまとめた
-              安全な収益化プラットフォーム。直感的な管理画面と厳格な年齢確認で、安心して活動を広げられます。
+              独自ドメイン・業界最安水準の手数料（3.0%〜）で、凍結リスクなく長期的な収益を最大化できるプラットフォーム。直感的な管理画面で、安心して活動を広げられます。
             </p>
           </div>
 

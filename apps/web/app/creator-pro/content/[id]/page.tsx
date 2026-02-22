@@ -89,6 +89,7 @@ export default function ContentDetailPage() {
 
     const [post, setPost] = useState<Post | null>(null);
     const [hasAccess, setHasAccess] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [liked, setLiked] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showInsufficientModal, setShowInsufficientModal] = useState(false);
@@ -108,6 +109,7 @@ export default function ContentDetailPage() {
                     const data = await response.json();
                     setPost(data.post);
                     setHasAccess(data.hasAccess);
+                    setIsLoggedIn(data.isLoggedIn || false);
                 } else {
                     console.error("Failed to fetch post");
                 }
@@ -297,7 +299,14 @@ export default function ContentDetailPage() {
                                     <div className="text-center">
                                         <LockIcon className="mx-auto mb-4 h-16 w-16" />
                                         <p className="mb-4 text-xl font-semibold">このコンテンツはロックされています</p>
-                                        {post.requiredPlan ? (
+                                        {!isLoggedIn ? (
+                                            <a
+                                                href={`/creator-pro/login?handle=${post.creator.handle}`}
+                                                className="rounded-lg bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700 transition inline-block"
+                                            >
+                                                ログインして本編を見る
+                                            </a>
+                                        ) : post.requiredPlan ? (
                                             <button className="rounded-lg bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-700">
                                                 {post.requiredPlan.name} (¥{post.requiredPlan.price}/月) に登録
                                             </button>

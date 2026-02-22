@@ -18,7 +18,7 @@ function VelvetProAccountPageContent() {
   return (
     <SimpleAccountPage
       handle={handle}
-      displayName="ユーザー"
+      
       logoUrl={null}
       currentPage="account"
     />

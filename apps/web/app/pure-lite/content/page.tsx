@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { samplePosts } from "@/lib/sampleContent";
 
 type Media = {
   id: string;
@@ -25,6 +26,8 @@ type ContentCard = {
   description: string;
   timeAgo: string;
   media?: Media[];
+  price?: number | null;
+  isLocked?: boolean;
 };
 
 type CreatorProfile = {
@@ -37,9 +40,10 @@ type CreatorProfile = {
   tiktokUrl: string | null;
   discordUrl: string | null;
   otherUrl: string | null;
+  otherUrlName?: string | null;
 };
 
-type TabType = "all" | "premium" | "free" | "gallery";
+type TabType = "all" | "plans" | "single" | "saved";
 
 function PureLiteContentPageContent() {
   const pathname = usePathname();
@@ -63,11 +67,40 @@ function PureLiteContentPageContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // ハンドルがない場合（テーマページとして直接アクセス）はサンプルデータを表示
+        if (!handle && !isPreview) {
+          setCreatorProfile({
+            handle: "pure-lite",
+            displayName: "Pure Lite Demo",
+            bio: "これはPure Liteテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            logoUrl: null,
+            twitterUrl: null,
+            instagramUrl: null,
+            tiktokUrl: null,
+            discordUrl: null,
+            otherUrl: null,
+            otherUrlName: null,
+          });
+          const cards: ContentCard[] = samplePosts.map((post: any, index: number) => ({
+            id: post.id,
+            title: post.title,
+            cover: post.cover,
+            type: index % 2 === 0 ? "premium" : "free",
+            tier: index % 2 === 0 ? "Premium" : "",
+            description: post.description || "",
+            timeAgo: post.timeAgo,
+            media: post.media || [],
+          }));
+          setContentCards(cards);
+          setLoading(false);
+          return;
+        }
+
         // Fetch creator profile
         let profileResponse;
         if (handle) {
           profileResponse = await fetch(`/api/creators/profile?handle=${handle}`);
-        } else if (isPreview) {
+        } else {
           profileResponse = await fetch("/api/creators/profile");
         }
 
@@ -80,7 +113,7 @@ function PureLiteContentPageContent() {
         let postsResponse;
         if (handle) {
           postsResponse = await fetch(`/api/creators/content/public?handle=${handle}`);
-        } else if (isPreview) {
+        } else {
           postsResponse = await fetch("/api/creators/content?visibility=PUBLIC");
         }
 
@@ -98,6 +131,8 @@ function PureLiteContentPageContent() {
             description: post.content || "",
             timeAgo: getTimeAgo(new Date(post.createdAt)),
             media: post.media || [],
+            price: post.price,
+            isLocked: post.isLocked,
           }));
 
           setContentCards(cards);
@@ -126,9 +161,9 @@ function PureLiteContentPageContent() {
 
   const filteredCards = contentCards.filter((card) => {
     if (activeTab === "all") return true;
-    if (activeTab === "premium") return card.type === "premium";
-    if (activeTab === "free") return card.type === "free";
-    if (activeTab === "gallery") return card.cover; // Only cards with images
+    if (activeTab === "plans") return card.type === "premium" && card.tier !== "";
+    if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && (card.tier === "");
+    if (activeTab === "saved") return false;
     return true;
   });
 
@@ -143,7 +178,7 @@ function PureLiteContentPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] text-[#333]">
+    <div className="flex min-h-screen flex-col bg-[#fafafa] text-[#333]">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
@@ -161,14 +196,6 @@ function PureLiteContentPageContent() {
                 {creatorProfile?.displayName || "CreatorSpace"}
               </span>
             </div>
-            <nav className="hidden items-center gap-6 text-sm md:flex">
-              <a href="#" className="font-medium text-gray-900 hover:text-purple-600">
-                ホーム
-              </a>
-              <a href="#" className="text-gray-600 hover:text-purple-600">
-                探す
-              </a>
-            </nav>
           </div>
 
           {/* Right Side Icons */}
@@ -183,36 +210,38 @@ function PureLiteContentPageContent() {
                 </Link>
               </>
             )}
-            <button className="text-gray-500 hover:text-gray-700">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-orange-400 to-pink-400"
               >
-                <span className="text-sm font-semibold text-white">
-                  {creatorProfile?.displayName?.charAt(0) || "U"}
-                </span>
+                {session?.user?.image ? (
+                  <img src={session.user.image} alt="User Menu" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-sm font-semibold text-white">
+                    {session?.user?.name?.charAt(0) || "U"}
+                  </span>
+                )}
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
-                  <Link href={handle ? `/${handle}/account` : "/pure-lite/account"} className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                    アカウント
-                  </Link>
-                  <button onClick={() => signOut({ callbackUrl: handle ? `/${handle}/content` : "/" })} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                    ログアウト
-                  </button>
-                </div>
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)}></div>
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-20">
+                    <Link href={handle ? `/${handle}/account` : "/pure-lite/account"} onClick={() => setShowUserMenu(false)} className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                      アカウント
+                    </Link>
+                    <button onClick={() => { setShowUserMenu(false); signOut({ callbackUrl: handle ? `/${handle}/content` : "/" }); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                      ログアウト
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="flex-1 mx-auto w-full max-w-5xl px-6 py-10 pb-24 md:pb-10">
         {/* Creator Profile Section */}
         <section className="mb-8 text-center">
           {/* Avatar */}
@@ -244,18 +273,34 @@ function PureLiteContentPageContent() {
             {creatorProfile?.bio || "クリエイターのプロフィールです"}
           </p>
 
-          {/* Social Icons and Subscribe Button */}
-          <div className="mb-6 flex items-center justify-center gap-3">
-            <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-900 text-white transition hover:bg-gray-800">
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
-            <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200">
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-              </svg>
-            </a>
+          {/* Social Icons */}
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+            {creatorProfile?.twitterUrl && (
+              <a href={creatorProfile.twitterUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200">
+                𝕏
+              </a>
+            )}
+            {creatorProfile?.instagramUrl && (
+              <a href={creatorProfile.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200">
+                📷
+              </a>
+            )}
+            {creatorProfile?.tiktokUrl && (
+              <a href={creatorProfile.tiktokUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200">
+                TikTok
+              </a>
+            )}
+            {creatorProfile?.discordUrl && (
+              <a href={creatorProfile.discordUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200">
+                Discord
+              </a>
+            )}
+            {creatorProfile?.otherUrl && (
+              <a href={creatorProfile.otherUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 px-3 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200 gap-1.5 text-sm font-medium whitespace-nowrap">
+                <span>🔗</span>
+                <span>{creatorProfile.otherUrlName || "リンク"}</span>
+              </a>
+            )}
           </div>
 
           {/* Subscribe Button and Menu */}
@@ -287,61 +332,58 @@ function PureLiteContentPageContent() {
         </section>
 
         {/* Tab Navigation */}
-        <nav className="mb-8 flex items-center justify-center gap-2 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`relative px-4 py-3 text-sm font-semibold transition ${activeTab === "all"
-              ? "text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            すべて
-            {activeTab === "all" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("premium")}
-            className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-semibold transition ${activeTab === "premium"
-              ? "text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            <svg className="h-4 w-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            プレミアム
-            {activeTab === "premium" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("free")}
-            className={`relative px-4 py-3 text-sm font-semibold transition ${activeTab === "free"
-              ? "text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            無料
-            {activeTab === "free" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("gallery")}
-            className={`relative px-4 py-3 text-sm font-semibold transition ${activeTab === "gallery"
-              ? "text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            <svg className="inline h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-            </svg>
-            {activeTab === "gallery" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
-            )}
-          </button>
-        </nav>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)] md:relative md:bottom-auto md:mb-8 md:bg-transparent md:shadow-none">
+          <nav className="flex overflow-x-auto justify-center gap-2 border-t border-gray-200 pb-[env(safe-area-inset-bottom)] md:flex-wrap md:border-b md:border-t-0 md:pb-0">
+            <button
+              onClick={() => setActiveTab("all")}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "all"
+                ? "text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              すべて
+              {activeTab === "all" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("plans")}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "plans"
+                ? "text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              プラン
+              {activeTab === "plans" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("single")}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "single"
+                ? "text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              単体販売
+              {activeTab === "single" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("saved")}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "saved"
+                ? "text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              保存済み
+              {activeTab === "saved" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+              )}
+            </button>
+          </nav>
+        </div>
 
         {/* Content Cards */}
         <section className="space-y-6">
@@ -370,14 +412,6 @@ function PureLiteContentPageContent() {
                         <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                      </div>
-                    )}
-                    {card.type === "premium" && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-                        <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-white">ロック中</span>
                       </div>
                     )}
 
@@ -432,12 +466,18 @@ function PureLiteContentPageContent() {
                         {card.title}
                       </h3>
                       <span
-                        className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-bold uppercase ${card.type === "premium"
+                        className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-bold uppercase ${card.type === "premium" && card.tier !== ""
                           ? "bg-purple-100 text-purple-700"
-                          : "bg-gray-100 text-gray-700"
+                          : card.isLocked && card.price && card.price > 0 && card.tier === ""
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-gray-100 text-gray-700"
                           }`}
                       >
-                        {card.type === "premium" ? "プレミアム" : "無料"}
+                        {card.type === "premium" && card.tier !== ""
+                          ? "プラン"
+                          : card.isLocked && card.price && card.price > 0 && card.tier === ""
+                            ? "単体販売"
+                            : "無料"}
                       </span>
                     </div>
 
@@ -464,33 +504,22 @@ function PureLiteContentPageContent() {
           )}
         </section>
 
-        {/* Load More */}
-        {filteredCards.length > 0 && (
-          <div className="mt-10 text-center">
-            <button className="font-semibold text-purple-600 hover:text-purple-700">
-              もっと見る
-            </button>
-          </div>
-        )}
-
-        {/* Footer */}
-        <footer className="border-t border-purple-900/20 bg-white px-6 py-4 mt-10">
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-            <a href="/terms/fans" target="_blank" className="hover:text-purple-600 hover:underline">
-              利用規約
-            </a>
-            <span>•</span>
-            <a href="/legal/commercial-transaction/fans" target="_blank" className="hover:text-purple-600 hover:underline">
-              特定商取引法に基づく表記
-            </a>
-            <span>•</span>
-            <a href="/privacy" target="_blank" className="hover:text-purple-600 hover:underline">
-              プライバシーポリシー
-            </a>
-          </div>
-        </footer>
       </main>
-    </div>
+
+      <footer className="border-t border-purple-900/20 bg-white px-6 pt-4 pb-20 md:pb-4 mt-auto w-full">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-start gap-4 text-xs text-gray-500">
+          <a href="/terms/fans" target="_blank" className="hover:text-purple-600 hover:underline whitespace-nowrap">
+            利用規約
+          </a>
+          <a href="/legal/commercial-transaction/fans" target="_blank" className="hover:text-purple-600 hover:underline whitespace-nowrap">
+            特定商取引法に基づく表記
+          </a>
+          <a href="/privacy" target="_blank" className="hover:text-purple-600 hover:underline whitespace-nowrap">
+            プライバシーポリシー
+          </a>
+        </div>
+      </footer>
+    </div >
   );
 }
 

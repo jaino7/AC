@@ -56,6 +56,8 @@ export default function ContentDetailPage() {
         currentCredits: number;
         requiredAmount: number;
     } | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [localIsSaved, setLocalIsSaved] = useState<boolean | null>(null);
 
     const { data, isLoading, refetch } = useQuery({
         queryKey: ["content-detail", handle, id],
@@ -64,9 +66,33 @@ export default function ContentDetailPage() {
             if (!response.ok) {
                 throw new Error("Failed to fetch content");
             }
-            return response.json();
+            const data = await response.json();
+            if (localIsSaved === null) {
+                setLocalIsSaved(data.isSaved || false);
+            }
+            return data;
         },
     });
+
+    const handleSavePost = async () => {
+        if (isSaving || !data?.isLoggedIn) return;
+        setIsSaving(true);
+        try {
+            const response = await fetch("/api/fans/content/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contentId: id, handle }),
+            });
+            if (response.ok) {
+                const result = await response.json();
+                setLocalIsSaved(result.isSaved);
+            }
+        } catch (error) {
+            console.error("Failed to save post", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleShowPurchaseModal = async () => {
         // Fetch user's current credits
@@ -209,6 +235,7 @@ export default function ContentDetailPage() {
     const sampleMedia = post.media.filter((m) => m.isSample);
     const mainMedia = post.media.filter((m) => !m.isSample);
     const hasAccess: boolean = data.hasAccess || false;
+    const isLoggedIn: boolean = data.isLoggedIn || false;
 
     return (
         <div className="min-h-screen bg-white">
@@ -224,9 +251,36 @@ export default function ContentDetailPage() {
                         </svg>
                         一覧に戻る
                     </Link>
-                    <div className="mt-4">
-                        <p className="text-sm text-neutral-500">{creator.displayName}</p>
-                        <h1 className="text-3xl font-bold text-neutral-900 mt-1">{post.title}</h1>
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div>
+                            <p className="text-sm text-neutral-500">{creator.displayName}</p>
+                            <h1 className="text-3xl font-bold text-neutral-900 mt-1">{post.title}</h1>
+                        </div>
+                        {isLoggedIn && (
+                            <button
+                                onClick={handleSavePost}
+                                disabled={isSaving}
+                                className={`inline-flex min-w-[120px] items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${localIsSaved
+                                    ? "border-red-500 bg-red-50 text-red-600 hover:bg-red-100"
+                                    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                                    }`}
+                            >
+                                <svg
+                                    className={`h-4 w-4 ${localIsSaved ? "fill-current" : ""}`}
+                                    fill={localIsSaved ? "currentColor" : "none"}
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={localIsSaved ? 1 : 2}
+                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                    />
+                                </svg>
+                                {localIsSaved ? "保存済み" : "保存する"}
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>
@@ -316,7 +370,14 @@ export default function ContentDetailPage() {
                                             )
                                             : "本編を視聴するにはアクセス権が必要です"}
                                 </p>
-                                {post.requiredPlan ? (
+                                {!isLoggedIn ? (
+                                    <a
+                                        href={`/${creator.handle}/login`}
+                                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-3 font-semibold text-white hover:from-amber-600 hover:to-orange-600 transition"
+                                    >
+                                        ログインして本編を見る
+                                    </a>
+                                ) : post.requiredPlan ? (
                                     <div className="space-y-4">
                                         <button
                                             onClick={handleShowSubscribeModal}
@@ -578,7 +639,7 @@ export default function ContentDetailPage() {
                             </div>
 
                             <p className="text-sm text-gray-600 text-center">
-                                このプランに登録しますか？<br/>
+                                このプランに登録しますか？<br />
                                 <span className="text-xs text-gray-500">毎月自動的にクレジットが消費されます</span>
                             </p>
                         </div>

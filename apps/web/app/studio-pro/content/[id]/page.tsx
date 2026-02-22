@@ -81,6 +81,7 @@ export default function StudioProContentDetailPage() {
     const sampleMedia = post.media.filter((m) => m.isSample);
     const mainMedia = post.media.filter((m) => !m.isSample);
     const hasAccess: boolean = data.hasAccess || false;
+    const isLoggedIn: boolean = data.isLoggedIn || false;
 
     const handlePurchase = async () => {
         if (!post?.price) return;
@@ -213,7 +214,14 @@ export default function StudioProContentDetailPage() {
                                             ? `¥${post.price.toLocaleString()}で本編を購入できます`
                                             : "本編を視聴するにはアクセス権が必要です"}
                                 </p>
-                                {post.requiredPlan ? (
+                                {!isLoggedIn ? (
+                                    <a
+                                        href={`/studio-pro/login?handle=${creator.handle}`}
+                                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700 transition"
+                                    >
+                                        ログインして本編を見る
+                                    </a>
+                                ) : post.requiredPlan ? (
                                     <Link
                                         href="/studio-pro/content"
                                         className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700 transition"

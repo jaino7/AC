@@ -1,5 +1,4 @@
 import { ThemeSelector } from "@/components/ThemeSelector";
-import { ThemeCustomizerWrapper } from "@/components/ThemeCustomizerWrapper";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -47,17 +46,7 @@ export default async function ThemeSettingsPage() {
                 </p>
             </header>
 
-            {/* テーマ選択 */}
             <ThemeSelector currentTheme={currentTheme} />
-
-            {/* 高度なカスタマイズ */}
-            <div className="mt-12">
-                <h2 className="mb-6 text-2xl font-semibold">高度なカスタマイズ</h2>
-                <ThemeCustomizerWrapper
-                    theme={currentTheme}
-                    initialConfig={currentThemeConfig}
-                />
-            </div>
         </div>
     );
 }

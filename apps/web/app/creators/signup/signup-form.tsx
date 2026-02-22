@@ -63,6 +63,8 @@ export const SignupForm = () => {
         redirect: false
       });
 
+      router.refresh(); // セッション更新後にサーバーコンポーネントを最新化
+
       // APIレスポンスからhandleを取得してリダイレクト
       if (data.handle) {
         router.push(`/creators/${data.handle}/dashboard`);

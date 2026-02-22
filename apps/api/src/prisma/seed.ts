@@ -12,28 +12,36 @@ async function main() {
       name: 'Free Plan',
       monthlyPrice: 0,
       yearlyPrice: 0,
-      feeRate: 12.0,
+      feeRate: 10.0,
+      storageLimitBytes: BigInt(15 * 1024 * 1024 * 1024), // 15GB
     },
     {
       type: 'LITE',
       name: 'Lite Plan',
-      monthlyPrice: 4980,
-      yearlyPrice: 49800,
-      feeRate: 7.0,
+      monthlyPrice: 4000,
+      yearlyPrice: 40000,
+      feeRate: 6.0,
+      storageLimitBytes: BigInt(200 * 1024 * 1024 * 1024), // 200GB
     },
     {
       type: 'BUSINESS',
       name: 'Business Plan',
-      monthlyPrice: 29800,
-      yearlyPrice: 298000,
+      monthlyPrice: 25000,
+      yearlyPrice: 250000,
       feeRate: 3.0,
+      storageLimitBytes: BigInt(1024 * 1024 * 1024 * 1024), // 1TB
     },
   ]
 
   for (const plan of plans) {
     await prisma.creatorPlan.upsert({
       where: { type: plan.type as any },
-      update: {},
+      update: {
+        monthlyPrice: plan.monthlyPrice,
+        yearlyPrice: plan.yearlyPrice,
+        feeRate: plan.feeRate,
+        storageLimitBytes: plan.storageLimitBytes,
+      },
       create: plan as any,
     })
   }

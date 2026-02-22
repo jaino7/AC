@@ -140,6 +140,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
         },
         onSuccess: (result) => {
             setMessage("アカウントが作成されました！");
+            router.refresh(); // セッション更新後にサーバーコンポーネントを最新化
             router.push(`/${creatorHandle}/content`);
         }
     });
@@ -286,7 +287,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
                                 {...register("acceptTerms")}
                             />
                             <span>
-                                <Link href="/terms" className={styles.link}>利用規約</Link>と
+                                <Link href="/terms/fans" className={styles.link}>利用規約</Link>と
                                 <Link href="/privacy" className={styles.link}>プライバシーポリシー</Link>に同意します
                             </span>
                         </label>

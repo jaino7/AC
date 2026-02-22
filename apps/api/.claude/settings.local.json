@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma migrate:*)",
+      "Bash(docker compose:*)",
+      "Bash(test:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(curl:*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File test-payment-flow.ps1)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell.exe \"Get-NetTCPConnection -State Listen -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, State\")"
+    ]
+  }
+}

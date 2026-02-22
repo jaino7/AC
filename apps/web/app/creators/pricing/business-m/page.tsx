@@ -11,10 +11,10 @@ export default function BusinessMonthlyPlanPage() {
     const { data: session, status } = useSession();
 
     const planDetails = {
-        name: "Business", type: "BUSINESS", isYearly: false, price: 29800,
+        name: "Business", type: "BUSINESS", isYearly: false, price: 25000,
         description: "大規模な収益化に対応",
         features: [
-            { title: "無制限ストレージ", description: "容量を気にせず自由にコンテンツをアップロード" },
+            { title: "1TB ストレージ", description: "容量を気にせず自由にコンテンツをアップロード" },
             { title: "販売手数料 3.0%", description: "収益の97%があなたのもの" },
             { title: "独自ドメイン", description: "自分のブランドでサイトを運営" },
             { title: "完全カスタマイズ", description: "デザインやレイアウトを自由にカスタマイズ" },

@@ -82,6 +82,7 @@ export default function PureLiteContentDetailPage() {
     const sampleMedia = post.media.filter((m) => m.isSample);
     const mainMedia = post.media.filter((m) => !m.isSample);
     const hasAccess: boolean = data.hasAccess || false;
+    const isLoggedIn: boolean = data.isLoggedIn || false;
 
     const handlePurchase = async () => {
         if (!post?.price) return;
@@ -214,7 +215,14 @@ export default function PureLiteContentDetailPage() {
                                             ? `¥${post.price.toLocaleString()}で本編を購入できます`
                                             : "本編を視聴するにはアクセス権が必要です"}
                                 </p>
-                                {post.requiredPlan ? (
+                                {!isLoggedIn ? (
+                                    <a
+                                        href={`/pure-lite/login?handle=${creator.handle}`}
+                                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 px-8 py-3 font-semibold text-white hover:from-purple-700 hover:to-purple-600 transition shadow-md"
+                                    >
+                                        ログインして本編を見る
+                                    </a>
+                                ) : post.requiredPlan ? (
                                     <Link
                                         href="/pure-lite/content"
                                         className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 px-8 py-3 font-semibold text-white hover:from-purple-700 hover:to-purple-600 transition shadow-md"

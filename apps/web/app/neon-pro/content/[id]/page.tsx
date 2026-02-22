@@ -83,6 +83,7 @@ export default function NeonProContentDetailPage() {
     const sampleMedia = post.media.filter((m) => m.isSample);
     const mainMedia = post.media.filter((m) => !m.isSample);
     const hasAccess: boolean = data.hasAccess || false;
+    const isLoggedIn: boolean = data.isLoggedIn || false;
 
     // 購入処理
     const handlePurchase = async () => {
@@ -226,7 +227,14 @@ export default function NeonProContentDetailPage() {
                                             ? `¥${post.price.toLocaleString()}で本編を購入できます`
                                             : "本編を視聴するにはアクセス権が必要です"}
                                 </p>
-                                {post.requiredPlan ? (
+                                {!isLoggedIn ? (
+                                    <a
+                                        href={`/neon-pro/login?handle=${creator.handle}`}
+                                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 px-8 py-3 font-semibold text-black hover:from-teal-300 hover:to-cyan-300 transition"
+                                    >
+                                        ログインして本編を見る
+                                    </a>
+                                ) : post.requiredPlan ? (
                                     <Link
                                         href="/neon-pro/content"
                                         className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 px-8 py-3 font-semibold text-black hover:from-teal-300 hover:to-cyan-300 transition"

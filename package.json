@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@react-email/render": "^0.0.12",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.555.0"
   }

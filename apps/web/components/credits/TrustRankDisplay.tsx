@@ -30,27 +30,27 @@ export function TrustRankDisplay({
     switch (tier) {
       case 0:
         return {
-          bg: "bg-gray-700",
-          text: "text-gray-400",
-          badge: "bg-gray-700/50 text-gray-300",
+          bg: "bg-gray-600",
+          text: "text-gray-600",
+          badge: "bg-gray-100 text-gray-600",
         };
       case 1:
         return {
           bg: "bg-gradient-to-br from-blue-500 to-blue-600",
-          text: "text-blue-400",
-          badge: "bg-blue-500/20 text-blue-400",
+          text: "text-blue-600",
+          badge: "bg-blue-50 text-blue-600",
         };
       case 2:
         return {
           bg: "bg-gradient-to-br from-purple-500 to-purple-600",
-          text: "text-purple-400",
-          badge: "bg-purple-500/20 text-purple-400",
+          text: "text-purple-600",
+          badge: "bg-purple-50 text-purple-600",
         };
       default:
         return {
-          bg: "bg-gray-700",
-          text: "text-gray-400",
-          badge: "bg-gray-700/50 text-gray-300",
+          bg: "bg-gray-600",
+          text: "text-gray-600",
+          badge: "bg-gray-100 text-gray-600",
         };
     }
   };
@@ -88,31 +88,31 @@ export function TrustRankDisplay({
     variant === "neon-pro"
       ? "text-pink-400 hover:text-pink-300"
       : variant === "pure-lite"
-      ? "text-emerald-400 hover:text-emerald-300"
-      : variant === "studio-pro"
-      ? "text-amber-400 hover:text-amber-300"
-      : variant === "velvet-pro"
-      ? "text-rose-400 hover:text-rose-300"
-      : variant === "zine-lite"
-      ? "text-slate-400 hover:text-slate-300"
-      : "text-cyan-400 hover:text-cyan-300";
+        ? "text-emerald-400 hover:text-emerald-300"
+        : variant === "studio-pro"
+          ? "text-amber-400 hover:text-amber-300"
+          : variant === "velvet-pro"
+            ? "text-rose-400 hover:text-rose-300"
+            : variant === "zine-lite"
+              ? "text-slate-400 hover:text-slate-300"
+              : "text-cyan-400 hover:text-cyan-300";
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colors.bg}`}>
-            <span className="text-white font-bold text-lg">{tier}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${colors.bg}`}>
+            <span className="text-white font-bold text-base sm:text-lg">{tier}</span>
           </div>
-          <div>
-            <p className="text-sm text-white/60">信用ランク</p>
-            <p className="text-lg font-semibold text-white">
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">信用ランク</p>
+            <p className="text-sm sm:text-lg font-semibold text-gray-900 whitespace-nowrap truncate">
               ティア {tier}
               {tierLabel && ` - ${tierLabel}`}
             </p>
           </div>
         </div>
-        <Link href="/trust-guide" className={`text-sm ${linkColor} flex items-center gap-1`}>
+        <Link href="/trust-guide" className={`text-xs sm:text-sm ${linkColor} flex items-center gap-1 shrink-0 whitespace-nowrap`}>
           詳しく見る
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -130,18 +130,18 @@ export function TrustRankDisplay({
           </svg>
         </Link>
       </div>
-      <div className="mt-4 rounded-lg bg-[#0d1117] border border-gray-800 p-4">
+      <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">即時チャージ上限</span>
+          <span className="text-gray-600">即時チャージ上限</span>
           <span className={`font-semibold ${colors.text}`}>{immediateLimit}</span>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-white/60">信用スコア</span>
-          <span className="font-semibold text-white">{trustScore}</span>
+          <span className="text-gray-600">信用スコア</span>
+          <span className="font-semibold text-gray-900">{trustScore}</span>
         </div>
         {upgradeMessage && (
-          <div className="mt-3 pt-3 border-t border-gray-800">
-            <p className="text-xs text-white/60">{upgradeMessage}</p>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-gray-500">{upgradeMessage}</p>
           </div>
         )}
       </div>

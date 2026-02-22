@@ -1,97 +1,96 @@
-﻿"use client";
+"use client";
 
-import { FormEvent, useState } from "react";
-
-type Status = "idle" | "success" | "error";
-
-const sendResetRequest = async (email: string) => {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  const success = !email.endsWith("@invalid.com");
-  if (!success) {
-    throw new Error("このメールアドレスは登録されていません。");
-  }
-  return true;
-};
+import { useState } from "react";
+import Link from "next/link";
+import { requestPasswordReset } from "@/lib/api";
 
 export default function PasswordResetPage() {
-  const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState<string>("");
   const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setStatus("idle");
-    setMessage("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      await sendResetRequest(email);
-      setStatus("success");
-      setMessage("メールを送信しました。数分お待ちください。");
-    } catch (error) {
-      setStatus("error");
-      setMessage(
-        error instanceof Error ? error.message : "エラーが発生しました。再度お試しください。"
-      );
+      await requestPasswordReset({ email });
+      setSubmitted(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
+  if (submitted) {
+    return (
+      <main className="min-h-screen bg-white px-6 py-16 text-black">
+        <div className="mx-auto max-w-md">
+          <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0px_30px_80px_rgba(0,0,0,0.08)] text-center space-y-4">
+            <div className="text-4xl">✉️</div>
+            <h1 className="text-2xl font-semibold">メールを送信しました</h1>
+            <p className="text-sm text-neutral-600">
+              登録済みのメールアドレスの場合、パスワード再設定用のリンクをお送りしました。メールをご確認ください。
+            </p>
+            <p className="text-xs text-neutral-400">リンクの有効期限は24時間です。</p>
+            <Link href="/creators/login" className="block text-sm text-black underline underline-offset-4 mt-4">
+              ログイン画面に戻る
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white px-4 py-12 text-black">
-      <div className="w-full max-w-lg rounded-[32px] border border-black/10 bg-white p-10 shadow-[0px_40px_80px_rgba(0,0,0,0.1)]">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-semibold">パスワード再設定</h1>
-          <p className="text-sm text-neutral-500">
-            ご登録のメールアドレスに、パスワード再設定用リンクをお送りします。
+    <main className="min-h-screen bg-white px-6 py-16 text-black">
+      <div className="mx-auto max-w-md">
+        <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0px_30px_80px_rgba(0,0,0,0.08)]">
+          <div className="space-y-2 mb-8">
+            <h1 className="text-2xl font-semibold">パスワードの再設定</h1>
+            <p className="text-sm text-neutral-600">
+              登録済みのメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-sm font-medium">
+                メールアドレス
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-black/15 px-4 py-3 text-sm outline-none focus:border-black/40 transition"
+                placeholder="example@email.com"
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-black py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {loading ? "送信中..." : "再設定メールを送信"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-neutral-500">
+            <Link href="/creators/login" className="text-black underline underline-offset-4">
+              ログイン画面に戻る
+            </Link>
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          {status === "success" && (
-            <p className="rounded-2xl bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-700">
-              {message}
-            </p>
-          )}
-          {status === "error" && (
-            <p className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-semibold text-red-700">
-              {message}
-            </p>
-          )}
-
-          <label className="block text-sm font-semibold text-neutral-800">
-            メールアドレス
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="your.email@example.com"
-              className="mt-2 w-full rounded-2xl border border-black/20 bg-white px-4 py-3 text-black placeholder:text-neutral-400 focus:border-blue-400 focus:outline-none"
-            />
-          </label>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-2xl bg-blue-500 py-3 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {submitting ? "送信中..." : "再設定用リンクを送信"}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-neutral-500">
-          <a href="/creators/login" className="underline">
-            ログイン画面に戻る
-          </a>
-        </div>
-
-        <footer className="mt-8 flex flex-wrap justify-between text-xs text-neutral-400">
-          <a href="#">利用規約</a>
-          <a href="#">プライバシーポリシー</a>
-          <a href="#">特定商取引法に基づく表記</a>
-        </footer>
       </div>
     </main>
   );

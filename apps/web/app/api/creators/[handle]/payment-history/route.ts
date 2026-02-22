@@ -44,61 +44,26 @@ export async function GET(
             );
         }
 
-        // Get payment history (last 12 months)
-        const paymentHistory: Array<{ date: string; amount: number }> = [];
-        const now = new Date();
+        // CreatorPayoutから実際の振込記録を取得（COMPLETED のもののみ）
+        const payouts = await prisma.creatorPayout.findMany({
+            where: {
+                creatorId: creator.id,
+                status: "COMPLETED",
+            },
+            orderBy: { processedAt: "desc" },
+            take: 24,
+        });
 
-        for (let i = 0; i < 12; i++) {
-            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const year = monthDate.getFullYear();
-            const month = monthDate.getMonth() + 1;
-
-            const startDate = new Date(year, month - 1, 1);
-            const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-
-            // Get earnings for this month
-            const [purchaseTotal, subscriptionTotal] = await Promise.all([
-                prisma.purchase.aggregate({
-                    where: {
-                        fan: {
-                            creatorId: creator.id,
-                        },
-                        purchasedAt: {
-                            gte: startDate,
-                            lte: endDate,
-                        },
-                    },
-                    _sum: {
-                        amount: true,
-                    },
-                }),
-                prisma.transaction.aggregate({
-                    where: {
-                        creatorId: creator.id,
-                        status: "PAID",
-                        paidAt: {
-                            gte: startDate,
-                            lte: endDate,
-                        },
-                    },
-                    _sum: {
-                        amount: true,
-                    },
-                }),
-            ]);
-
-            const totalAmount = (purchaseTotal._sum.amount || 0) + (subscriptionTotal._sum.amount || 0);
-
-            // Only include months with earnings
-            if (totalAmount > 0) {
-                // Format as YYYY/MM/DD (last day of month)
-                const lastDay = new Date(year, month, 0).getDate();
-                paymentHistory.push({
-                    date: `${year}/${String(month).padStart(2, '0')}/${String(lastDay).padStart(2, '0')}`,
-                    amount: totalAmount,
-                });
-            }
-        }
+        const paymentHistory = payouts.map((p: any) => {
+            const d = p.processedAt || p.createdAt;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return {
+                date: `${year}/${month}/${day}`,
+                amount: p.amount,
+            };
+        });
 
         return NextResponse.json({
             paymentHistory,

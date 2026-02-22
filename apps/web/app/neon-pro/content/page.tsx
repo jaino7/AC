@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { samplePosts } from "@/lib/sampleContent";
 
 type Media = {
   id: string;
@@ -29,6 +30,7 @@ type Post = {
   likes?: number;
   comments?: number;
   media?: Media[];
+  price?: number | null;
 };
 
 type CreatorProfile = {
@@ -41,9 +43,17 @@ type CreatorProfile = {
   tiktokUrl: string | null;
   discordUrl: string | null;
   otherUrl: string | null;
+  otherUrlName?: string | null;
 };
 
-type TabType = "all" | "images" | "videos" | "archive";
+type Plan = {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+};
+
+type TabType = "all" | "plans" | "single" | "saved";
 
 function NeonProContentPageContent() {
   const pathname = usePathname();
@@ -58,13 +68,34 @@ function NeonProContentPageContent() {
   const { data: session } = useSession();
 
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // ハンドルがない場合（テーマページとして直接アクセス）はサンプルデータを表示
+        if (!handle && !isPreview) {
+          setCreatorProfile({
+            handle: "neon-pro",
+            displayName: "Neon Pro Demo",
+            bio: "これはNeon Proテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            logoUrl: null,
+            twitterUrl: null,
+            instagramUrl: null,
+            tiktokUrl: null,
+            discordUrl: null,
+            otherUrl: null,
+            otherUrlName: null,
+          });
+          setPosts(samplePosts as Post[]);
+          setLoading(false);
+          return;
+        }
+
         // Fetch creator profile
         let profileResponse;
         if (handle) {
@@ -78,6 +109,21 @@ function NeonProContentPageContent() {
         if (profileResponse?.ok) {
           const profileData = await profileResponse.json();
           setCreatorProfile(profileData.profile);
+        }
+
+        // Fetch plans
+        let plansResponse;
+        if (handle) {
+          plansResponse = await fetch(`/api/creators/plans?handle=${handle}`);
+        } else if (isPreview) {
+          plansResponse = await fetch("/api/creators/plans");
+        } else {
+          plansResponse = await fetch("/api/creators/plans");
+        }
+
+        if (plansResponse?.ok) {
+          const plansData = await plansResponse.json();
+          setPlans(plansData.plans || []);
         }
 
         // Fetch published posts
@@ -103,6 +149,7 @@ function NeonProContentPageContent() {
             badge: post.isLocked ? undefined : "free",
             isLocked: post.isLocked,
             requiredTier: post.requiredPlan?.name,
+            price: post.price,
             timeAgo: getTimeAgo(new Date(post.createdAt)),
             media: post.media || [],
           }));
@@ -141,9 +188,33 @@ function NeonProContentPageContent() {
 
 
   return (
-    <div className="flex min-h-screen bg-[#0a0e12] text-white">
+    <div className="flex min-h-screen flex-col lg:flex-row bg-[#0a0e12] text-white">
+      {/* Mobile Header / Hamburger */}
+      <div className="flex lg:hidden items-center justify-between border-b border-cyan-900/30 bg-[#0a0e12] p-4">
+        <div className="flex items-center gap-2">
+          <svg className="h-6 w-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+          </svg>
+          <span className="font-mono text-lg font-bold tracking-wider text-cyan-400">
+            CYBER<span className="text-white">.SUBS</span>
+          </span>
+        </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="text-cyan-400 hover:text-cyan-300 focus:outline-none"
+        >
+          <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+            {isMobileMenuOpen ? (
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            ) : (
+              <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            )}
+          </svg>
+        </button>
+      </div>
+
       {/* Sidebar */}
-      <aside className="w-56 border-r border-cyan-900/30 bg-[#0a0e12] p-4">
+      <aside className={`w-full lg:w-56 border-r border-cyan-900/30 bg-[#0a0e12] p-4 ${isMobileMenuOpen ? 'block' : 'hidden lg:block'} flex-shrink-0`}>
         {/* Navigation */}
         <nav className="space-y-1">
           <button className="flex w-full items-center gap-2 rounded bg-cyan-900/30 px-3 py-2 text-xs font-semibold text-cyan-300">
@@ -168,10 +239,11 @@ function NeonProContentPageContent() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 bg-[#050810]">
-        {/* Header */}
-        <header className="border-b border-cyan-900/30 bg-[#0a0e12] px-6 py-3">
-          <div className="flex items-center justify-between">
+      <div className="flex flex-1 flex-col bg-[#050810] pb-16 lg:pb-0">
+        {/* Content Wrapper (Header + Main Area) */}
+        <div className="flex-1">
+          {/* Header */}
+          <header className="hidden lg:flex border-b border-cyan-900/30 bg-[#0a0e12] px-6 py-3 items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <svg className="h-6 w-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
@@ -183,14 +255,6 @@ function NeonProContentPageContent() {
                   </h1>
                 </div>
               </div>
-              <nav className="ml-6 flex items-center gap-4 text-xs font-semibold uppercase">
-                <a href="#" className="text-gray-400 hover:text-white">発見</a>
-                <a href="#" className="text-gray-400 hover:text-white">クリエイター</a>
-                <a href="#" className="flex items-center gap-1 text-gray-400 hover:text-white">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                  ライブ
-                </a>
-              </nav>
             </div>
             <div className="flex items-center gap-3">
               {!session && (
@@ -207,331 +271,292 @@ function NeonProContentPageContent() {
                 </>
               )}
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Profile Section */}
-        <section className="border-b border-cyan-900/30 bg-gradient-to-r from-cyan-900/5 to-transparent p-6">
-          <div className="flex items-start gap-6">
-            <div className="relative">
-              <div className="h-24 w-24 overflow-hidden rounded-lg border-2 border-cyan-400 bg-gradient-to-br from-cyan-400 to-blue-600">
-                <img
-                  src="https://images.unsplash.com/photo-1614029655965-574f0f70e3b0?auto=format&fit=crop&w=200&q=80"
-                  alt="NeonVixen_99"
-                  className="h-full w-full object-cover"
-                />
+          {/* Profile Section */}
+          <section className="border-b border-cyan-900/30 bg-gradient-to-r from-cyan-900/5 to-transparent p-4 lg:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left">
+              <div className="relative">
+                <div className="h-24 w-24 overflow-hidden rounded-lg border-2 border-cyan-400 bg-gradient-to-br from-cyan-400 to-blue-600">
+                  <img
+                    src={creatorProfile?.logoUrl || "https://images.unsplash.com/photo-1614029655965-574f0f70e3b0?auto=format&fit=crop&w=200&q=80"}
+                    alt={creatorProfile?.displayName || "CreatorProfile"}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
               </div>
-              <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-400">
-                <svg className="h-4 w-4 text-black" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="mb-2 flex items-center gap-3">
-                <h2 className="font-mono text-2xl font-bold tracking-wide">{creatorProfile?.displayName || "Creator"}</h2>
-                <span className="rounded bg-pink-600 px-2 py-0.5 text-[10px] font-bold uppercase">ライブ</span>
-              </div>
-              <p className="mb-4 text-xs text-cyan-300">
-                {creatorProfile?.bio || "クリエイターのプロフィールです"}
-              </p>
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-1.5 rounded bg-cyan-500 px-4 py-2 text-xs font-bold uppercase text-black transition hover:bg-cyan-400">
-                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
-                  </svg>
-                  月額 ¥500で参加
-                </button>
-                <button className="flex items-center gap-1.5 rounded border border-gray-700 bg-gray-900 px-4 py-2 text-xs font-bold uppercase text-white transition hover:bg-gray-800">
-                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                  </svg>
-                  暗号化メッセージ
-                </button>
+              <div className="flex-1">
+                <div className="mb-2 flex items-center gap-3">
+                  <h2 className="font-mono text-2xl font-bold tracking-wide">{creatorProfile?.displayName || "Creator"}</h2>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Tabs */}
-        <nav className="border-b border-cyan-900/30 px-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${activeTab === "all"
-                ? "border-b-2 border-cyan-400 text-cyan-400"
-                : "text-gray-500 hover:text-white"
-                }`}
-            >
-              すべて
-            </button>
-            <button
-              onClick={() => setActiveTab("images")}
-              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${activeTab === "images"
-                ? "border-b-2 border-cyan-400 text-cyan-400"
-                : "text-gray-500 hover:text-white"
-                }`}
-            >
-              画像
-            </button>
-            <button
-              onClick={() => setActiveTab("videos")}
-              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${activeTab === "videos"
-                ? "border-b-2 border-cyan-400 text-cyan-400"
-                : "text-gray-500 hover:text-white"
-                }`}
-            >
-              動画
-            </button>
-            <button
-              onClick={() => setActiveTab("archive")}
-              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${activeTab === "archive"
-                ? "border-b-2 border-cyan-400 text-cyan-400"
-                : "text-gray-500 hover:text-white"
-                }`}
-            >
-              アーカイブ
-            </button>
-          </div>
-        </nav>
+          {/* Tabs */}
+          <nav className="fixed bottom-0 left-0 w-full z-50 lg:relative lg:border-b border-t lg:border-t-0 border-cyan-900/30 bg-[#0a0e12] lg:bg-transparent px-2 lg:px-0 py-2 lg:py-0 pb-[max(8px,env(safe-area-inset-bottom))] lg:pb-0 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] lg:shadow-none">
+            <div className="flex overflow-x-auto whitespace-nowrap px-4 lg:px-6 items-center lg:gap-4 scrollbar-hide">
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "all"
+                  ? "border-b-2 border-cyan-400 text-cyan-400"
+                  : "text-gray-500 hover:text-white"
+                  }`}
+              >
+                すべて
+              </button>
+              <button
+                onClick={() => setActiveTab("plans")}
+                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "plans"
+                  ? "border-b-2 border-cyan-400 text-cyan-400"
+                  : "text-gray-500 hover:text-white"
+                  }`}
+              >
+                プラン
+              </button>
+              <button
+                onClick={() => setActiveTab("single")}
+                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "single"
+                  ? "border-b-2 border-cyan-400 text-cyan-400"
+                  : "text-gray-500 hover:text-white"
+                  }`}
+              >
+                単体販売
+              </button>
+              <button
+                onClick={() => setActiveTab("saved")}
+                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "saved"
+                  ? "border-b-2 border-cyan-400 text-cyan-400"
+                  : "text-gray-500 hover:text-white"
+                  }`}
+              >
+                保存済み
+              </button>
+            </div>
+          </nav>
 
-        {/* Content Area with Sidebar */}
-        <div className="flex gap-6 p-6">
-          {/* Feed */}
-          <main className="flex-1">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={handle ? `/${handle}/content/${post.id}` : `/neon-pro/content/${post.id}`}
-                  className="group overflow-hidden rounded-lg border border-cyan-900/30 bg-gray-900/30 transition hover:border-cyan-700/50"
-                >
-                  {post.cover && !post.isEncrypted && (
-                    <div className="relative aspect-video overflow-hidden bg-black">
-                      <img
-                        src={post.cover}
-                        alt={post.title}
-                        className="h-full w-full object-cover transition group-hover:scale-105"
-                      />
-                      {post.badge === "free" && (
-                        <div className="absolute right-2 top-2 rounded bg-green-600 px-2 py-0.5 text-[9px] font-bold uppercase">
-                          FREE
-                        </div>
-                      )}
-                      {/* メディア情報バッジ */}
-                      {post.media && (() => {
-                        const mainMedia = post.media.filter(m => !m.isSample);
-                        const videos = mainMedia.filter(m => m.type === "VIDEO");
-                        const images = mainMedia.filter(m => m.type === "IMAGE");
+          {/* Content Area with Sidebar */}
+          <div className="flex flex-col-reverse lg:flex-row gap-6 p-4 lg:p-6">
+            {/* Feed */}
+            <main className="flex-1 min-w-0">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(() => {
+                  const filteredPosts = posts.filter(post => {
+                    if (activeTab === "all") return true;
+                    if (activeTab === "plans") return post.isLocked && post.requiredTier;
+                    if (activeTab === "single") return post.isLocked && post.price && post.price > 0 && (!post.requiredTier || post.requiredTier === "");
+                    if (activeTab === "saved") return false;
+                    return true;
+                  });
 
-                        // 動画の合計時間を計算（秒数）
-                        const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
-
-                        // 時間フォーマット関数 (例: 1523 -> "25:23")
-                        const formatDuration = (seconds: number): string => {
-                          const hours = Math.floor(seconds / 3600);
-                          const minutes = Math.floor((seconds % 3600) / 60);
-                          const secs = seconds % 60;
-
-                          if (hours > 0) {
-                            return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-                          }
-                          return `${minutes}:${String(secs).padStart(2, '0')}`;
-                        };
-
-                        if (mainMedia.length === 0) return null;
-
-                        return (
-                          <div className="absolute bottom-2 right-2 flex gap-1.5">
-                            {videos.length > 0 && totalDuration > 0 && (
-                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                                </svg>
-                                {formatDuration(totalDuration)}
-                              </div>
-                            )}
-                            {images.length > 0 && (
-                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                                </svg>
-                                {images.length}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                  {post.isEncrypted && (
-                    <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
-                      <div className="text-center">
-                        <svg className="mx-auto mb-2 h-12 w-12 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <div className="text-xs font-bold uppercase text-purple-400">Encrypted Video</div>
-                        <div className="text-[10px] uppercase text-pink-400">REQ: {post.requiredTier}</div>
+                  if (filteredPosts.length === 0) {
+                    return (
+                      <div className="col-span-full text-center py-12 text-gray-400">
+                        該当する投稿がありません
                       </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {filteredPosts.map((post) => (
+                        <Link
+                          key={post.id}
+                          href={handle ? `/${handle}/content/${post.id}` : `/neon-pro/content/${post.id}`}
+                          className="group overflow-hidden rounded-lg border border-cyan-900/30 bg-gray-900/30 transition hover:border-cyan-700/50"
+                        >
+                          {post.cover && !post.isEncrypted && (
+                            <div className="relative aspect-video overflow-hidden bg-black">
+                              <img
+                                src={post.cover}
+                                alt={post.title}
+                                className="h-full w-full object-cover transition group-hover:scale-105"
+                              />
+                              {post.badge === "free" && (
+                                <div className="absolute right-2 top-2 rounded bg-green-600 px-2 py-0.5 text-[9px] font-bold uppercase">
+                                  FREE
+                                </div>
+                              )}
+                              {/* メディア情報バッジ */}
+                              {post.media && (() => {
+                                const mainMedia = post.media.filter(m => !m.isSample);
+                                const videos = mainMedia.filter(m => m.type === "VIDEO");
+                                const images = mainMedia.filter(m => m.type === "IMAGE");
+
+                                // 動画の合計時間を計算（秒数）
+                                const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+                                // 時間フォーマット関数 (例: 1523 -> "25:23")
+                                const formatDuration = (seconds: number): string => {
+                                  const hours = Math.floor(seconds / 3600);
+                                  const minutes = Math.floor((seconds % 3600) / 60);
+                                  const secs = seconds % 60;
+
+                                  if (hours > 0) {
+                                    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                                  }
+                                  return `${minutes}:${String(secs).padStart(2, '0')}`;
+                                };
+
+                                if (mainMedia.length === 0) return null;
+
+                                return (
+                                  <div className="absolute bottom-2 right-2 flex gap-1.5">
+                                    {videos.length > 0 && totalDuration > 0 && (
+                                      <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                        </svg>
+                                        {formatDuration(totalDuration)}
+                                      </div>
+                                    )}
+                                    {images.length > 0 && (
+                                      <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                                        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                        </svg>
+                                        {images.length}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          {post.isEncrypted && (
+                            <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+                              <div className="text-center">
+                                <svg className="mx-auto mb-2 h-12 w-12 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <div className="text-xs font-bold uppercase text-purple-400">Encrypted Video</div>
+                                <div className="text-[10px] uppercase text-pink-400">REQ: {post.requiredTier}</div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="p-3">
+                            <h3 className="mb-1 text-xs font-semibold text-white group-hover:text-cyan-400">
+                              {post.title}
+                            </h3>
+                            <div className="flex items-center justify-between text-[10px] text-gray-500">
+                              <span>{post.timeAgo}</span>
+                              {post.likes !== undefined && (
+                                <div className="flex items-center gap-2">
+                                  <span className="flex items-center gap-1">
+                                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                    </svg>
+                                    {post.likes}
+                                  </span>
+                                  {post.comments !== undefined && (
+                                    <span className="flex items-center gap-1">
+                                      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                                      </svg>
+                                      {post.comments}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </>
+                  );
+                })()}
+              </div>
+            </main>
+
+            {/* BIO_DATA Sidebar */}
+            <aside className="w-full lg:w-72 flex-shrink-0">
+              <div className="sticky top-6 rounded-lg border border-cyan-900/50 bg-gray-900/50 p-4">
+                <div className="mb-3 flex items-center gap-2 border-b border-cyan-900/30 pb-2">
+                  <svg className="h-4 w-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">プロフィール</span>
+                </div>
+                <p className="mb-4 text-[11px] leading-relaxed text-gray-300">
+                  {creatorProfile?.bio || "クリエイターのプロフィールです"}
+                </p>
+                {/* Social Icons */}
+                <div className="flex flex-wrap gap-2">
+                  {creatorProfile?.otherUrl && (
+                    <a href={creatorProfile.otherUrl} target="_blank" rel="noopener noreferrer" className="flex h-7 px-2 items-center justify-center rounded bg-gray-800 text-cyan-400 transition hover:bg-gray-700 gap-1.5 text-[10px] whitespace-nowrap">
+                      <span>🔗</span>
+                      <span>{creatorProfile.otherUrlName || "リンク"}</span>
+                    </a>
+                  )}
+                  {creatorProfile?.twitterUrl && (
+                    <a href={creatorProfile.twitterUrl} target="_blank" rel="noopener noreferrer" className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-cyan-400 transition hover:bg-gray-700">
+                      <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.005 4.15H5.059z" />
+                      </svg>
+                    </a>
+                  )}
+                  {creatorProfile?.instagramUrl && (
+                    <a href={creatorProfile.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-cyan-400 transition hover:bg-gray-700">
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                        <title>Instagram</title>
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                      </svg>
+                    </a>
+                  )}
+                  {creatorProfile?.tiktokUrl && (
+                    <a href={creatorProfile.tiktokUrl} target="_blank" rel="noopener noreferrer" className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-cyan-400 transition hover:bg-gray-700">
+                      <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.53-.4 3.06-1.16 4.4a8.13 8.13 0 01-3.13 3.12 8.1 8.1 0 01-4.38 1.11 8.08 8.08 0 01-4.4-1.1c-1.28-.75-2.33-1.83-3.08-3.12A8.15 8.15 0 01.325 15.3c.03-1.54.43-3.05 1.2-4.37A8.1 8.1 0 014.655 7.8c1.3-.74 2.76-1.11 4.26-1.1v4.03a4.13 4.13 0 00-2.18.57 4.12 4.12 0 00-1.58 1.6 4.1 4.1 0 00-.54 2.22c.02.77.21 1.52.56 2.18.35.66.86 1.2 1.48 1.58 1.45.89 3.32 1.05 4.9.43a4.17 4.17 0 002.5-3.83V.02h-1.53z" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+
+                {/* ACCESS PROTOCOL */}
+                <div className="mt-4 border-t border-cyan-900/30 pt-4">
+                  <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    プラン
+                  </div>
+
+                  {plans.length > 0 ? (
+                    plans.map((plan, index) => (
+                      <div key={plan.id} className={`mb-3 rounded border ${index === 0 ? "border-cyan-400 bg-gradient-to-br from-cyan-900/30 to-transparent p-3" : "border-cyan-700/50 bg-cyan-950/20 p-3"}`}>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="font-mono text-xs font-bold uppercase text-cyan-400">{plan.name}</span>
+                          <span className="font-mono text-xs font-bold text-cyan-400">¥{plan.price.toLocaleString()}<span className="text-[10px] text-gray-500">/月</span></span>
+                        </div>
+                        <div className="space-y-1 text-[10px]">
+                          <p className="text-gray-300 mb-2 whitespace-pre-wrap">{plan.description || "このプランに参加して限定コンテンツを楽しもう！"}</p>
+                        </div>
+                        <button className="mt-3 w-full rounded bg-cyan-600 py-1.5 text-[10px] font-bold uppercase text-black transition hover:bg-cyan-500">
+                          プランを選択
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="mb-3 rounded border border-cyan-700/50 bg-cyan-950/20 p-3 text-center text-xs text-cyan-400/50">
+                      現在アクセス可能なプランはありません
                     </div>
                   )}
-                  <div className="p-3">
-                    <h3 className="mb-1 text-xs font-semibold text-white group-hover:text-cyan-400">
-                      {post.title}
-                    </h3>
-                    <div className="flex items-center justify-between text-[10px] text-gray-500">
-                      <span>{post.timeAgo}</span>
-                      {post.likes !== undefined && (
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center gap-1">
-                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                            </svg>
-                            {post.likes}
-                          </span>
-                          {post.comments !== undefined && (
-                            <span className="flex items-center gap-1">
-                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                              </svg>
-                              {post.comments}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="mt-6 flex justify-center">
-              <div className="flex items-center gap-1">
-                <button className="h-1.5 w-6 rounded-full bg-cyan-500"></button>
-                <button className="h-1.5 w-1.5 rounded-full bg-gray-700 hover:bg-gray-600"></button>
-                <button className="h-1.5 w-1.5 rounded-full bg-gray-700 hover:bg-gray-600"></button>
-              </div>
-            </div>
-          </main>
-
-          {/* BIO_DATA Sidebar */}
-          <aside className="w-72 flex-shrink-0">
-            <div className="sticky top-6 rounded-lg border border-cyan-900/50 bg-gray-900/50 p-4">
-              <div className="mb-3 flex items-center gap-2 border-b border-cyan-900/30 pb-2">
-                <svg className="h-4 w-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">プロフィール</span>
-              </div>
-              <p className="mb-4 text-[11px] leading-relaxed text-gray-300">
-                ハイクオリティなサイバーパンクアセットとコスプレ写真を制作しています。サブスクライバーは高解像度画像、制作ストリーム、限定Discordロールにアクセスできます。
-              </p>
-              {/* Social Icons */}
-              <div className="flex gap-2">
-                <a href="#" className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-cyan-400 transition hover:bg-gray-700">
-                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                  </svg>
-                </a>
-                <a href="#" className="flex h-7 w-7 items-center justify-center rounded bg-gray-800 text-cyan-400 transition hover:bg-gray-700">
-                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
-                  </svg>
-                </a>
-              </div>
-
-              {/* ACCESS PROTOCOL */}
-              <div className="mt-4 border-t border-cyan-900/30 pt-4">
-                <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                  アクセスプロトコル
-                </div>
-
-                {/* INITIATE Tier */}
-                <div className="mb-3 rounded border border-cyan-700/50 bg-cyan-950/20 p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold uppercase text-cyan-400">ベーシック</span>
-                    <span className="font-mono text-xs font-bold text-cyan-400">¥500<span className="text-[10px] text-gray-500">/月</span></span>
-                  </div>
-                  <div className="space-y-1 text-[10px]">
-                    <div className="flex items-center gap-1.5 text-green-400">
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>公開フィードアクセス</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-green-400">
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>投票機能</span>
-                    </div>
-                  </div>
-                  <button className="mt-3 w-full rounded bg-cyan-600 py-1.5 text-[10px] font-bold uppercase text-black transition hover:bg-cyan-500">
-                    プランを選択
-                  </button>
-                </div>
-
-                {/* CYBER_PUNK Tier */}
-                <div className="rounded border border-cyan-400 bg-gradient-to-br from-cyan-900/30 to-transparent p-3">
-                  <div className="mb-1 inline-block rounded bg-cyan-500 px-1.5 py-0.5 text-[8px] font-bold uppercase text-black">
-                    人気
-                  </div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold uppercase text-cyan-300">プレミアム</span>
-                    <span className="font-mono text-xs font-bold text-cyan-300">¥1500<span className="text-[10px] text-gray-500">/月</span></span>
-                  </div>
-                  <div className="space-y-1 text-[10px]">
-                    <div className="flex items-center gap-1.5 text-green-400">
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>ベーシックのすべて</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-green-400">
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>HDダウンロード</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-green-400">
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>Discordアクセス</span>
-                    </div>
-                  </div>
-                  <button className="mt-3 w-full rounded bg-cyan-500 py-1.5 text-[10px] font-bold uppercase text-black transition hover:bg-cyan-400">
-                    プランを選択
-                  </button>
                 </div>
               </div>
-            </div>
-          </aside>
-        </div>
+            </aside>
+          </div>
+        </div> {/* Content Wrapper End */}
 
         {/* Footer */}
-        <footer className="border-t border-cyan-900/30 bg-[#0a0e12] px-6 py-3">
+        <footer className="border-t border-cyan-900/30 bg-[#0a0e12] px-6 py-3 text-left">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between text-[10px]">
-              <div className="flex items-center gap-1 text-gray-600">
-                <span>SERVER: TOKYO_33</span>
-                <span className="mx-2">•</span>
-                <span>LAT: 22ms</span>
-              </div>
-              <div className="text-gray-600">© 2085 CYBER.SUBS</div>
-            </div>
-            <div className="flex items-center justify-center gap-4 text-[10px] text-gray-500">
-              <a href="/terms/fans" target="_blank" className="hover:text-cyan-400 hover:underline">
+            <div className="flex flex-wrap items-center justify-start gap-4 text-[10px] text-gray-500">
+              <a href="/terms/fans" target="_blank" className="hover:text-cyan-400 hover:underline whitespace-nowrap">
                 利用規約
               </a>
-              <span>•</span>
-              <a href="/legal/commercial-transaction/fans" target="_blank" className="hover:text-cyan-400 hover:underline">
+              <span className="whitespace-nowrap">•</span>
+              <a href="/legal/commercial-transaction/fans" target="_blank" className="hover:text-cyan-400 hover:underline whitespace-nowrap">
                 特定商取引法に基づく表記
               </a>
-              <span>•</span>
-              <a href="/privacy" target="_blank" className="hover:text-cyan-400 hover:underline">
+              <span className="whitespace-nowrap">•</span>
+              <a href="/privacy" target="_blank" className="hover:text-cyan-400 hover:underline whitespace-nowrap">
                 プライバシーポリシー
               </a>
             </div>

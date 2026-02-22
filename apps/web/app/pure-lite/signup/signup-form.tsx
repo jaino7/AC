@@ -99,7 +99,7 @@ export const PureLiteSignupForm = () => {
             <div className="space-y-3">
                 <label className="flex items-start gap-3 text-sm text-[#2d2a26]/70">
                     <input type="checkbox" className="mt-1 h-4 w-4 accent-pink-500" {...register("acceptTerms")} />
-                    <span><Link href="/terms" className="text-pink-500 underline">利用規約</Link>と<Link href="/privacy" className="text-pink-500 underline">プライバシーポリシー</Link>に同意します</span>
+                    <span><Link href="/terms/fans" className="text-pink-500 underline">利用規約</Link>と<Link href="/privacy" className="text-pink-500 underline">プライバシーポリシー</Link>に同意します</span>
                 </label>
                 {errors.acceptTerms && <p className="text-xs text-red-500">{errors.acceptTerms.message}</p>}
 

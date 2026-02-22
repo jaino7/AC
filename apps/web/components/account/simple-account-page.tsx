@@ -2,16 +2,36 @@
 
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { changePassword, updateProfile } from "@/lib/api";
-import { useCredits } from "@/components/hooks/useCredits";
+import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
+import ChargeModal from "@/components/credits/ChargeModal";
+import { TrustRankDisplay } from "@/components/credits/TrustRankDisplay";
+
+type CreditHistory = {
+    id: string;
+    type: string;
+    amount: number;
+    balance: number;
+    description: string;
+    createdAt: string;
+};
+
+type ChargeRequest = {
+    id: string;
+    amount: number;
+    status: string;
+    identifierCode: string;
+    expiresAt: string;
+    createdAt: string;
+};
 
 interface SimpleAccountPageProps {
     handle?: string;
     displayName?: string;
     logoUrl?: string | null;
-    currentPage?: "account" | "billing" | "security" | "notifications";
+    currentPage?: "account" | "billing" | "security" | "notifications" | "credits";
 }
 
 export function SimpleAccountPage({
@@ -26,10 +46,58 @@ export function SimpleAccountPage({
 
     // クレジット情報を取得
     const { data: creditsData, isLoading: creditsLoading, error: creditsError } = useCredits(handle || undefined);
+    const invalidateCredits = useInvalidateCredits();
+
+    const [chargeRequests, setChargeRequests] = useState<ChargeRequest[]>([]);
+    const [showChargeModal, setShowChargeModal] = useState(false);
+
+    // プラン関連
+    const [subscriptions, setSubscriptions] = useState<any[]>([]);
+    const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
+
+    useEffect(() => {
+        if (currentPage === "billing" && status === "authenticated") {
+            const fetchSubscriptions = async () => {
+                setLoadingSubscriptions(true);
+                try {
+                    const url = handle ? `/api/fans/subscribe?handle=${handle}` : "/api/fans/subscribe";
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setSubscriptions(data.subscriptions || []);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch subscriptions:", error);
+                } finally {
+                    setLoadingSubscriptions(false);
+                }
+            };
+            fetchSubscriptions();
+        }
+    }, [currentPage, handle, status]);
+
+    useEffect(() => {
+        if (currentPage === "credits" && status === "authenticated") {
+            const fetchChargeRequests = async () => {
+                try {
+                    const url = handle ? `/api/fans/credits/charge-requests?handle=${handle}` : "/api/fans/credits/charge-requests";
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setChargeRequests(data.chargeRequests || []);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch charge requests:", error);
+                    setChargeRequests([]);
+                }
+            };
+            fetchChargeRequests();
+        }
+    }, [currentPage, handle, status]);
 
     // セッションからユーザー情報を取得
     const userEmail = session?.user?.email || "";
-    const userName = session?.user?.name || displayName || "ユーザー";
+    const userName = session?.user?.name || displayName;
 
     // 動的なリンク生成
     const baseUrl = handle ? `/${handle}/account` : "/account";
@@ -37,10 +105,26 @@ export function SimpleAccountPage({
     const logoutUrl = handle ? `/${handle}/login` : "/";
 
     const [imagePreview, setImagePreview] = useState<string | null>(logoUrl || null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // 表示名の状態
     const [editDisplayName, setEditDisplayName] = useState(userName);
+
+    // セッションロード完了後に初期値を同期
+
+    useEffect(() => {
+        if (status === "authenticated" && session?.user) {
+            if (session.user.name) {
+                setEditDisplayName(session.user.name);
+            }
+            if (session.user.image && !selectedFile) {
+                // 未選択時のみ、セッションの画像をプレビューに適用
+                setImagePreview(session.user.image);
+            }
+        }
+    }, [status, session?.user]);
+
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -70,10 +154,14 @@ export function SimpleAccountPage({
 
     // 未認証の場合はログインページへリダイレクト
     if (status === "unauthenticated") {
+        if (typeof window !== "undefined") {
+            const loginUrl = handle ? `/${handle}/login` : "/creators/login";
+            window.location.href = loginUrl;
+        }
         return (
             <div className="min-h-screen bg-white text-gray-900">
                 <div className="flex items-center justify-center min-h-screen">
-                    <p className="text-gray-500">ログインが必要です</p>
+                    <p className="text-gray-500">ログインページへ移動しています...</p>
                 </div>
             </div>
         );
@@ -82,6 +170,7 @@ export function SimpleAccountPage({
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
@@ -101,13 +190,36 @@ export function SimpleAccountPage({
         setIsSaving(true);
         setSaveMessage(null);
         try {
+            let newAvatarUrl = session?.user?.image;
+
+            // 画像のアップロード
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append("avatar", selectedFile);
+                const res = await fetch("/api/user/avatar", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.avatarUrl) {
+                        newAvatarUrl = data.avatarUrl;
+                    }
+                } else {
+                    const error = await res.json();
+                    throw new Error(error.error || "画像のアップロードに失敗しました");
+                }
+            }
+
             await updateProfile({
                 userId,
                 name: editDisplayName,
                 displayName: editDisplayName
             });
             // セッションを更新して表示名を反映
-            await updateSession({ name: editDisplayName });
+            await updateSession({ name: editDisplayName, image: newAvatarUrl });
+            setSelectedFile(null); // ファイル状態をリセット
             setSaveMessage("保存しました");
             setTimeout(() => setSaveMessage(null), 3000);
         } catch (error) {
@@ -158,10 +270,32 @@ export function SimpleAccountPage({
 
     const navItems = [
         { label: "アカウント情報", path: "", key: "account" },
-        { label: "プランと支払い", path: "/billing", key: "billing" },
+        { label: "プラン", path: "/billing", key: "billing" },
+        { label: "クレジット", path: "/credits", key: "credits" },
         { label: "セキュリティ", path: "/security", key: "security" },
         { label: "通知", path: "/notifications", key: "notifications" },
     ];
+
+    const getStatusLabel = (s: string) => {
+        switch (s) {
+            case "PENDING": return { text: "振込待ち", color: "bg-yellow-100 text-yellow-800" };
+            case "TRANSFERRED": return { text: "確認中", color: "bg-blue-100 text-blue-800" };
+            case "APPROVED": return { text: "完了", color: "bg-green-100 text-green-800" };
+            case "REJECTED": return { text: "却下", color: "bg-red-100 text-red-800" };
+            case "EXPIRED": return { text: "期限切れ", color: "bg-gray-100 text-gray-800" };
+            default: return { text: s, color: "bg-gray-100 text-gray-800" };
+        }
+    };
+
+    const getHistoryTypeLabel = (type: string) => {
+        switch (type) {
+            case "CHARGE": return { text: "チャージ", color: "text-blue-600" };
+            case "PURCHASE": return { text: "購入", color: "text-orange-600" };
+            case "SUBSCRIBE": return { text: "購読", color: "text-purple-600" };
+            case "REFUND": return { text: "返金", color: "text-green-600" };
+            default: return { text: type, color: "text-gray-600" };
+        }
+    };
 
     return (
         <div className="min-h-screen bg-white text-gray-900">
@@ -222,20 +356,22 @@ export function SimpleAccountPage({
                 </div>
 
                 {/* Navigation Tabs */}
-                <nav className="mt-6 flex gap-6 border-b border-gray-200">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.key}
-                            href={`${baseUrl}${item.path}`}
-                            className={`pb-3 text-sm font-medium transition ${currentPage === item.key
-                                ? "border-b-2 border-blue-600 text-blue-600"
-                                : "text-gray-500 hover:text-gray-900"
-                                }`}
-                        >
-                            {item.label}
-                        </Link>
-                    ))}
-                </nav>
+                <div className="mt-6 border-b border-gray-200">
+                    <nav className="flex gap-6 overflow-x-auto pb-[1px]">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.key}
+                                href={`${baseUrl}${item.path}`}
+                                className={`whitespace-nowrap pb-3 text-sm font-medium transition ${currentPage === item.key
+                                    ? "border-b-2 border-blue-600 text-blue-600"
+                                    : "text-gray-500 hover:text-gray-900"
+                                    }`}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
+                </div>
 
                 {/* Account Info Content */}
                 {currentPage === "account" && (
@@ -248,7 +384,7 @@ export function SimpleAccountPage({
                                         <img src={imagePreview} alt="Profile" className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="grid h-full w-full place-items-center text-2xl font-semibold text-gray-500">
-                                            {displayName?.charAt(0) || "U"}
+                                            {userName?.charAt(0) || "U"}
                                         </div>
                                     )}
                                 </div>
@@ -305,29 +441,102 @@ export function SimpleAccountPage({
                 {/* Billing Content */}
                 {currentPage === "billing" && (
                     <div className="mt-8 space-y-6">
-                        <div className="rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-gray-500">現在のプラン</p>
-                                    <p className="mt-1 text-xl font-semibold text-gray-900">Pro</p>
-                                    <p className="mt-1 text-sm text-gray-500">月額 ¥1,980</p>
-                                </div>
-                                <Link href={`${baseUrl}/change-plan`} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
-                                    プランを変更
-                                </Link>
+                        {loadingSubscriptions ? (
+                            <div className="rounded-lg border border-gray-200 p-6 flex flex-col gap-4">
+                                <div className="h-6 w-32 bg-gray-200 animate-pulse rounded"></div>
+                                <div className="h-5 w-24 bg-gray-200 animate-pulse rounded"></div>
                             </div>
+                        ) : subscriptions.length === 0 ? (
+                            <div className="rounded-lg border border-gray-200 p-6 text-center text-gray-500">
+                                現在加入しているプランはありません。
+                            </div>
+                        ) : (
+                            subscriptions.map((sub, index) => (
+                                <div key={sub.id || index} className="rounded-lg border border-gray-200 p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-500">
+                                                現在のプラン {handle ? "" : `(${sub.plan.creator.displayName || sub.plan.creator.handle})`}
+                                            </p>
+                                            <p className="mt-1 text-xl font-semibold text-gray-900">{sub.plan.name}</p>
+                                            <p className="mt-1 text-sm text-gray-500">月額 ¥{sub.plan.price}</p>
+                                        </div>
+                                        {/* TODO: プラン変更先リンクなどは適宜調整 */}
+                                        <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
+                                            プランを変更
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+
+                {/* Credits Content */}
+                {currentPage === "credits" && (
+                    <div className="mt-8 space-y-6">
+                        {/* Trust Rank Display */}
+                        <div className="rounded-lg border border-gray-200 p-6 bg-white">
+                            <TrustRankDisplay
+                                tier={creditsData?.tier || 0}
+                                trustScore={creditsData?.trustScore || 0}
+                                variant="studio-pro"
+                            />
                         </div>
-                        <div className="rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-gray-500">お支払い方法</p>
-                                    <p className="mt-1 font-medium">•••• •••• •••• 4242</p>
-                                    <p className="mt-1 text-sm text-gray-500">有効期限: 12/2025</p>
+
+                        {/* Charge Requests */}
+                        {chargeRequests && chargeRequests.length > 0 && (
+                            <div className="rounded-lg border border-gray-200 p-6 bg-white">
+                                <h2 className="text-lg font-semibold mb-4">チャージ申請</h2>
+                                <div className="space-y-3">
+                                    {chargeRequests.map((req) => {
+                                        const status = getStatusLabel(req.status);
+                                        return (
+                                            <div key={req.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                                <div>
+                                                    <p className="font-semibold text-gray-900">¥{req.amount.toLocaleString()}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">識別コード: {req.identifierCode}</p>
+                                                    <p className="text-xs text-gray-500">{new Date(req.createdAt).toLocaleDateString("ja-JP")}</p>
+                                                </div>
+                                                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.color}`}>
+                                                    {status.text}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 transition">
-                                    変更
-                                </button>
                             </div>
+                        )}
+
+                        {/* Credit History */}
+                        <div className="rounded-lg border border-gray-200 p-6 bg-white">
+                            <h2 className="text-lg font-semibold mb-4">利用履歴</h2>
+                            {!creditsData?.history || creditsData.history.length === 0 ? (
+                                <p className="text-gray-500">履歴がありません</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {creditsData.history.map((item) => {
+                                        const typeLabel = getHistoryTypeLabel(item.type);
+                                        return (
+                                            <div key={item.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                                <div>
+                                                    <p className="font-medium text-gray-900">{item.description}</p>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <span className={`text-xs font-medium ${typeLabel.color}`}>{typeLabel.text}</span>
+                                                        <span className="text-xs text-gray-500">{new Date(item.createdAt).toLocaleDateString("ja-JP")}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`font-semibold ${item.amount > 0 ? "text-blue-600" : "text-gray-900"}`}>
+                                                        {item.amount > 0 ? "+" : ""}{item.amount.toLocaleString()}円
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">残高: ¥{item.balance.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -506,6 +715,21 @@ export function SimpleAccountPage({
                     </div>
                 </div>
             )}
+
+            {showChargeModal && (
+                <ChargeModal
+                    handle={handle || undefined}
+                    tier={creditsData?.tier || 0}
+                    variant="studio-pro" // ライト・プロベースでの共通デザインにするため固定または適宜調整
+                    onClose={() => {
+                        setShowChargeModal(false);
+                        invalidateCredits(handle || undefined);
+                    }}
+                    onSuccess={() => {
+                        invalidateCredits(handle || undefined);
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -513,6 +737,10 @@ export function SimpleAccountPage({
 // 各ページ用のエクスポート
 export function SimpleAccountBillingPage(props: Omit<SimpleAccountPageProps, "currentPage">) {
     return <SimpleAccountPage {...props} currentPage="billing" />;
+}
+
+export function SimpleAccountCreditsPage(props: Omit<SimpleAccountPageProps, "currentPage">) {
+    return <SimpleAccountPage {...props} currentPage="credits" />;
 }
 
 export function SimpleAccountSecurityPage(props: Omit<SimpleAccountPageProps, "currentPage">) {

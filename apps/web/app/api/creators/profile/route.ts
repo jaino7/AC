@@ -22,12 +22,14 @@ export async function GET(request: NextRequest) {
                     bio: true,
                     theme: true,
                     logoUrl: true,
+                    headerUrl: true,
                     faviconUrl: true,
                     twitterUrl: true,
                     instagramUrl: true,
                     tiktokUrl: true,
                     discordUrl: true,
                     otherUrl: true,
+                    otherUrlName: true,
                 },
             });
         } else {
@@ -48,12 +50,14 @@ export async function GET(request: NextRequest) {
                             bio: true,
                             theme: true,
                             logoUrl: true,
+                            headerUrl: true,
                             faviconUrl: true,
                             twitterUrl: true,
                             instagramUrl: true,
                             tiktokUrl: true,
                             discordUrl: true,
                             otherUrl: true,
+                            otherUrlName: true,
                             creatorSubscription: {
                                 select: {
                                     status: true,
@@ -124,7 +128,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl } = body;
+        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl } = body;
 
         console.log("Updating profile for:", user.creatorProfile.id, "with data:", {
             displayName,
@@ -133,7 +137,9 @@ export async function PUT(request: NextRequest) {
             instagramUrl,
             tiktokUrl,
             discordUrl,
-            otherUrl
+            otherUrl,
+            otherUrlName,
+            headerUrl
         });
 
         // Validate input
@@ -155,6 +161,8 @@ export async function PUT(request: NextRequest) {
                 ...(tiktokUrl !== undefined && { tiktokUrl: tiktokUrl?.trim() || null }),
                 ...(discordUrl !== undefined && { discordUrl: discordUrl?.trim() || null }),
                 ...(otherUrl !== undefined && { otherUrl: otherUrl?.trim() || null }),
+                ...(otherUrlName !== undefined && { otherUrlName: otherUrlName?.trim() || null }),
+                ...(headerUrl !== undefined && { headerUrl: headerUrl?.trim() || null }),
             },
             select: {
                 id: true,
@@ -163,12 +171,14 @@ export async function PUT(request: NextRequest) {
                 bio: true,
                 theme: true,
                 logoUrl: true,
+                headerUrl: true,
                 faviconUrl: true,
                 twitterUrl: true,
                 instagramUrl: true,
                 tiktokUrl: true,
                 discordUrl: true,
                 otherUrl: true,
+                otherUrlName: true,
             },
         });
 

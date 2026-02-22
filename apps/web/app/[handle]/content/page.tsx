@@ -56,7 +56,7 @@ export default async function Page({ params }: ContentPageProps) {
 
                 // FanProfileが存在しない場合は作成
                 if (!existingFanProfile) {
-                    const displayName = session.user.name || session.user.email?.split("@")[0] || "ユーザー";
+                    const displayName = session.user.name || session.user.email?.split("@")[0] || "ゲスト";
 
                     await prisma.fanProfile.create({
                         data: {

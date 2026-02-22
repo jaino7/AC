@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generatePresignedUrl } from "@/lib/r2";
 import { generatePresignedUrlMock } from "@/lib/r2-mock";
+import { prisma } from "@creator/shared";
+import { STORAGE_LIMITS } from "@/app/api/creators/storage/route";
 
 export async function POST(request: Request) {
     // 認証チェック（セッションの存在確認のみ）
@@ -16,7 +18,42 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { filename, contentType } = body;
+        const { filename, contentType, fileSize } = body;
+
+        // ストレージ容量チェック
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+        });
+
+        if (user) {
+            const creatorProfile = await prisma.creatorProfile.findUnique({
+                where: { userId: user.id },
+            });
+
+            if (creatorProfile) {
+                const sizeResult = await prisma.$queryRaw<Array<{ total: number }>>`
+                    SELECT COALESCE(SUM(m."size"), 0)::int as total
+                    FROM "Media" m
+                    INNER JOIN "Post" p ON m."postId" = p."id"
+                    WHERE p."creatorId" = ${creatorProfile.id}
+                `;
+                const planResult = await prisma.$queryRaw<Array<{ storagePlan: string }>>`
+                    SELECT "storagePlan" FROM "CreatorProfile" WHERE "id" = ${creatorProfile.id}
+                `;
+
+                const usedBytes = sizeResult[0]?.total || 0;
+                const plan = planResult[0]?.storagePlan || "FREE";
+                const limitBytes = STORAGE_LIMITS[plan] || STORAGE_LIMITS.FREE;
+                const uploadSize = fileSize || 0;
+
+                if (usedBytes + uploadSize > limitBytes) {
+                    return NextResponse.json(
+                        { error: "ストレージ容量の上限に達しました。プランをアップグレードしてください。" },
+                        { status: 403 }
+                    );
+                }
+            }
+        }
 
         // バリデーション
         if (!filename || !contentType) {

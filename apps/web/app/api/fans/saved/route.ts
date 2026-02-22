@@ -40,6 +40,17 @@ export async function GET(request: NextRequest) {
             include: {
                 post: {
                     include: {
+                        media: {
+                            select: {
+                                id: true,
+                                url: true,
+                                type: true,
+                                isSample: true,
+                            },
+                            orderBy: {
+                                createdAt: "asc",
+                            },
+                        },
                         folder: {
                             select: {
                                 id: true,

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
         // クエリパラメータから期間とタブを取得
         const { searchParams } = new URL(request.url);
-        const tab = searchParams.get("tab") || "plans"; // "plans" or "purchases"
+        const tab = searchParams.get("tab") || "plans"; // "revenue", "plans" or "purchases"
         const days = parseInt(searchParams.get("days") || "30", 10);
 
         // 期間の計算
@@ -131,6 +131,63 @@ export async function GET(request: NextRequest) {
             subscriptionRevenue: currentSubscriptionRevenue,
             revenueChange: totalRevenueChange,
         };
+
+        if (tab === "revenue") {
+            // 合計収益のチャートデータ（日別: サブスク金額 + 単体購入金額）
+            const [dailySubRevenue, dailyPurchaseRevenue] = await Promise.all([
+                prisma.$queryRaw<Array<{ date: Date; total: number }>>`
+                    SELECT
+                        DATE("paidAt") as date,
+                        COALESCE(SUM("amount"), 0)::int as total
+                    FROM "Transaction"
+                    WHERE "creatorId" = ${creatorProfile.id}
+                    AND "status" = 'PAID'
+                    AND "paidAt" >= ${startDate}
+                    AND "paidAt" <= ${endDate}
+                    GROUP BY DATE("paidAt")
+                    ORDER BY date
+                `,
+                prisma.$queryRaw<Array<{ date: Date; total: number }>>`
+                    SELECT
+                        DATE("purchasedAt") as date,
+                        COALESCE(SUM("amount"), 0)::int as total
+                    FROM "Purchase"
+                    WHERE "fanId" IN (
+                        SELECT id FROM "FanProfile" WHERE "creatorId" = ${creatorProfile.id}
+                    )
+                    AND "purchasedAt" >= ${startDate}
+                    AND "purchasedAt" <= ${endDate}
+                    GROUP BY DATE("purchasedAt")
+                    ORDER BY date
+                `,
+            ]);
+
+            // 日付ごとに合算
+            const revenueChartData: Array<{ date: string; amount: number }> = [];
+            for (let i = 0; i < days; i++) {
+                const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+                const dateStr = date.toISOString().split("T")[0];
+
+                const subDay = dailySubRevenue.find(
+                    (d) => d.date.toISOString().split("T")[0] === dateStr
+                );
+                const purchaseDay = dailyPurchaseRevenue.find(
+                    (d) => d.date.toISOString().split("T")[0] === dateStr
+                );
+
+                revenueChartData.push({
+                    date: dateStr,
+                    amount: (subDay?.total || 0) + (purchaseDay?.total || 0),
+                });
+            }
+
+            return NextResponse.json({
+                overall: overallRevenue,
+                charts: {
+                    revenue: revenueChartData,
+                },
+            });
+        }
 
         if (tab === "plans") {
             // プラン購入者のアナリティクス
@@ -256,6 +313,30 @@ export async function GET(request: NextRequest) {
                 });
             }
 
+            // 日別収益チャート（サブスク収益）
+            const dailySubRevenue = await prisma.$queryRaw<Array<{ date: Date; total: number }>>`
+                SELECT
+                    DATE("paidAt") as date,
+                    COALESCE(SUM("amount"), 0)::int as total
+                FROM "Transaction"
+                WHERE "creatorId" = ${creatorProfile.id}
+                AND "status" = 'PAID'
+                AND "paidAt" >= ${startDate}
+                AND "paidAt" <= ${endDate}
+                GROUP BY DATE("paidAt")
+                ORDER BY date
+            `;
+
+            const revenueChart: Array<{ date: string; amount: number }> = [];
+            for (let i = 0; i < days; i++) {
+                const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+                const dateStr = date.toISOString().split("T")[0];
+                const dayData = dailySubRevenue.find(
+                    (d) => d.date.toISOString().split("T")[0] === dateStr
+                );
+                revenueChart.push({ date: dateStr, amount: dayData?.total || 0 });
+            }
+
             return NextResponse.json({
                 overall: overallRevenue,
                 plans: {
@@ -266,6 +347,8 @@ export async function GET(request: NextRequest) {
                     revenueChange,
                 },
                 charts: chartData,
+                revenueChart,
+                planNames: Object.fromEntries(plans.map((p: any) => [p.id, p.name])),
             });
         } else {
             // 単体購入のアナリティクス
@@ -383,6 +466,31 @@ export async function GET(request: NextRequest) {
                 });
             }
 
+            // 日別収益チャート（単体購入収益）
+            const dailyPurchaseRevenue = await prisma.$queryRaw<Array<{ date: Date; total: number }>>`
+                SELECT
+                    DATE("purchasedAt") as date,
+                    COALESCE(SUM("amount"), 0)::int as total
+                FROM "Purchase"
+                WHERE "fanId" IN (
+                    SELECT id FROM "FanProfile" WHERE "creatorId" = ${creatorProfile.id}
+                )
+                AND "purchasedAt" >= ${startDate}
+                AND "purchasedAt" <= ${endDate}
+                GROUP BY DATE("purchasedAt")
+                ORDER BY date
+            `;
+
+            const revenueChart: Array<{ date: string; amount: number }> = [];
+            for (let i = 0; i < days; i++) {
+                const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+                const dateStr = date.toISOString().split("T")[0];
+                const dayData = dailyPurchaseRevenue.find(
+                    (d) => d.date.toISOString().split("T")[0] === dateStr
+                );
+                revenueChart.push({ date: dateStr, amount: dayData?.total || 0 });
+            }
+
             return NextResponse.json({
                 overall: overallRevenue,
                 purchases: {
@@ -396,6 +504,7 @@ export async function GET(request: NextRequest) {
                 charts: {
                     purchases: chartData,
                 },
+                revenueChart,
             });
         }
     } catch (error) {

@@ -18,7 +18,7 @@ function StudioProBillingPageContent() {
     return (
         <SimpleAccountBillingPage
             handle={handle}
-            displayName="ユーザー"
+            
             logoUrl={null}
         />
     );
