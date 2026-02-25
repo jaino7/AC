@@ -365,6 +365,8 @@ model Post {
 
   price Int? // 単体購入価格（nullの場合は無料または購入不可）
 
+  isAdultContent Boolean @default(false) // アダルトコンテンツフラグ（本人確認必須）
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

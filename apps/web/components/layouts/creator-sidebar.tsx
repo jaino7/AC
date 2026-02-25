@@ -10,7 +10,8 @@ import {
     ChartBarIcon,
     DollarSignIcon,
     SettingsIcon,
-    CreditCardIcon
+    CreditCardIcon,
+    PaletteIcon
 } from "./icons";
 
 const getNavigation = (handle: string) => [
@@ -19,7 +20,7 @@ const getNavigation = (handle: string) => [
     { name: "アナリティクス", href: `/creators/${handle}/analytics`, icon: ChartBarIcon },
     { name: "プラン設定", href: `/creators/${handle}/c-plans`, icon: CreditCardIcon },
     { name: "収益", href: `/creators/${handle}/earnings`, icon: DollarSignIcon },
-    { name: "テーマ", href: `/creators/${handle}/settings/theme`, icon: SettingsIcon },
+    { name: "テーマ", href: `/creators/${handle}/settings/theme`, icon: PaletteIcon },
     { name: "設定", href: `/creators/${handle}/settings`, icon: SettingsIcon }
 ];
 

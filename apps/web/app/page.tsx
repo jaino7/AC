@@ -139,22 +139,40 @@ function useScrollAnimation() {
 
 // --- Components ---
 
+type ParticleStyle = {
+  left: string;
+  bottom: string;
+  animationDuration: string;
+  animationDelay: string;
+  opacity: number;
+  width: string;
+  height: string;
+};
+
 function Particles() {
+  const [particles, setParticles] = useState<ParticleStyle[]>([]);
+
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 20 }).map(() => ({
+        left: `${Math.random() * 100}%`,
+        bottom: `-${Math.random() * 20}%`,
+        animationDuration: `${6 + Math.random() * 8}s`,
+        animationDelay: `${Math.random() * 8}s`,
+        opacity: 0.3 + Math.random() * 0.5,
+        width: `${2 + Math.random() * 3}px`,
+        height: `${2 + Math.random() * 3}px`,
+      }))
+    );
+  }, []);
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 20 }).map((_, i) => (
+      {particles.map((style, i) => (
         <div
           key={i}
           className="particle"
-          style={{
-            left: `${Math.random() * 100}%`,
-            bottom: `-${Math.random() * 20}%`,
-            animationDuration: `${6 + Math.random() * 8}s`,
-            animationDelay: `${Math.random() * 8}s`,
-            opacity: 0.3 + Math.random() * 0.5,
-            width: `${2 + Math.random() * 3}px`,
-            height: `${2 + Math.random() * 3}px`,
-          }}
+          style={style}
         />
       ))}
     </div>
@@ -180,9 +198,11 @@ export default function LandingPage() {
   const [isFading, setIsFading] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Catchphrase rotation
   useEffect(() => {
+    setMounted(true);
     const interval = setInterval(() => {
       setIsFading(true);
       setTimeout(() => {
@@ -204,9 +224,8 @@ export default function LandingPage() {
     <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #040B1A 0%, #0A1628 100%)" }}>
       {/* ===== Navigation ===== */}
       <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          scrolled ? "bg-[#040B1A]/80 backdrop-blur-xl shadow-lg shadow-black/20" : "bg-transparent"
-        }`}
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-[#040B1A]/80 backdrop-blur-xl shadow-lg shadow-black/20" : "bg-transparent"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Left navigation */}
@@ -261,9 +280,8 @@ export default function LandingPage() {
           {/* Rotating catchphrase */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
             <span
-              className={`inline-block transition-all duration-500 ${
-                isFading ? "opacity-0 translate-y-[-10px]" : "opacity-100 translate-y-0"
-              }`}
+              className={`inline-block transition-all duration-500 ${!mounted || isFading ? "opacity-0 translate-y-[-10px]" : "opacity-100 translate-y-0"
+                }`}
               style={{
                 background: "linear-gradient(135deg, #FFFFFF 30%, #C5A059 100%)",
                 WebkitBackgroundClip: "text",
@@ -396,21 +414,19 @@ export default function LandingPage() {
             <div className="inline-flex rounded-full p-1 border border-white/10 bg-white/5">
               <button
                 onClick={() => setBillingCycle("monthly")}
-                className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${
-                  billingCycle === "monthly"
-                    ? "bg-white text-[#040B1A]"
-                    : "text-white/60 hover:text-white"
-                }`}
+                className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${billingCycle === "monthly"
+                  ? "bg-white text-[#040B1A]"
+                  : "text-white/60 hover:text-white"
+                  }`}
               >
                 月払い
               </button>
               <button
                 onClick={() => setBillingCycle("yearly")}
-                className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${
-                  billingCycle === "yearly"
-                    ? "bg-white text-[#040B1A]"
-                    : "text-white/60 hover:text-white"
-                }`}
+                className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${billingCycle === "yearly"
+                  ? "bg-white text-[#040B1A]"
+                  : "text-white/60 hover:text-white"
+                  }`}
               >
                 年払い（2ヶ月分お得）
               </button>
@@ -427,11 +443,10 @@ export default function LandingPage() {
               return (
                 <AnimatedSection key={plan.id}>
                   <div
-                    className={`relative rounded-2xl p-8 border transition-all duration-300 h-full flex flex-col ${
-                      isHighlighted
-                        ? "border-[#C5A059]/50 bg-white/[0.08] backdrop-blur-sm scale-[1.02]"
-                        : "border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/[0.08]"
-                    }`}
+                    className={`relative rounded-2xl p-8 border transition-all duration-300 h-full flex flex-col ${isHighlighted
+                      ? "border-[#C5A059]/50 bg-white/[0.08] backdrop-blur-sm scale-[1.02]"
+                      : "border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/[0.08]"
+                      }`}
                   >
                     {isHighlighted && (
                       <div
@@ -476,11 +491,10 @@ export default function LandingPage() {
 
                     <Link
                       href={plan.id === "free" ? "/creators/signup" : `/creators/pricing/${plan.id}-${billingCycle === "monthly" ? "m" : "y"}`}
-                      className={`block w-full text-center py-3.5 rounded-xl font-semibold transition-all hover:scale-[1.02] ${
-                        isHighlighted
-                          ? "text-[#040B1A]"
-                          : "bg-white/10 text-white hover:bg-white/20"
-                      }`}
+                      className={`block w-full text-center py-3.5 rounded-xl font-semibold transition-all hover:scale-[1.02] ${isHighlighted
+                        ? "text-[#040B1A]"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
                       style={isHighlighted ? { background: "linear-gradient(135deg, #C5A059, #D4AF6A)" } : undefined}
                     >
                       {plan.cta}
@@ -618,9 +632,7 @@ export default function LandingPage() {
               <br />
               最大の手残りを手に入れよう。
             </h2>
-            <p className="text-white/50 mb-10 text-lg">
-              登録は無料。クレジットカードも不要です。
-            </p>
+
             <Link
               href="/creators/signup"
               className="group inline-flex items-center gap-2 text-lg font-bold px-12 py-5 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
@@ -692,7 +704,7 @@ export default function LandingPage() {
 
           <div className="border-t border-white/5 pt-6 text-center">
             <p className="text-sm text-white/30">
-              &copy; {new Date().getFullYear()} CocoBa. All rights reserved.
+              &copy; 2025 CocoBa. All rights reserved.
             </p>
           </div>
         </div>

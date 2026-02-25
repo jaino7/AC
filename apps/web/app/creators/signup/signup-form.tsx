@@ -85,11 +85,8 @@ export const SignupForm = () => {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-      <div className="space-y-2 text-center">
+      <div className="space-y-2 text-center pb-2">
         <h2 className="text-2xl font-semibold">アカウントを作成</h2>
-        <p className="text-sm text-neutral-500">
-          Googleで登録するか、メールアドレスで登録するとすぐにダッシュボードへ移動します。
-        </p>
       </div>
 
       <Button

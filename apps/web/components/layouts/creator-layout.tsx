@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { CreatorSidebar } from "./creator-sidebar";
 import { CreatorHeader } from "./creator-header";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,17 @@ interface CreatorLayoutProps {
 
 export function CreatorLayout({ children }: CreatorLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const pathname = usePathname();
+
+    const isAuthPage =
+        pathname?.startsWith("/creators/signup") ||
+        pathname?.startsWith("/creators/login") ||
+        pathname?.startsWith("/creators/password-reset") ||
+        pathname?.startsWith("/creators/verify-email");
+
+    if (isAuthPage) {
+        return <div className="min-h-screen bg-white">{children}</div>;
+    }
 
     return (
         <div className="min-h-screen bg-white">

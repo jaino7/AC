@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds, sampleMedia, mainMedia, singleSalePrice } = body;
+        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds, sampleMedia, mainMedia, singleSalePrice, isAdultContent } = body;
 
         // バリデーション
         if (!title || title.trim() === "") {
@@ -47,7 +47,12 @@ export async function POST(req: Request) {
 
         const creatorProfile = await prisma.creatorProfile.findUnique({
             where: { userId: user.id },
-            select: { id: true }
+            select: {
+                id: true,
+                identityVerification: {
+                    select: { status: true }
+                }
+            }
         });
 
         if (!creatorProfile) {
@@ -55,6 +60,17 @@ export async function POST(req: Request) {
                 { error: "クリエイタープロフィールが見つかりません" },
                 { status: 404 }
             );
+        }
+
+        // アダルトコンテンツの場合、本人確認済みかチェック
+        if (isAdultContent) {
+            const verificationStatus = creatorProfile.identityVerification?.status;
+            if (verificationStatus !== "APPROVED") {
+                return NextResponse.json(
+                    { error: "アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。" },
+                    { status: 403 }
+                );
+            }
         }
 
         // 投稿を作成
@@ -68,7 +84,8 @@ export async function POST(req: Request) {
                 folderId: folderId || null,
                 visibility: visibility || "PUBLIC",
                 isLocked: isLocked || false,
-                requiredPlanId: requiredPlanId || null
+                requiredPlanId: requiredPlanId || null,
+                isAdultContent: isAdultContent || false
             }
         });
 

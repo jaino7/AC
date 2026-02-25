@@ -49,6 +49,10 @@ export default function NewContentPage() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+    // アダルトコンテンツ設定
+    const [isAdultContent, setIsAdultContent] = useState(false);
+    const [verificationStatus, setVerificationStatus] = useState<string>("NONE");
+
     // プラン一覧を取得
     useEffect(() => {
         const fetchPlans = async () => {
@@ -67,6 +71,23 @@ export default function NewContentPage() {
         };
 
         fetchPlans();
+    }, []);
+
+    // 本人確認ステータスを取得
+    useEffect(() => {
+        const fetchVerificationStatus = async () => {
+            try {
+                const response = await fetch("/api/creators/identity-verification/status");
+                if (response.ok) {
+                    const data = await response.json();
+                    setVerificationStatus(data.status);
+                }
+            } catch (error) {
+                console.error("Failed to fetch verification status:", error);
+            }
+        };
+
+        fetchVerificationStatus();
     }, []);
 
     // R2にファイルをアップロード
@@ -285,6 +306,7 @@ export default function NewContentPage() {
             isLocked: boolean;
             requiredPlanId?: string;
             singleSalePrice?: number;
+            isAdultContent?: boolean;
         }) => {
             const response = await fetch("/api/creators/content", {
                 method: "POST",
@@ -319,6 +341,12 @@ export default function NewContentPage() {
             return;
         }
 
+        // アダルトコンテンツチェック
+        if (isAdultContent && verificationStatus !== "APPROVED") {
+            setErrorMessage("アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。");
+            return;
+        }
+
         let visibility = "PUBLIC";
         if (publishMode === "draft") {
             visibility = "DRAFT";
@@ -340,6 +368,7 @@ export default function NewContentPage() {
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
             singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
+            isAdultContent,
         });
     };
 
@@ -349,6 +378,12 @@ export default function NewContentPage() {
 
         if (!title.trim()) {
             setErrorMessage("タイトルは必須です");
+            return;
+        }
+
+        // アダルトコンテンツチェック
+        if (isAdultContent && verificationStatus !== "APPROVED") {
+            setErrorMessage("アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。");
             return;
         }
 
@@ -366,6 +401,7 @@ export default function NewContentPage() {
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
             singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
+            isAdultContent,
         });
     };
 
@@ -754,6 +790,50 @@ export default function NewContentPage() {
                                 )}
                             </div>
                         </div>
+
+                        {/* アダルトコンテンツ設定（本人確認済みでない場合のみ表示） */}
+                        {verificationStatus !== "APPROVED" && (
+                            <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-neutral-500">
+                                    コンテンツ区分
+                                </h3>
+                                <label className="flex cursor-pointer items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={isAdultContent}
+                                        onChange={(e) => setIsAdultContent(e.target.checked)}
+                                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                    />
+                                    <div>
+                                        <span className="text-sm font-semibold text-neutral-900">アダルトコンテンツ</span>
+                                        <p className="mt-1 text-xs text-neutral-500">
+                                            18歳以上向けのコンテンツの場合はチェックしてください
+                                        </p>
+                                    </div>
+                                </label>
+                                {isAdultContent && verificationStatus !== "APPROVED" && (
+                                    <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-3">
+                                        <div className="flex items-start gap-2">
+                                            <span className="text-sm">⚠️</span>
+                                            <div>
+                                                <p className="text-xs font-semibold text-red-900">
+                                                    本人確認が必要です
+                                                </p>
+                                                <p className="mt-1 text-xs text-red-800">
+                                                    アダルトコンテンツの投稿には本人確認が必要です。
+                                                </p>
+                                                <a
+                                                    href="/creators/verify-identity"
+                                                    className="mt-2 inline-block text-xs font-semibold text-red-700 underline hover:text-red-900"
+                                                >
+                                                    本人確認を申請する →
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </aside>
                 </div>
             </div>

@@ -89,6 +89,10 @@ export default function SettingsContent() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
 
+    // Identity verification state
+    const [verificationStatus, setVerificationStatus] = useState<string>("NONE");
+    const [verificationRejectReason, setVerificationRejectReason] = useState<string | null>(null);
+
     // Fetch profile data on mount
     useEffect(() => {
         const fetchProfile = async () => {
@@ -121,7 +125,21 @@ export default function SettingsContent() {
             }
         };
 
+        const fetchVerificationStatus = async () => {
+            try {
+                const response = await fetch("/api/creators/identity-verification/status");
+                if (response.ok) {
+                    const data = await response.json();
+                    setVerificationStatus(data.status);
+                    setVerificationRejectReason(data.rejectReason || null);
+                }
+            } catch (error) {
+                console.error("Failed to fetch verification status:", error);
+            }
+        };
+
         fetchProfile();
+        fetchVerificationStatus();
     }, []);
 
     // Fetch domain data when domain tab is active
@@ -447,6 +465,80 @@ export default function SettingsContent() {
                     <div className="flex-1 space-y-6">
                         {activeTab === "profile" && (
                             <>
+                                {/* Identity Verification Status */}
+                                {verificationStatus === "NONE" && (
+                                    <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-2xl">⚠️</span>
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-yellow-900">
+                                                    本人確認が完了していません
+                                                </p>
+                                                <p className="mt-1 text-sm text-yellow-800">
+                                                    アダルトコンテンツの投稿には本人確認が必要です。
+                                                </p>
+                                                <a
+                                                    href="/creators/verify-identity"
+                                                    className="mt-3 inline-block rounded-2xl bg-yellow-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-yellow-700"
+                                                >
+                                                    本人確認を申請する
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {verificationStatus === "PENDING" && (
+                                    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-2xl">🕐</span>
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-blue-900">
+                                                    本人確認書類を審査中です
+                                                </p>
+                                                <p className="mt-1 text-sm text-blue-800">
+                                                    審査は通常1〜3営業日で完了します。しばらくお待ちください。
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {verificationStatus === "APPROVED" && (
+                                    <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">✅</span>
+                                            <p className="font-semibold text-green-900">
+                                                本人確認済み
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {verificationStatus === "REJECTED" && (
+                                    <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-2xl">❌</span>
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-red-900">
+                                                    本人確認が却下されました
+                                                </p>
+                                                {verificationRejectReason && (
+                                                    <p className="mt-1 text-sm text-red-800">
+                                                        却下理由: {verificationRejectReason}
+                                                    </p>
+                                                )}
+                                                <a
+                                                    href="/creators/verify-identity"
+                                                    className="mt-3 inline-block rounded-2xl bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                                                >
+                                                    再申請する
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Basic Info */}
                                 <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                     <h2 className="mb-6 text-xl font-semibold">基本情報</h2>
@@ -696,11 +788,7 @@ export default function SettingsContent() {
                                                     <span className="text-sm font-semibold text-neutral-700">
                                                         現在のプラン: {subscription.plan.name}
                                                     </span>
-                                                    {subscription.status === "ACTIVE" && (
-                                                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                                            有効
-                                                        </span>
-                                                    )}
+
                                                     {subscription.status === "CANCELLED" && (
                                                         <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
                                                             キャンセル済み

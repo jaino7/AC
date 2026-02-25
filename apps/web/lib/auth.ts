@@ -89,20 +89,69 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET || "your-secret-key-change-in-production",
-  // Cookie設定を明示的に指定
+  // Nginxプロキシ環境向けCookie設定
+  // Next.jsはlocalhost:3000(HTTP)で動くため、middlewareはHTTPと認識して
+  // プレフィックスなし(next-auth.session-token)を探す
+  // → useSecureCookies: false でプレフィックスなし名称を使い両者を一致させる
+  useSecureCookies: false,
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
+      },
+    },
+    callbackUrl: {
+      name: 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+      },
+    },
+    csrfToken: {
+      name: 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+      },
+    },
+    pkceCodeVerifier: {
+      name: 'next-auth.pkce.code-verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+        maxAge: 900,
+      },
+    },
+    state: {
+      name: 'next-auth.state',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+        maxAge: 900,
+      },
+    },
+    nonce: {
+      name: 'next-auth.nonce',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
       },
     },
   },
-  // localhostでは非セキュアCookieを使用
-  useSecureCookies: process.env.NODE_ENV === 'production',
   // pages: {
   //   signIn: "/creators/login"  // デフォルトのサインインページを強制しない
   // },
