@@ -267,10 +267,23 @@ export default withAuth(
         return NextResponse.next();
     },
     {
+        // NEXTAUTH_SECRETを明示指定してセッションCookieを正しく読む
+        secret: process.env.NEXTAUTH_SECRET || "your-secret-key-change-in-production",
+        // Nginx環境向けにプレフィックスなしのCookie名を設定（auth.tsと一致させる）
+        cookies: {
+            sessionToken: {
+                name: 'next-auth.session-token',
+            }
+        },
         callbacks: {
             authorized: ({ token, req }) => {
                 const path = req.nextUrl.pathname;
                 const adminPathKey = process.env.ADMIN_PATH_KEY;
+
+                // デバッグログ（問題解決後に削除可）
+                if (path.startsWith('/creators')) {
+                    console.log(`[MW] path=${path} token=${token ? 'OK' : 'NULL'}`);
+                }
 
                 // Public paths that don't require authentication
                 if (
