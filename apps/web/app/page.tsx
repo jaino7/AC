@@ -627,7 +627,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-16 leading-tight">
               さあ、真の自由と、
               <br />
               最大の手残りを手に入れよう。
