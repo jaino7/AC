@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body className={notoSans.className}>
+    <html lang="ja" suppressHydrationWarning>
+      <body className={notoSans.className} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
