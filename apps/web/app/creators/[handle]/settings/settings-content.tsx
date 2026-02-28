@@ -903,7 +903,7 @@ export default function SettingsContent() {
                                                             <span className="text-3xl font-bold">¥0</span>
                                                             <span className="text-sm text-neutral-500">/月</span>
                                                         </div>
-                                                        <p className="mt-2 text-xs text-neutral-600">手数料率: {subscription?.plan?.type === "FREE" ? subscription.plan.feeRate : 10}%</p>
+                                                        <p className="mt-2 text-xs text-neutral-600">手数料率: {subscription?.plan?.type === "FREE" ? subscription.plan.feeRate * 100 : 10}%</p>
 
                                                         {isCurrent ? (
                                                             <div className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-green-100 py-2.5 text-sm font-semibold text-green-700">
@@ -962,7 +962,7 @@ export default function SettingsContent() {
                                                                 </p>
                                                             )}
                                                             <p className="mt-2 text-xs text-neutral-600">
-                                                                手数料率: {plan.feeRate}%
+                                                                手数料率: {plan.feeRate * 100}%
                                                             </p>
 
                                                             {isCurrent ? (
