@@ -4,6 +4,7 @@ import { BankTransfersService } from '../bank-transfers/bank-transfers.service';
 import { CreateChargeDto } from './dto/create-charge.dto';
 import { BankTransferType, ChargeRequestStatus, CreatorSubscriptionStatus, CreatorPlanType } from '@prisma/client';
 import { calculateNextBillingDate } from '../common/utils/date.util';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -56,6 +57,9 @@ export class PaymentsService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    // Generate a unique identifier code for the charge request (required by schema)
+    const identifierCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
     // 4. ChargeRequestを作成
     const chargeRequest = await this.prisma.chargeRequest.create({
       data: {
@@ -63,6 +67,7 @@ export class PaymentsService {
         amount: dto.amount,
         status: ChargeRequestStatus.PENDING,
         expiresAt,
+        identifierCode,
       },
     });
 

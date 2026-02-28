@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { BankTransferClaimStatus, BankTransfer, BankTransferClaim } from '@prisma/client';
 import { DiscordService } from '../notifications/discord.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ClaimsService {
@@ -90,6 +91,9 @@ export class ClaimsService {
     );
 
     // Create claim
+    // Generate a unique identifier code for the claim (required by schema)
+    const identifierCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
     const claim = await this.prisma.bankTransferClaim.create({
       data: {
         fanId,
@@ -98,6 +102,7 @@ export class ClaimsService {
         immediateCredit,
         pendingCredit,
         status: BankTransferClaimStatus.PENDING,
+        identifierCode,
       },
     });
 
