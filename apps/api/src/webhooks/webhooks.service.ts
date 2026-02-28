@@ -2,12 +2,13 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BankDepositDto } from './dto/bank-deposit.dto';
 import { BankTransferType, BankTransferStatus } from '@prisma/client';
+import { calculateNextBillingDate } from '../common/utils/date.util';
 
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Make連携: 銀行入金Webhook処理
@@ -169,12 +170,7 @@ export class WebhooksService {
 
     // サブスクリプションを有効化
     const now = new Date();
-    const endDate = new Date(now);
-    if (subscription.isYearly) {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    } else {
-      endDate.setMonth(endDate.getMonth() + 1);
-    }
+    const endDate = calculateNextBillingDate(now, subscription.isYearly);
 
     const updatedSubscription = await this.prisma.creatorSubscription.update({
       where: { id: subscription.id },

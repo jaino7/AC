@@ -29,7 +29,7 @@ async function main() {
   console.log(`✓ ChargeRequest ID: ${chargeRequest.id}`);
   console.log(`  - Status: ${chargeRequest.status}`);
   console.log(`  - Amount: ${chargeRequest.amount}円`);
-  console.log(`  - Identifier Code: ${chargeRequest.identifierCode}`);
+
   console.log(`  - Transferor Name: ${chargeRequest.transferorName || 'N/A'}`);
   console.log(`  - Approved At: ${chargeRequest.approvedAt || 'N/A'}`);
 

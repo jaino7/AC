@@ -117,9 +117,8 @@ async function testWebhookFlow() {
         fanId: testFanProfileId,
         amount: chargeAmount,
         status: ChargeRequestStatus.PENDING,
-        identifierCode: `TEST-${Date.now()}`,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      },
+      } as any, // Schema generated dynamically, bypass for test script
     });
     testChargeRequestId = chargeRequest.id;
     logResult('2.1', true, `Created ChargeRequest: ${chargeRequest.id}, amount: ¥${chargeAmount}`);

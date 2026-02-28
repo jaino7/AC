@@ -395,9 +395,8 @@ model ChargeRequest {
   fanId String
   fan   FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
 
-  amount         Int // 申請金額（円）
+  amount         Int // 予定チャージ額（円）
   status         ChargeRequestStatus @default(PENDING)
-  identifierCode String              @unique // 振込識別コード
 
   // 振込情報
   transferorName String? // 振込人名義
@@ -419,8 +418,8 @@ model ChargeRequest {
   bankTransfers BankTransfer[]
 
   @@index([fanId])
-  @@index([identifierCode])
   @@index([status])
+  @@index([expiresAt])
 }
 
 // クレジット履歴
@@ -454,8 +453,7 @@ model BankTransferClaim {
   fan   FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
 
   // Claim details
-  amount         Int // Declared amount
-  identifierCode String // From ChargeRequest
+  amount         Int // ファンが申告した金額
   claimedAt      DateTime @default(now())
 
   // Processing status
@@ -569,7 +567,7 @@ model Transaction {
 
   // 銀行振込用フィールド
   userId         String? // 振込者のユーザーID
-  identifierCode String? // 振込名義人に含める識別コード
+  customerName   String? // 銀行振込時に記載する名義
   transferorName String? // 実際の振込名義人
   transferDate   DateTime? // 振込日時
 
@@ -579,7 +577,6 @@ model Transaction {
 
   @@index([creatorId, status])
   @@index([subscriptionId])
-  @@index([identifierCode])
   @@index([userId, status])
 }
 

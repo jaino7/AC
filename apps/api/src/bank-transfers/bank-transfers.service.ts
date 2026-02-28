@@ -12,6 +12,7 @@ import {
   ChargeRequestStatus,
   BankTransferClaimStatus,
 } from '@prisma/client';
+import { calculateNextBillingDate } from '../common/utils/date.util';
 
 @Injectable()
 export class BankTransfersService {
@@ -23,7 +24,7 @@ export class BankTransfersService {
     private mailService: MailService,
     @Inject(forwardRef(() => ClaimsService))
     private claimsService: ClaimsService,
-  ) {}
+  ) { }
 
   /**
    * GMO Webhookを処理
@@ -171,20 +172,8 @@ export class BankTransfersService {
     // 3. 残高が十分な場合、サブスクリプションをアクティブ化
     if (newBalance >= requiredAmount) {
       const now = new Date();
-      let endDate: Date;
-      let nextBillingDate: Date;
-
-      if (subscription.isYearly) {
-        // 年払い: 1年後
-        endDate = new Date(now);
-        endDate.setFullYear(endDate.getFullYear() + 1);
-        nextBillingDate = new Date(endDate);
-      } else {
-        // 月払い: 1ヶ月後
-        endDate = new Date(now);
-        endDate.setMonth(endDate.getMonth() + 1);
-        nextBillingDate = new Date(endDate);
-      }
+      let endDate: Date = calculateNextBillingDate(now, subscription.isYearly);
+      let nextBillingDate: Date = new Date(endDate);
 
       // サブスクリプションを更新
       await this.prisma.creatorSubscription.update({

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BankTransfersService } from '../bank-transfers/bank-transfers.service';
 import { CreateChargeDto } from './dto/create-charge.dto';
 import { BankTransferType, ChargeRequestStatus, CreatorSubscriptionStatus, CreatorPlanType } from '@prisma/client';
+import { calculateNextBillingDate } from '../common/utils/date.util';
 
 @Injectable()
 export class PaymentsService {
@@ -11,7 +12,7 @@ export class PaymentsService {
   constructor(
     private prisma: PrismaService,
     private bankTransfersService: BankTransfersService,
-  ) {}
+  ) { }
 
   /**
    * ChargeRequestを作成し、バーチャル口座を割り当て
@@ -51,20 +52,16 @@ export class PaymentsService {
       this.logger.log(`Created new FanProfile: ${fanProfile.id}`);
     }
 
-    // 3. 識別コードの生成（6桁のランダムな数字）
-    const identifierCode = this.generateIdentifierCode();
-
-    // 4. 有効期限の設定（7日後）
+    // 3. 有効期限の設定（7日後）
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // 5. ChargeRequestを作成
+    // 4. ChargeRequestを作成
     const chargeRequest = await this.prisma.chargeRequest.create({
       data: {
         fanId: fanProfile.id,
         amount: dto.amount,
         status: ChargeRequestStatus.PENDING,
-        identifierCode,
         expiresAt,
       },
     });
@@ -86,7 +83,6 @@ export class PaymentsService {
       return {
         chargeRequestId: chargeRequest.id,
         amount: chargeRequest.amount,
-        identifierCode: chargeRequest.identifierCode,
         expiresAt: chargeRequest.expiresAt,
         virtualAccount: {
           accountNumber: virtualAccount.accountNumber,
@@ -107,14 +103,6 @@ export class PaymentsService {
 
       throw error;
     }
-  }
-
-  /**
-   * 振込識別コードを生成（6桁の数字）
-   */
-  private generateIdentifierCode(): string {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    return code;
   }
 
   /**
@@ -147,8 +135,104 @@ export class PaymentsService {
       include: { plan: true },
     });
 
-    // 3. サブスクリプションが存在しない場合は作成
-    if (!subscription) {
+    const newAmount = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+    let amount = newAmount; // 最終的な請求額
+
+    const now = new Date();
+
+    // 3. 既存プランからの変更（日割り計算と即時決済のチェック）
+    if (subscription) {
+      const isReactivatingSamePlan =
+        subscription.planId === plan.id &&
+        subscription.isYearly === isYearly &&
+        subscription.status === CreatorSubscriptionStatus.CANCELLED;
+
+      if (subscription.planId === plan.id && subscription.isYearly === isYearly && !isReactivatingSamePlan) {
+        throw new BadRequestException('すでに同じプランを選択しています');
+      }
+
+      const hasRemainingPeriod = subscription.endDate && subscription.endDate > now;
+
+      // ACTIVE状態、またはキャンセル済みだが期間が残っている場合、日割り計算を行う
+      if (
+        (subscription.status === CreatorSubscriptionStatus.ACTIVE || subscription.status === CreatorSubscriptionStatus.CANCELLED) &&
+        hasRemainingPeriod
+      ) {
+        if (isReactivatingSamePlan) {
+          amount = 0; // 同じプランの再開は請求なし
+          this.logger.log(`Reactivating same plan with remaining period. amount=0`);
+        } else {
+          const msPerDay = 1000 * 60 * 60 * 24;
+          const remainingDays = Math.ceil(
+            (subscription.endDate!.getTime() - now.getTime()) / msPerDay,
+          );
+
+          const currentPlanAmount = subscription.isYearly
+            ? subscription.plan.yearlyPrice
+            : subscription.plan.monthlyPrice;
+
+          let totalDays = subscription.isYearly ? 365 : 30;
+          if (subscription.startDate && subscription.endDate) {
+            const actualDays = Math.ceil(
+              (subscription.endDate.getTime() - subscription.startDate.getTime()) / msPerDay,
+            );
+            if (actualDays > 0) totalDays = actualDays;
+          }
+
+          const dailyRate = currentPlanAmount / totalDays;
+          const unusedAmount = Math.floor(dailyRate * remainingDays);
+
+          amount = Math.max(0, newAmount - unusedAmount);
+          this.logger.log(`Proration calculated: unused=${unusedAmount}, newAmount=${newAmount}, billedAmount=${amount}`);
+        }
+      }
+
+      // 残高の確認 (既存サブスクが存在する場合は不足分をUIでチャージさせるため例外をスロー)
+      if (subscription.billingBalance < amount) {
+        throw new BadRequestException(
+          `INSUFFICIENT_BALANCE:${amount}:${subscription.billingBalance}`
+        );
+      }
+
+      // サブスクリプション更新データの構築
+      let updateData: any = {
+        planId: plan.id,
+        isYearly,
+      };
+
+      if (isReactivatingSamePlan && hasRemainingPeriod) {
+        // 再開: 期間はそのままにし、更新日だけを再設定する。請求は0円（すでに払っているため）。
+        updateData = {
+          ...updateData,
+          status: CreatorSubscriptionStatus.ACTIVE,
+          nextBillingDate: subscription.endDate,
+        };
+        this.logger.log(`Subscription reactivated immediately with remaining period.`);
+      } else {
+        // 全額/差額を残高から引き落として即時ACTIVEで決済期間を新しくスタートする
+        const endDate = calculateNextBillingDate(now, isYearly);
+
+        updateData = {
+          ...updateData,
+          status: CreatorSubscriptionStatus.ACTIVE,
+          billingBalance: subscription.billingBalance - amount,
+          startDate: now,
+          endDate: endDate,
+          nextBillingDate: new Date(endDate),
+        };
+        this.logger.log(`Subscription activated immediately. billed=${amount}, newBalance=${subscription.billingBalance - amount}`);
+      }
+
+      // 既存のサブスクリプションを更新
+      subscription = await this.prisma.creatorSubscription.update({
+        where: { id: subscription.id },
+        data: updateData,
+        include: { plan: true },
+      });
+      this.logger.log(`Updated existing subscription: ${subscription.id}`);
+
+    } else {
+      // サブスクリプションが存在しない場合は新規作成
       subscription = await this.prisma.creatorSubscription.create({
         data: {
           creatorId,
@@ -159,26 +243,9 @@ export class PaymentsService {
         include: { plan: true },
       });
       this.logger.log(`Created new subscription: ${subscription.id}`);
-    } else {
-      // 既存のサブスクリプションを更新（プラン変更や支払い周期変更）
-      subscription = await this.prisma.creatorSubscription.update({
-        where: { id: subscription.id },
-        data: {
-          planId: plan.id,
-          isYearly,
-        },
-        include: { plan: true },
-      });
-      this.logger.log(`Updated existing subscription: ${subscription.id}`);
     }
 
-    // 4. 必要な金額を計算
-    const amount = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-
-    // 5. 識別コードの生成（6桁のランダムな数字）
-    const identifierCode = this.generateIdentifierCode();
-
-    // 6. 有効期限の設定（7日後）
+    // 5. 有効期限の設定（入金待ちの場合の期限として7日後を設定）
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -200,7 +267,6 @@ export class PaymentsService {
         planName: plan.name,
         amount,
         isYearly,
-        identifierCode,
         expiresAt,
         virtualAccount: {
           accountNumber: virtualAccount.accountNumber,
@@ -275,20 +341,8 @@ export class PaymentsService {
     // 残高が必要額以上の場合のみアクティブ化
     if (subscription.billingBalance >= requiredAmount) {
       const now = new Date();
-      let endDate: Date;
-      let nextBillingDate: Date;
-
-      if (subscription.isYearly) {
-        // 年払い: 1年後
-        endDate = new Date(now);
-        endDate.setFullYear(endDate.getFullYear() + 1);
-        nextBillingDate = new Date(endDate);
-      } else {
-        // 月払い: 1ヶ月後
-        endDate = new Date(now);
-        endDate.setMonth(endDate.getMonth() + 1);
-        nextBillingDate = new Date(endDate);
-      }
+      let endDate: Date = calculateNextBillingDate(now, subscription.isYearly);
+      let nextBillingDate: Date = new Date(endDate);
 
       // サブスクリプションを更新
       await this.prisma.creatorSubscription.update({

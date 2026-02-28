@@ -11,7 +11,6 @@ export class PaymentMatchingService {
         transferData: {
             amount: number;
             transferorName: string;
-            identifierCode: string;
             transferDate: Date;
         },
         emailMeta: {
@@ -24,7 +23,6 @@ export class PaymentMatchingService {
         // 識別コードと金額でPENDINGのTransactionを検索
         const transaction = await this.prisma.transaction.findFirst({
             where: {
-                identifierCode: transferData.identifierCode,
                 amount: transferData.amount,
                 status: 'PENDING',
             },
@@ -39,7 +37,7 @@ export class PaymentMatchingService {
 
         if (!transaction) {
             this.logger.warn(
-                `No matching transaction found for code: ${transferData.identifierCode}, amount: ${transferData.amount}`,
+                `No matching transaction found for amount: ${transferData.amount}`,
             );
 
             // 処理済みメールとして記録（マッチなし）

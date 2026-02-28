@@ -62,7 +62,7 @@ export function TrustRankDisplay({
       case 1:
         return "¥3,000";
       case 2:
-        return "無制限";
+        return "¥20,000";
       default:
         return "¥0";
     }

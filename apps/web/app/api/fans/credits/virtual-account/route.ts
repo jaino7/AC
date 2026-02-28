@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
                         creatorId: creator.id,
                     },
                 },
-                select: { id: true },
+                select: { id: true, creatorId: true, tier: true },
             });
 
             if (!fanProfile) {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
             // Legacy: Use first fan profile (for backward compatibility)
             const fanProfiles = await prisma.fanProfile.findMany({
                 where: { userId: user.id },
-                select: { id: true },
+                select: { id: true, creatorId: true, tier: true },
                 take: 1,
             });
 
@@ -141,6 +141,25 @@ export async function GET(request: NextRequest) {
             accountHolder: virtualAccount.accountName,
         };
 
+        // Calculate remaining immediate limit
+        let remainingImmediateLimit = 0;
+        const TIER_IMMEDIATE_LIMIT: Record<number, number> = { 0: 0, 1: 3000, 2: 20000 };
+        const maxLimit = TIER_IMMEDIATE_LIMIT[fanProfile.tier] ?? 0;
+
+        if (maxLimit > 0) {
+            const pendingClaims = await prisma.bankTransferClaim.findMany({
+                where: {
+                    fanId: fanProfile.id,
+                    status: "PENDING",
+                    immediateCredit: { gt: 0 }
+                },
+                select: { immediateCredit: true }
+            });
+
+            const usedLimit = pendingClaims.reduce((sum, claim) => sum + claim.immediateCredit, 0);
+            remainingImmediateLimit = Math.max(maxLimit - usedLimit, 0);
+        }
+
         return NextResponse.json({
             virtualAccount: {
                 id: virtualAccount.id,
@@ -148,6 +167,8 @@ export async function GET(request: NextRequest) {
                 bankInfo,
                 instructions: "この口座に振り込んだ金額が自動的にクレジットとしてチャージされます。\n振込名義人は登録されている氏名をご利用ください。",
             },
+            creatorId: fanProfile.creatorId,
+            remainingImmediateLimit,
         });
     } catch (error) {
         console.error("Error getting virtual account:", error);

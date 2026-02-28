@@ -8,7 +8,7 @@ export class ClaimsService {
   constructor(
     private prisma: PrismaService,
     private discordService: DiscordService,
-  ) {}
+  ) { }
 
   /**
    * Create a new claim for a charge request
@@ -79,10 +79,14 @@ export class ClaimsService {
       throw new BadRequestException('A claim already exists for this charge request');
     }
 
+    // Get used immediate credits to enforce limits
+    const usedImmediateCredit = await this.getUsedImmediateCredit(fanId);
+
     // Calculate immediate vs pending credits based on tier
     const { immediateCredit, pendingCredit } = this.calculateCreditAllocation(
       fan.tier,
       chargeRequest.amount,
+      usedImmediateCredit,
     );
 
     // Create claim
@@ -91,7 +95,6 @@ export class ClaimsService {
         fanId,
         chargeRequestId,
         amount: chargeRequest.amount,
-        identifierCode: chargeRequest.identifierCode,
         immediateCredit,
         pendingCredit,
         status: BankTransferClaimStatus.PENDING,
@@ -140,12 +143,61 @@ export class ClaimsService {
   }
 
   /**
-   * Calculate credit allocation based on fan tier
-   * - Tier 0: 0 immediate, all pending
-   * - Tier 1: min(amount, 3000) immediate, rest pending
-   * - Tier 2: all immediate
+   * Send Discord notification for Tier 0 claim (No charge request created)
    */
-  calculateCreditAllocation(tier: number, amount: number): {
+  async notifyTier0Claim(fanId: string) {
+    const fan = await this.prisma.fanProfile.findUnique({
+      where: { id: fanId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        creator: { select: { handle: true } },
+      },
+    });
+
+    if (!fan) {
+      throw new NotFoundException('Fan profile not found');
+    }
+
+    // Get assigned virtual account
+    const virtualAccount = await this.prisma.virtualAccount.findFirst({
+      where: {
+        fanId: fanId,
+        purpose: 'FAN_CREDIT',
+        isActive: true,
+      },
+    });
+
+    try {
+      await this.discordService.sendClaimNotification({
+        userId: fan.user.id,
+        userName: fan.user.name || 'Unknown',
+        userEmail: fan.user.email || '',
+        amount: 0, // Tier 0 doesn't set an amount
+        tier: fan.tier,
+        trustScore: fan.trustScore,
+        immediateCredit: 0,
+        pendingCredit: 0,
+        creatorHandle: fan.creator?.handle,
+        virtualAccount: virtualAccount ? {
+          accountNumber: virtualAccount.accountNumber,
+          branchCode: virtualAccount.branchCode,
+          branchName: virtualAccount.branchName,
+        } : undefined,
+      });
+    } catch (error) {
+      console.error('Failed to send Discord notification for Tier 0:', error);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Calculate credit allocation based on fan tier and used credits
+   * - Tier 0: 0 immediate, all pending
+   * - Tier 1: min(amount, max(3000 - used, 0)) immediate, rest pending
+   * - Tier 2: min(amount, max(20000 - used, 0)) immediate, rest pending
+   */
+  calculateCreditAllocation(tier: number, amount: number, usedImmediateCredit: number = 0): {
     immediateCredit: number;
     pendingCredit: number;
   } {
@@ -158,15 +210,35 @@ export class ClaimsService {
       pendingCredit = amount;
     } else if (tier === 1) {
       // Trusted users: up to 3000 yen immediate
-      immediateCredit = Math.min(amount, 3000);
-      pendingCredit = Math.max(amount - 3000, 0);
+      const remainingLimit = Math.max(3000 - usedImmediateCredit, 0);
+      immediateCredit = Math.min(amount, remainingLimit);
+      pendingCredit = Math.max(amount - immediateCredit, 0);
     } else if (tier >= 2) {
       // Premium users: up to 20000 yen immediate
-      immediateCredit = Math.min(amount, 20000);
-      pendingCredit = Math.max(amount - 20000, 0);
+      const remainingLimit = Math.max(20000 - usedImmediateCredit, 0);
+      immediateCredit = Math.min(amount, remainingLimit);
+      pendingCredit = Math.max(amount - immediateCredit, 0);
     }
 
     return { immediateCredit, pendingCredit };
+  }
+
+  /**
+   * Get the total immediate credit currently pending for a fan
+   */
+  async getUsedImmediateCredit(fanId: string): Promise<number> {
+    const claims = await this.prisma.bankTransferClaim.findMany({
+      where: {
+        fanId,
+        status: BankTransferClaimStatus.PENDING,
+        immediateCredit: { gt: 0 },
+      },
+      select: {
+        immediateCredit: true,
+      },
+    });
+
+    return claims.reduce((sum, claim) => sum + claim.immediateCredit, 0);
   }
 
   /**

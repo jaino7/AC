@@ -91,12 +91,13 @@ export default async function AdminLayout({
             >
               本人確認審査
             </a>
-            {/* 将来的に他の管理機能を追加する場合はここに追加 */}
-            {/*
-            <a href={`${adminBasePath}/users`} className="...">ユーザー管理</a>
-            <a href={`${adminBasePath}/content`} className="...">コンテンツ監視</a>
-            <a href={`${adminBasePath}/payments`} className="...">支払い管理</a>
-            */}
+            <a
+              href={`${adminBasePath}/transfers`}
+              className="border-b-2 border-transparent px-1 py-4 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
+            >
+              振込確認
+            </a>
+
           </div>
         </div>
       </nav>

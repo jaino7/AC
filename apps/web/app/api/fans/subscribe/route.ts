@@ -3,6 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
 
+// 月末補正付きの次回請求日（1ヶ月後）計算関数
+function calculateNextBillingDate(fromDate: Date): Date {
+    const nextDate = new Date(fromDate);
+    const originalDate = nextDate.getDate();
+    nextDate.setMonth(nextDate.getMonth() + 1);
+
+    // 日付がずれた場合（例: 1月31日 -> 3月3日になってしまった場合等）
+    if (nextDate.getDate() !== originalDate) {
+        nextDate.setDate(0); // その月の前日（前月の末日）に戻る
+    }
+    return nextDate;
+}
+
 // GET - Get active subscriptions for a fan
 export async function GET(request: NextRequest) {
     try {
@@ -190,8 +203,8 @@ export async function POST(request: NextRequest) {
                     planId: plan.id,
                     status: "ACTIVE",
                     startDate: new Date(),
-                    // Set end date to 30 days from now
-                    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                    // 翌月同日更新（月末補正あり）
+                    endDate: calculateNextBillingDate(new Date()),
                 },
             });
 

@@ -141,10 +141,10 @@ export default function PricingPage() {
                                 </div>
 
                                 <Link
-                                    href={`/creators/pricing/${plan.id}-${billingCycle === 'monthly' ? 'm' : 'y'}`}
+                                    href="/creators/dashboard"
                                     className="mt-8 block w-full rounded-full bg-blue-600 py-4 text-center font-semibold text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg"
                                 >
-                                    {plan.cta}
+                                    設定画面からプランを選択
                                 </Link>
 
                                 <ul className="mt-8 space-y-3">

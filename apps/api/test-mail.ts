@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './src/app.module';
 import { MailService } from './src/mail/mail.service';

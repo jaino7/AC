@@ -144,7 +144,6 @@ export class BankTransferPollService {
     private parseTransferEmail(body: string): {
         amount: number;
         transferorName: string;
-        identifierCode: string;
         transferDate: Date;
     } | null {
         try {
@@ -161,10 +160,6 @@ export class BankTransferPollService {
             const transferorMatch = body.match(/振込人|ご依頼人[：:]\s*([^\n]+)/);
             const transferorName = transferorMatch ? transferorMatch[1].trim() : null;
 
-            // 識別コード抽出（名義人の先頭8桁の数字）
-            const codeMatch = transferorName?.match(/^(\d{8})/);
-            const identifierCode = codeMatch ? codeMatch[1] : null;
-
             // 振込日時抽出
             const dateMatch = body.match(
                 /入金日|振込日[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日/,
@@ -177,14 +172,13 @@ export class BankTransferPollService {
                 )
                 : new Date();
 
-            if (!amount || !identifierCode) {
+            if (!amount) {
                 return null;
             }
 
             return {
                 amount,
                 transferorName: transferorName || '',
-                identifierCode,
                 transferDate,
             };
         } catch (error) {

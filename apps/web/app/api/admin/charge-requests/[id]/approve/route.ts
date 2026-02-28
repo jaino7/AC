@@ -49,7 +49,9 @@ export async function POST(
                 fan: {
                     select: {
                         id: true,
-                        credits: true
+                        credits: true,
+                        trustScore: true,
+                        tier: true
                     }
                 }
             }
@@ -90,12 +92,24 @@ export async function POST(
                 }
             });
 
-            // Update fan credit balance
+            // Calculate new trust score and tier
+            const newTrustScore = chargeRequest.fan.trustScore + 1;
+            let newTier = chargeRequest.fan.tier;
+
+            if (newTrustScore >= 3 && chargeRequest.fan.tier < 2) {
+                newTier = 2; // Premium
+            } else if (newTrustScore >= 1 && chargeRequest.fan.tier < 1) {
+                newTier = 1; // Trusted
+            }
+
+            // Update fan credit balance, trustScore, and tier
             const newBalance = chargeRequest.fan.credits + chargeRequest.amount;
             await tx.fanProfile.update({
                 where: { id: chargeRequest.fanId },
                 data: {
-                    credits: newBalance
+                    credits: newBalance,
+                    trustScore: newTrustScore,
+                    tier: newTier
                 }
             });
 
@@ -106,7 +120,7 @@ export async function POST(
                     type: "CHARGE",
                     amount: chargeRequest.amount,
                     balance: newBalance,
-                    description: `クレジットチャージ (${chargeRequest.identifierCode})`,
+                    description: `クレジットチャージ`,
                     chargeRequestId: chargeRequest.id
                 }
             });

@@ -58,7 +58,6 @@ export async function POST(req: Request) {
                 amount: plan.price,
                 status: 'PENDING',
                 paymentMethod: 'BANK_TRANSFER',
-                identifierCode: identifierCode,
                 userId: fan.userId,
             },
         });

@@ -42,7 +42,7 @@ export class PaymentNotificationDto {
   amount!: number;
 
   @IsString()
-  identifierCode!: string;
+  creatorName!: string;
 
   @IsNumber()
   tier!: number;
@@ -58,7 +58,7 @@ export class PaymentNotificationDto {
 export class NotificationsController {
   private readonly logger = new Logger(NotificationsController.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(private readonly discordService: DiscordService) { }
 
   @Post('ban-inquiry')
   async sendBanInquiry(@Body() dto: BanInquiryDto) {
@@ -95,7 +95,7 @@ export class NotificationsController {
         userId: dto.userId,
         userName: dto.userName,
         amount: dto.amount,
-        identifierCode: dto.identifierCode,
+        creatorName: dto.creatorName,
         tier: dto.tier,
         trustScore: dto.trustScore,
         adminLink: dto.adminLink,

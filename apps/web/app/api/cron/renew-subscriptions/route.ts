@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@creator/shared";
 
+// 月末補正付きの次回請求日（1ヶ月後）計算関数
+function calculateNextBillingDate(fromDate: Date): Date {
+    const nextDate = new Date(fromDate);
+    const originalDate = nextDate.getDate();
+    nextDate.setMonth(nextDate.getMonth() + 1);
+
+    // 日付がずれた場合（例: 1月31日 -> 3月3日になってしまった場合等）
+    if (nextDate.getDate() !== originalDate) {
+        nextDate.setDate(0); // その月の前日（前月の末日）に戻る
+    }
+    return nextDate;
+}
+
 /**
  * Subscription renewal cron job
  * This endpoint should be called daily to renew expiring subscriptions
@@ -82,9 +95,8 @@ export async function POST(request: NextRequest) {
                             },
                         });
 
-                        // Extend subscription by 30 days
-                        const newEndDate = new Date(subscription.endDate!);
-                        newEndDate.setDate(newEndDate.getDate() + 30);
+                        // Extend subscription by 1 month (with end-of-month correction)
+                        const newEndDate = calculateNextBillingDate(new Date(subscription.endDate!));
 
                         await tx.subscription.update({
                             where: { id: subscription.id },

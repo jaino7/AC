@@ -27,7 +27,7 @@ export interface DiscordWebhookPayload {
 export class DiscordService {
   private readonly logger = new Logger(DiscordService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   /**
    * Send a message to Discord webhook
@@ -147,7 +147,7 @@ export class DiscordService {
     userId: string;
     userName: string;
     amount: number;
-    identifierCode: string;
+    creatorName: string;
     tier: number;
     trustScore: number;
     adminLink: string;
@@ -180,13 +180,8 @@ export class DiscordService {
           inline: true,
         },
         {
-          name: '🔢 識別コード',
-          value: `\`${data.identifierCode}\``,
-          inline: false,
-        },
-        {
-          name: '📊 信用情報',
-          value: `**ティア:** ${data.tier} (${tierLabel})\n**スコア:** ${data.trustScore}`,
+          name: 'クリエイター',
+          value: `**名前:** ${data.creatorName}\n**ティア:** ${data.tier} (${tierLabel})\n**スコア:** ${data.trustScore}`,
           inline: false,
         },
         {

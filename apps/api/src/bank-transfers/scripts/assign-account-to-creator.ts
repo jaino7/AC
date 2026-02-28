@@ -35,7 +35,7 @@ async function assignAccountToCreator(creatorId: string) {
 
     console.log('💳 Subscription Info:');
     console.log(`  ID: ${creator.creatorSubscription.id}`);
-    console.log(`  Plan: ${creator.creatorSubscription.plan.name} (${creator.creatorSubscription.plan.planType})`);
+    console.log(`  Plan: ${creator.creatorSubscription.plan.name} (${creator.creatorSubscription.plan.type})`);
     console.log(`  Status: ${creator.creatorSubscription.status}`);
     console.log('');
 

@@ -110,7 +110,6 @@ export async function POST(request: NextRequest) {
             amount: result.amount,
             planType: result.planName,
             isYearly: result.isYearly,
-            identifierCode: result.identifierCode,
             expiresAt: result.expiresAt,
             virtualAccount: {
                 accountNumber: result.virtualAccount.accountNumber,

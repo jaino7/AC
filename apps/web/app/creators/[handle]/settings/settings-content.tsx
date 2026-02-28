@@ -41,9 +41,19 @@ interface Subscription {
         feeRate: number;
     };
     isYearly: boolean;
-    nextBillingDate: string | null;
-    endDate: string | null;
+    nextBillingDate?: string | null;
+    endDate?: string | null;
     billingBalance: number;
+}
+
+interface CreatorPlan {
+    id: string;
+    type: string;
+    name: string;
+    monthlyPrice: number;
+    yearlyPrice: number;
+    feeRate: number;
+    features: string[] | null;
 }
 
 interface VirtualAccount {
@@ -88,6 +98,14 @@ export default function SettingsContent() {
     const [subscriptionLoading, setSubscriptionLoading] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
+
+    // Plans state
+    const [allPlans, setAllPlans] = useState<CreatorPlan[]>([]);
+    const [selectingPlan, setSelectingPlan] = useState<string | null>(null);
+    const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
     // Identity verification state
     const [verificationStatus, setVerificationStatus] = useState<string>("NONE");
@@ -149,12 +167,25 @@ export default function SettingsContent() {
         }
     }, [activeTab]);
 
-    // Fetch subscription data when plans tab is active
+    // Fetch subscription and plans data when plans tab is active
     useEffect(() => {
         if (activeTab === "plans") {
             fetchSubscription();
+            fetchPlans();
         }
     }, [activeTab]);
+
+    const fetchPlans = async () => {
+        try {
+            const response = await fetch("/api/creators/plans");
+            if (response.ok) {
+                const data = await response.json();
+                setAllPlans(data.plans);
+            }
+        } catch (error) {
+            console.error("Failed to fetch plans:", error);
+        }
+    };
 
     const fetchSubscription = async () => {
         setSubscriptionLoading(true);
@@ -197,6 +228,55 @@ export default function SettingsContent() {
         } finally {
             setIsCancelling(false);
         }
+    };
+
+    const executeSelectPlan = async (planType: string) => {
+        setSelectingPlan(planType);
+        try {
+            const response = await fetch("/api/payments/creator-plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    planType,
+                    isYearly: billingCycle === "yearly",
+                }),
+            });
+
+            if (response.ok) {
+                await fetchSubscription();
+                await fetchPlans();
+                setShowConfirmModal(false);
+                setConfirmingPlan(null);
+            } else {
+                const errorData = await response.json();
+                if (errorData.error && typeof errorData.error === 'string' && errorData.error.startsWith("INSUFFICIENT_BALANCE:")) {
+                    const parts = errorData.error.split(":");
+                    const required = parseInt(parts[1], 10);
+                    const current = parseInt(parts[2], 10);
+                    alert(`変更に必要な残高が不足しています。\n\n日割り計算後の差額請求額: ¥${required.toLocaleString()}\n現在のプリペイド残高: ¥${current.toLocaleString()}\n\n不足分（¥${(required - current).toLocaleString()}）を設定画面下部の「プリペイド残高」の専用口座へお振り込みください。`);
+                } else if (errorData.error === "すでに同じプランを選択しています") {
+                    alert(errorData.error);
+                } else {
+                    alert(errorData.error || "プランの選択に失敗しました");
+                }
+            }
+        } catch (error) {
+            console.error("Failed to select plan:", error);
+            alert("プランの選択に失敗しました");
+        } finally {
+            setSelectingPlan(null);
+        }
+    };
+
+    const handleSelectPlan = (planType: string) => {
+        // FREEへの切り替えはキャンセル扱い
+        if (planType === "FREE") {
+            setShowCancelModal(true);
+            return;
+        }
+
+        setConfirmingPlan(planType);
+        setShowConfirmModal(true);
     };
 
     const loadDomain = async () => {
@@ -773,98 +853,191 @@ export default function SettingsContent() {
 
                         {activeTab === "plans" && (
                             <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                                <h2 className="mb-6 text-xl font-semibold">プランの詳細</h2>
+                                <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <h2 className="text-xl font-semibold">プラン</h2>
+                                    <div className="flex items-center gap-1 rounded-full bg-neutral-100 p-1">
+                                        <button
+                                            onClick={() => setBillingCycle("monthly")}
+                                            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${billingCycle === "monthly"
+                                                ? "bg-white text-black shadow-sm"
+                                                : "text-neutral-500 hover:text-black"
+                                                }`}
+                                        >
+                                            月払い
+                                        </button>
+                                        <button
+                                            onClick={() => setBillingCycle("yearly")}
+                                            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${billingCycle === "yearly"
+                                                ? "bg-white text-black shadow-sm"
+                                                : "text-neutral-500 hover:text-black"
+                                                }`}
+                                        >
+                                            年払い（2ヶ月分お得）
+                                        </button>
+                                    </div>
+                                </div>
 
                                 {subscriptionLoading ? (
                                     <div className="flex items-center justify-center py-12">
                                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
                                     </div>
-                                ) : subscription ? (
+                                ) : (
                                     <div className="space-y-6">
-                                        {/* Subscription Status */}
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-black/10 bg-neutral-50 p-6">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-semibold text-neutral-700">
-                                                        現在のプラン: {subscription.plan.name}
-                                                    </span>
+                                        {/* Plan Cards Grid */}
+                                        <div className="grid gap-4 md:grid-cols-3">
+                                            {/* Free Plan Card */}
+                                            {(() => {
+                                                const isCurrent = !subscription || subscription.status === "FREE" || (subscription.plan.type === "FREE");
+                                                return (
+                                                    <div className={`relative rounded-2xl border-2 p-5 transition-all ${isCurrent
+                                                        ? "border-green-500 bg-green-50/50"
+                                                        : "border-black/10 bg-white hover:border-black/20"
+                                                        }`}>
+                                                        {isCurrent && (
+                                                            <div className="absolute -top-2.5 right-4 rounded-full bg-green-500 px-3 py-0.5 text-xs font-bold text-white">
+                                                                利用中
+                                                            </div>
+                                                        )}
+                                                        <h3 className="text-lg font-bold text-neutral-900">Free</h3>
+                                                        <div className="mt-2 flex items-baseline gap-1">
+                                                            <span className="text-3xl font-bold">¥0</span>
+                                                            <span className="text-sm text-neutral-500">/月</span>
+                                                        </div>
+                                                        <p className="mt-2 text-xs text-neutral-600">手数料率: {subscription?.plan?.type === "FREE" ? subscription.plan.feeRate : 10}%</p>
 
-                                                    {subscription.status === "CANCELLED" && (
-                                                        <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
-                                                            キャンセル済み
-                                                        </span>
-                                                    )}
-                                                    {subscription.status === "EXPIRED" && (
-                                                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                                            期限切れ
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {subscription.nextBillingDate && (
-                                                    <p className="text-xs text-neutral-600">
-                                                        更新日: {new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}
-                                                    </p>
-                                                )}
-                                                {subscription.status === "CANCELLED" && subscription.endDate && (
-                                                    <p className="text-xs text-neutral-600">
-                                                        {new Date(subscription.endDate).toLocaleDateString("ja-JP")}まで利用可能
-                                                    </p>
-                                                )}
-                                                {subscription.status === "FREE" && (
-                                                    <p className="text-xs text-neutral-600">
-                                                        手数料率: {(subscription.plan.feeRate * 100).toFixed(0)}%
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                                                {subscription.status === "ACTIVE" && (
-                                                    <button
-                                                        onClick={() => setShowCancelModal(true)}
-                                                        className="text-sm font-semibold text-pink-600 transition-colors hover:text-pink-700"
-                                                    >
-                                                        キャンセルする
-                                                    </button>
-                                                )}
-                                                <Link href="/creators/pricing">
-                                                    <button className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800">
-                                                        {subscription.status === "FREE" ? "プランを選択する" : "プランを変更する"}
-                                                    </button>
-                                                </Link>
-                                            </div>
+                                                        {isCurrent ? (
+                                                            <div className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-green-100 py-2.5 text-sm font-semibold text-green-700">
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                現在のプラン
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleSelectPlan("FREE")}
+                                                                disabled={selectingPlan !== null}
+                                                                className="mt-5 w-full rounded-xl border border-black/10 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+                                                            >
+                                                                {selectingPlan === "FREE" ? "処理中..." : "ダウングレード"}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Dynamic Plan Cards */}
+                                            {allPlans
+                                                .filter(p => p.type !== "FREE")
+                                                .map((plan) => {
+                                                    const isCurrent = subscription && subscription.plan.type === plan.type && (subscription.status === "ACTIVE" || subscription.status === "PENDING" || subscription.status === "CANCELLED");
+                                                    const price = billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+                                                    const displayPrice = billingCycle === "yearly" && price > 0 ? Math.floor(price / 12) : price;
+                                                    const isCancelled = isCurrent && subscription?.status === "CANCELLED";
+
+                                                    return (
+                                                        <div
+                                                            key={plan.id}
+                                                            className={`relative rounded-2xl border-2 p-5 transition-all ${isCurrent
+                                                                ? isCancelled
+                                                                    ? "border-blue-400 bg-white"   // キャンセル済みの今のプランは青枠
+                                                                    : "border-blue-500 bg-blue-50/50" // アクティブな今のプラン
+                                                                : "border-black/10 bg-white hover:border-black/20"
+                                                                }`}
+                                                        >
+                                                            {isCurrent && (
+                                                                <div className="absolute -top-2.5 right-4 rounded-full bg-blue-600 px-3 py-0.5 text-xs font-bold text-white">
+                                                                    {subscription?.status === "PENDING" ? "入金待ち" : "利用中"}
+                                                                </div>
+                                                            )}
+                                                            <h3 className="text-lg font-bold text-neutral-900">{plan.name}</h3>
+                                                            <div className="mt-2 flex items-baseline gap-1">
+                                                                <span className="text-3xl font-bold">
+                                                                    ¥{displayPrice.toLocaleString()}
+                                                                </span>
+                                                                <span className="text-sm text-neutral-500">/月</span>
+                                                            </div>
+                                                            {billingCycle === "yearly" && (
+                                                                <p className="mt-0.5 text-xs text-neutral-500">
+                                                                    年間 ¥{price.toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                            <p className="mt-2 text-xs text-neutral-600">
+                                                                手数料率: {plan.feeRate}%
+                                                            </p>
+
+                                                            {isCurrent ? (
+                                                                <div className="mt-5 space-y-2">
+                                                                    <div className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold ${isCancelled ? "bg-blue-50 text-blue-600" : "bg-blue-100 text-blue-700"}`}>
+                                                                        {isCancelled ? (
+                                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                            </svg>
+                                                                        ) : (
+                                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        )}
+                                                                        {subscription?.status === "PENDING" ? "選択中" : isCancelled ? "キャンセル済み（利用期間中）" : "現在のプラン"}
+                                                                    </div>
+                                                                    {subscription?.status === "ACTIVE" && (
+                                                                        <button
+                                                                            onClick={() => setShowCancelModal(true)}
+                                                                            className="w-full text-xs font-medium text-pink-600 transition hover:text-pink-700"
+                                                                        >
+                                                                            キャンセルする
+                                                                        </button>
+                                                                    )}
+                                                                    {isCancelled && (
+                                                                        <button
+                                                                            onClick={() => handleSelectPlan(plan.type)}
+                                                                            className="w-full text-xs font-medium text-blue-600 transition hover:text-blue-700"
+                                                                        >
+                                                                            利用を再開する
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleSelectPlan(plan.type)}
+                                                                    disabled={selectingPlan !== null}
+                                                                    className="mt-5 w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                                                                >
+                                                                    {selectingPlan === plan.type ? "処理中..." : "利用する"}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                         </div>
 
-                                        {/* Billing Balance */}
-                                        <div className="rounded-2xl border border-black/10 bg-white p-6">
-                                            <h3 className="mb-3 text-sm font-semibold text-neutral-700">現在のプリペイド残高</h3>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-3xl font-bold text-neutral-900">
-                                                    ¥{subscription.billingBalance.toLocaleString()}
-                                                </span>
-                                            </div>
-                                            <p className="mt-2 text-xs text-neutral-600">
-                                                この残高から毎月のプラン料金が自動的に引き落とされます。
-                                            </p>
-                                            {/* Low balance alert */}
-                                            {subscription.nextBillingDate && (
-                                                (() => {
+                                        {/* Billing Balance - always show when subscription exists */}
+                                        {subscription && (
+                                            <div className="rounded-2xl border border-black/10 bg-white p-6">
+                                                <h3 className="mb-3 text-sm font-semibold text-neutral-700">プリペイド残高</h3>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-3xl font-bold text-neutral-900">
+                                                        ¥{(subscription.billingBalance ?? 0).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-2 text-xs text-neutral-600">
+                                                    この口座に振り込んでおくと、更新日に自動引き落としされます。
+                                                </p>
+                                                {/* Low balance alert - only for ACTIVE paid plans */}
+                                                {subscription.status === "ACTIVE" && subscription.nextBillingDate && (() => {
                                                     const requiredAmount = subscription.isYearly
                                                         ? subscription.plan.yearlyPrice
                                                         : subscription.plan.monthlyPrice;
                                                     const isLowBalance = subscription.billingBalance < requiredAmount;
-
                                                     if (isLowBalance) {
                                                         return (
                                                             <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
                                                                 <div className="flex items-start gap-3">
                                                                     <span className="text-yellow-600">⚠️</span>
                                                                     <div className="flex-1">
-                                                                        <p className="text-sm font-semibold text-yellow-900">
-                                                                            残高不足の可能性
-                                                                        </p>
+                                                                        <p className="text-sm font-semibold text-yellow-900">残高不足</p>
                                                                         <p className="mt-1 text-xs text-yellow-800">
-                                                                            次回更新日（{new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}）までに
-                                                                            ¥{requiredAmount.toLocaleString()}以上の残高が必要です。
-                                                                            残高が不足している場合、自動更新が停止されます。
+                                                                            次回更新日（{new Date(subscription.nextBillingDate).toLocaleDateString("ja-JP")}）に
+                                                                            ¥{requiredAmount.toLocaleString()}が必要です。
                                                                         </p>
                                                                     </div>
                                                                 </div>
@@ -872,11 +1045,24 @@ export default function SettingsContent() {
                                                         );
                                                     }
                                                     return null;
-                                                })()
-                                            )}
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* Pricing Page Link */}
+                                        <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-neutral-50 px-5 py-4">
+                                            <div>
+                                                <p className="text-sm font-semibold text-neutral-800">プラン詳細を見る</p>
+                                                <p className="text-xs text-neutral-500">各プランの機能比較一覧</p>
+                                            </div>
+                                            <Link href="/creators/pricing">
+                                                <button className="rounded-xl bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800">
+                                                    プラン一覧
+                                                </button>
+                                            </Link>
                                         </div>
 
-                                        {/* Virtual Account Information - Only show if assigned */}
+                                        {/* Virtual Account Info */}
                                         {virtualAccount && (
                                             <div className="rounded-2xl border border-black/10 bg-white p-6">
                                                 <h3 className="mb-3 text-sm font-semibold text-neutral-700">あなたの専用振込口座</h3>
@@ -918,7 +1104,7 @@ export default function SettingsContent() {
                                             </div>
                                         )}
 
-                                        {/* Terms Link */}
+                                        {/* Terms */}
                                         <p className="text-sm text-neutral-600">
                                             <a href="/terms/creators" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                                                 利用規約
@@ -929,10 +1115,6 @@ export default function SettingsContent() {
                                             </a>
                                             をご確認ください
                                         </p>
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-neutral-600">
-                                        サブスクリプション情報を取得できませんでした
                                     </div>
                                 )}
                             </section>
@@ -1135,11 +1317,11 @@ export default function SettingsContent() {
                         <h3 className="mb-4 text-xl font-semibold">サブスクリプションのキャンセル</h3>
                         <p className="mb-6 text-sm text-neutral-600">
                             {subscription.plan.name}プランをキャンセルしますか？
-                            {subscription.endDate && (
+                            {(subscription.nextBillingDate || subscription.endDate) && (
                                 <>
                                     <br />
                                     <br />
-                                    {new Date(subscription.endDate).toLocaleDateString("ja-JP")}まで引き続き利用できますが、その後は自動更新されません。
+                                    {new Date(subscription.nextBillingDate || subscription.endDate!).toLocaleDateString("ja-JP")}まで引き続き利用できますが、その後は自動更新されません。
                                 </>
                             )}
                         </p>
@@ -1157,6 +1339,46 @@ export default function SettingsContent() {
                                 className="flex-1 rounded-2xl bg-pink-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-pink-700 disabled:opacity-50"
                             >
                                 {isCancelling ? "キャンセル中..." : "キャンセルする"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Plan Modal */}
+            {showConfirmModal && confirmingPlan && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 shadow-xl">
+                        <h3 className="mb-4 text-xl font-semibold">プランの確認</h3>
+                        <div className="mb-6 text-sm text-neutral-600">
+                            <p className="mb-2">
+                                {allPlans.find(p => p.type === confirmingPlan)?.name}プランを利用しますか？
+                            </p>
+                            {!virtualAccount && (
+                                <p className="mb-2 text-xs text-neutral-500">このプランを選択すると、システムからあなた専用の口座が割り当てられます。</p>
+                            )}
+                            {subscription?.status === "ACTIVE" && (
+                                <div className="mt-3 rounded-xl bg-blue-50 p-4 text-xs leading-relaxed text-blue-800">
+                                    <p className="font-semibold mb-1">【プラン変更について】</p>
+                                    <p>現在のプランの未使用期間分が日割りで計算され、新しいプラン料金との差額がプリペイド残高から引き落とされ、即座にプランが切り替わります。</p>
+                                    <p className="mt-2 text-pink-600 font-semibold">※事前の残高チャージが必要です。残高が不足している場合は変更できません。</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowConfirmModal(false); setConfirmingPlan(null); }}
+                                disabled={selectingPlan !== null}
+                                className="flex-1 rounded-2xl border border-black/10 px-6 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                            >
+                                戻る
+                            </button>
+                            <button
+                                onClick={() => executeSelectPlan(confirmingPlan)}
+                                disabled={selectingPlan !== null}
+                                className="flex-1 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                {selectingPlan === confirmingPlan ? "処理中..." : "利用する"}
                             </button>
                         </div>
                     </div>

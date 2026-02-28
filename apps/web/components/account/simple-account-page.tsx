@@ -278,7 +278,7 @@ export function SimpleAccountPage({
 
     const getStatusLabel = (s: string) => {
         switch (s) {
-            case "PENDING": return { text: "振込待ち", color: "bg-yellow-100 text-yellow-800" };
+            case "PENDING": return { text: "確認中", color: "bg-yellow-100 text-yellow-800" };
             case "TRANSFERRED": return { text: "確認中", color: "bg-blue-100 text-blue-800" };
             case "APPROVED": return { text: "完了", color: "bg-green-100 text-green-800" };
             case "REJECTED": return { text: "却下", color: "bg-red-100 text-red-800" };
@@ -343,15 +343,15 @@ export function SimpleAccountPage({
                             </div>
                             <p className="mt-1 text-xs text-gray-500">1クレジット = ¥1</p>
                         </div>
-                        <Link
-                            href={`${baseUrl}/credits`}
+                        <button
+                            onClick={() => setShowChargeModal(true)}
                             className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm flex items-center gap-2"
                         >
                             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                             </svg>
                             チャージ
-                        </Link>
+                        </button>
                     </div>
                 </div>
 
@@ -495,8 +495,7 @@ export function SimpleAccountPage({
                                             <div key={req.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-4">
                                                 <div>
                                                     <p className="font-semibold text-gray-900">¥{req.amount.toLocaleString()}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">識別コード: {req.identifierCode}</p>
-                                                    <p className="text-xs text-gray-500">{new Date(req.createdAt).toLocaleDateString("ja-JP")}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">{new Date(req.createdAt).toLocaleDateString("ja-JP")}</p>
                                                 </div>
                                                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.color}`}>
                                                     {status.text}
@@ -720,7 +719,7 @@ export function SimpleAccountPage({
                 <ChargeModal
                     handle={handle || undefined}
                     tier={creditsData?.tier || 0}
-                    variant="studio-pro" // ライト・プロベースでの共通デザインにするため固定または適宜調整
+                    variant="simple-light" // シンプルな白背景の汎用テーマに変更
                     onClose={() => {
                         setShowChargeModal(false);
                         invalidateCredits(handle || undefined);

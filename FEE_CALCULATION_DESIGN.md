@@ -1,0 +1,218 @@
+# Fee Calculation Logic Design
+
+## Overview
+クリエイターのプラン（Free/Lite/Business）に応じて、ファンからの収益に対する手数料を計算・控除するロジックの設計。
+
+## Fee Rates
+| Plan Type | Monthly Price | Yearly Price | Fee Rate |
+|-----------|---------------|--------------|----------|
+| Free      | ¥0            | ¥0           | 10%      |
+| Lite      | ¥4,000        | ¥40,800      | 6%       |
+| Business  | ¥25,000       | ¥250,000     | 3%       |
+
+手数料率は`CreatorPlan.feeRate`に格納（例: 0.10, 0.06, 0.03）
+
+## Architecture
+
+### 1. Fee Rate Management
+**Location**: Database (`CreatorPlan` model)
+
+```prisma
+model CreatorPlan {
+  feeRate Float // 手数料率
+}
+```
+
+### 2. Fee Calculation Service
+**Location**: `apps/api/src/revenue/revenue.service.ts`
+
+```typescript
+@Injectable()
+export class RevenueService {
+  /**
+   * クリエイターの現在の手数料率を取得
+   */
+  async getCreatorFeeRate(creatorId: string): Promise<number> {
+    const subscription = await this.prisma.creatorSubscription.findUnique({
+      where: { creatorId },
+      include: { plan: true },
+    });
+
+    // サブスクリプションがない、またはFreeプランの場合はデフォルト12%
+    return subscription?.plan.feeRate ?? 0.10;
+  }
+
+  /**
+   * 手数料を計算
+   * @param amount - 収益額（円）
+   * @param feeRate - 手数料率
+   * @returns { platformFee, creatorRevenue }
+   */
+  calculateFee(amount: number, feeRate: number) {
+    const platformFee = Math.floor(amount * feeRate);
+    const creatorRevenue = amount - platformFee;
+
+    return {
+      platformFee,     // プラットフォーム手数料
+      creatorRevenue,  // クリエイター受取額
+    };
+  }
+
+  /**
+   * トランザクション作成時に手数料を自動計算
+   */
+  async createRevenueTransaction(
+    creatorId: string,
+    amount: number,
+    metadata: any,
+  ) {
+    const feeRate = await this.getCreatorFeeRate(creatorId);
+    const { platformFee, creatorRevenue } = this.calculateFee(amount, feeRate);
+
+    // Transactionレコードを作成
+    return this.prisma.transaction.create({
+      data: {
+        creatorId,
+        amount: creatorRevenue, // クリエイター受取額を記録
+        status: 'PAID',
+        metadata: {
+          ...metadata,
+          originalAmount: amount,
+          platformFee,
+          feeRate,
+        },
+      },
+    });
+  }
+}
+```
+
+### 3. Integration Points
+
+#### A. ファンのサブスクリプション支払い時
+**Location**: `apps/api/src/subscriptions/subscriptions.service.ts`
+
+```typescript
+async processSubscriptionPayment(fanId: string, planId: string) {
+  const plan = await this.prisma.subscriptionPlan.findUnique({
+    where: { id: planId },
+    include: { creator: true },
+  });
+
+  // クレジットから支払い
+  await this.creditService.deductCredits(fanId, plan.price);
+
+  // 収益トランザクション作成（手数料自動計算）
+  await this.revenueService.createRevenueTransaction(
+    plan.creatorId,
+    plan.price,
+    { type: 'SUBSCRIPTION', planId },
+  );
+}
+```
+
+#### B. 単体購入時
+**Location**: `apps/api/src/purchases/purchases.service.ts`
+
+```typescript
+async processPurchase(fanId: string, postId: string) {
+  const post = await this.prisma.post.findUnique({
+    where: { id: postId },
+    include: { creator: true },
+  });
+
+  // クレジットから支払い
+  await this.creditService.deductCredits(fanId, post.price);
+
+  // 収益トランザクション作成（手数料自動計算）
+  await this.revenueService.createRevenueTransaction(
+    post.creatorId,
+    post.price,
+    { type: 'PURCHASE', postId },
+  );
+}
+```
+
+### 4. Withdrawal Processing
+**Location**: `apps/api/src/revenue/revenue.service.ts`
+
+クリエイターが収益を引き出す際は、すでに手数料が控除された金額（`Transaction.amount`）を使用。
+
+```typescript
+async getCreatorBalance(creatorId: string): Promise<number> {
+  const transactions = await this.prisma.transaction.findMany({
+    where: {
+      creatorId,
+      status: 'PAID',
+    },
+  });
+
+  // Transaction.amountにはすでに手数料控除後の金額が入っている
+  return transactions.reduce((sum, t) => sum + t.amount, 0);
+}
+```
+
+## Data Flow
+
+```
+1. ファンがコンテンツ購入 (¥1,000)
+   ↓
+2. CreditHistoryに記録 (-¥1,000)
+   ↓
+3. クリエイターの手数料率を取得 (例: Lite = 7%)
+   ↓
+4. 手数料計算
+   - Platform Fee: ¥70
+   - Creator Revenue: ¥930
+   ↓
+5. Transactionレコード作成
+   - amount: ¥930 (手数料控除後)
+   - metadata: { originalAmount: 1000, platformFee: 70, feeRate: 0.07 }
+   ↓
+6. クリエイターが引き出し可能額: ¥930
+```
+
+## Database Schema Changes
+
+### Transaction Model Extension
+`Transaction.metadata`に以下の情報を含める:
+
+```json
+{
+  "originalAmount": 1000,      // 元の金額
+  "platformFee": 70,           // プラットフォーム手数料
+  "feeRate": 0.07,             // 適用された手数料率
+  "type": "PURCHASE",          // トランザクション種別
+  "postId": "xxx"              // 関連エンティティID
+}
+```
+
+## Implementation Priority
+
+1. **Phase 1**: RevenueService基本実装
+   - `getCreatorFeeRate()`
+   - `calculateFee()`
+   - `createRevenueTransaction()`
+
+2. **Phase 2**: 既存サービスへの統合
+   - SubscriptionsService
+   - PurchasesService
+
+3. **Phase 3**: Analytics & Reporting
+   - 手数料レポート画面
+   - クリエイターダッシュボードへの表示
+
+## Testing Considerations
+
+- Freeプラン（12%）の手数料計算
+- Liteプラン（7%）の手数料計算
+- Businessプラン（3%）の手数料計算
+- プラン未契約の場合のデフォルト動作
+- 端数処理（切り捨て）の確認
+- マイナス金額や0円の処理
+
+## Notes
+
+- 手数料は常に切り捨て（`Math.floor()`）
+- プラン変更時は次回請求から新しい手数料率を適用
+- 過去のトランザクションの手数料率は変更しない（metadata に記録）

@@ -134,9 +134,24 @@ const THEME_STYLES: Record<string, ThemeStyle> = {
         stepDone: "bg-green-400/20 text-green-400",
         stepInactive: "bg-white/10 text-white/30",
     },
+    "simple-light": {
+        text: "text-gray-900",
+        textMuted: "text-gray-500",
+        accent: "text-blue-600",
+        modal: "bg-white border border-gray-200 shadow-xl",
+        inputClass: "border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500",
+        primaryBtn: "bg-blue-600 text-white hover:bg-blue-700",
+        secondaryBtn: "border border-gray-300 text-gray-700 hover:bg-gray-50",
+        infoBox: "bg-blue-50 border border-blue-200",
+        infoText: "text-blue-800",
+        copyBtn: "text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition",
+        row: "bg-gray-50 border border-gray-100",
+        divider: "border-gray-200",
+        stepActive: "bg-blue-100 text-blue-600",
+        stepDone: "bg-blue-100 text-blue-600",
+        stepInactive: "bg-gray-100 text-gray-400",
+    },
 };
-
-const TIER_IMMEDIATE_LIMIT: Record<number, number> = { 0: 0, 1: 3000, 2: 20000 };
 
 interface ChargeModalProps {
     handle?: string;
@@ -161,7 +176,9 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
     const [error, setError] = useState<string | null>(null);
     const [claimResult, setClaimResult] = useState<{ immediateCredit: number; pendingCredit: number } | null>(null);
 
-    const immediateLimit = TIER_IMMEDIATE_LIMIT[tier] ?? 0;
+    const [remainingLimit, setRemainingLimit] = useState<number | null>(null);
+
+    const immediateLimit = remainingLimit !== null ? remainingLimit : 0;
     const previewImmediate = Math.min(amount, immediateLimit);
     const previewPending = Math.max(amount - immediateLimit, 0);
 
@@ -171,7 +188,7 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
             fetch(`/api/creators/profile?handle=${handle}`)
                 .then((r) => r.json())
                 .then((d) => { if (d.id) setCreatorId(d.id); })
-                .catch(() => {});
+                .catch(() => { });
         }
 
         // Fetch bank info upfront (from real pool)
@@ -181,19 +198,48 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                 if (!r.ok) throw new Error("failed");
                 return r.json();
             })
-            .then((d) => { setBankInfo(d.virtualAccount?.bankInfo ?? null); })
+            .then((d) => {
+                setBankInfo(d.virtualAccount?.bankInfo ?? null);
+                if (d.creatorId) setCreatorId(d.creatorId);
+                if (typeof d.remainingImmediateLimit === "number") {
+                    setRemainingLimit(d.remainingImmediateLimit);
+                }
+            })
             .catch(() => { setBankError("口座情報の取得に失敗しました"); })
             .finally(() => { setBankLoading(false); });
     }, [handle]);
 
     const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text).catch(() => {});
+        navigator.clipboard.writeText(text).catch(() => { });
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (tier === 0) {
-            // Tier 0: No claim needed, just show done
-            setStep("done");
+            // Tier 0: Notify backend to send Discord claim notification
+            if (!creatorId) {
+                setError("クリエイター情報の取得に失敗しました");
+                return;
+            }
+            setSubmitting(true);
+            setError(null);
+            try {
+                const res = await fetch("/api/fans/credits/notify-tier0", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ creatorId }),
+                });
+                if (!res.ok) {
+                    const data = await res.json();
+                    setError(data.error ?? "通知の送信に失敗しました");
+                    return;
+                }
+                setStep("done");
+                onSuccess?.();
+            } catch {
+                setError("処理に失敗しました");
+            } finally {
+                setSubmitting(false);
+            }
         } else {
             // Tier 1+: Proceed to amount input
             setStep("input");
@@ -274,16 +320,14 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                     <div className="flex items-center gap-2 mb-6">
                         {getStepLabel().map((label, i) => (
                             <div key={label} className="flex items-center gap-2 flex-1">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                                    getStepNumber() === i
-                                        ? s.stepActive
-                                        : getStepNumber() > i
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${getStepNumber() === i
+                                    ? s.stepActive
+                                    : getStepNumber() > i
                                         ? s.stepDone
                                         : s.stepInactive
-                                }`}>{i + 1}</div>
-                                <span className={`text-xs hidden sm:block ${
-                                    getStepNumber() === i ? s.accent : s.textMuted
-                                }`}>{label}</span>
+                                    }`}>{i + 1}</div>
+                                <span className={`text-xs hidden sm:block ${getStepNumber() === i ? s.accent : s.textMuted
+                                    }`}>{label}</span>
                                 {i < getStepLabel().length - 1 && <div className={`flex-1 h-px ${getStepNumber() > i ? "bg-current opacity-30" : "bg-white/10"}`} />}
                             </div>
                         ))}
@@ -354,15 +398,17 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                             </p>
                         </div>
 
+                        {error && <p className="text-red-400 text-sm mb-3 text-center">{error}</p>}
                         <div className="flex gap-3">
                             <button onClick={() => setStep("bank-info")} className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition ${s.secondaryBtn}`}>
                                 ← 戻る
                             </button>
                             <button
                                 onClick={handleConfirm}
-                                className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition ${s.primaryBtn}`}
+                                disabled={submitting || (tier === 0 && !creatorId)}
+                                className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition disabled:opacity-50 ${s.primaryBtn}`}
                             >
-                                {tier === 0 ? "振り込みました" : "申告へ進む →"}
+                                {tier === 0 ? (submitting ? "送信中..." : "振り込みました") : "申告へ進む →"}
                             </button>
                         </div>
                     </>
@@ -379,9 +425,8 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                                 <button
                                     key={v}
                                     onClick={() => setAmount(v)}
-                                    className={`rounded-lg border px-2 py-2 text-sm font-semibold transition ${
-                                        amount === v ? `${s.infoBox} ${s.infoText}` : s.secondaryBtn
-                                    }`}
+                                    className={`rounded-lg border px-2 py-2 text-sm font-semibold transition ${amount === v ? `${s.infoBox} ${s.infoText}` : s.secondaryBtn
+                                        }`}
                                 >
                                     ¥{v.toLocaleString()}
                                 </button>
@@ -397,6 +442,23 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                             placeholder="金額を入力"
                         />
                         <p className={`text-xs mb-4 ${s.textMuted}`}>最小: ¥1,000 / 最大: ¥100,000</p>
+
+                        {/* Immediate Limit Info */}
+                        {tier > 0 && remainingLimit !== null && (
+                            <div className="mb-4 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-white/5 dark:bg-white/5">
+                                <div className="flex items-center justify-between">
+                                    <span className={`text-xs font-medium ${s.textMuted}`}>現在の即時付与残り枠</span>
+                                    <span className={`text-sm font-bold ${remainingLimit > 0 ? s.accent : "text-gray-400"}`}>
+                                        {remainingLimit > 0 ? `¥${remainingLimit.toLocaleString()}` : "枠なし（全額保留）"}
+                                    </span>
+                                </div>
+                                {remainingLimit === 0 && (
+                                    <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                        ※現在保留中の振込確認が完了すると、次の即時付与枠が復活します。
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {/* Preview */}
                         {amount > 0 && (

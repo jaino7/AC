@@ -89,9 +89,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             chargeRequest: {
                 id: result.chargeRequestId,
-                amount: result.amount,
-                identifierCode: result.identifierCode,
-                expiresAt: result.expiresAt,
+                amount,
+                status: "PENDING", expiresAt: result.expiresAt,
                 bankInfo: {
                     bankName: "GMOあおぞらネット銀行",
                     branchName: result.virtualAccount.branchName || "法人第一営業部",

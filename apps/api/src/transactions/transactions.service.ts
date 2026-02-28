@@ -19,9 +19,6 @@ export class TransactionsService {
             throw new NotFoundException('プランが見つかりません');
         }
 
-        // 識別コード生成（userIdの下8桁）
-        const identifierCode = userId.slice(-8).padStart(8, '0');
-
         // Transaction作成
         const transaction = await this.prisma.transaction.create({
             data: {
@@ -30,7 +27,6 @@ export class TransactionsService {
                 amount: plan.price,
                 status: 'PENDING',
                 paymentMethod: 'BANK_TRANSFER',
-                identifierCode,
             },
         });
 
@@ -62,10 +58,9 @@ export class TransactionsService {
             transactionId: transaction.id,
             amount: transaction.amount,
             status: transaction.status,
-            identifierCode: transaction.identifierCode,
             bankInfo: {
                 ...bankInfo,
-                transferInstructions: `振込名義人を「${identifierCode} [あなたの名前]」に変更してください。例: 「${identifierCode} ヤマダタロウ」`,
+                transferInstructions: `振込名義人を「[あなたの名前]」に変更してください。例: 「ヤマダタロウ」`,
             },
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7日後
         };
