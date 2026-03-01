@@ -312,45 +312,48 @@ export class BankTransfersService {
       );
     }
 
-    // クレジット残高を加算
-    const newBalance = fanProfile.credits + bankTransfer.amount;
+    // トランザクションで残高加算・履歴記録・ステータス更新をアトミックに実行
+    const updatedFan = await this.prisma.$transaction(async (tx) => {
+      // increment演算子で競合状態を防止
+      const updated = await tx.fanProfile.update({
+        where: { id: fanProfile.id },
+        data: { credits: { increment: bankTransfer.amount } },
+      });
 
-    await this.prisma.fanProfile.update({
-      where: { id: fanProfile.id },
-      data: { credits: newBalance },
-    });
+      // クレジット履歴を記録
+      await tx.creditHistory.create({
+        data: {
+          fanId: fanProfile.id,
+          type: 'CHARGE',
+          amount: bankTransfer.amount,
+          balance: updated.credits,
+          description: `銀行振込によるチャージ: ${bankTransfer.transferorName}`,
+          chargeRequestId: chargeRequest.id,
+        },
+      });
 
-    // クレジット履歴を記録
-    await this.prisma.creditHistory.create({
-      data: {
-        fanId: fanProfile.id,
-        type: 'CHARGE',
-        amount: bankTransfer.amount,
-        balance: newBalance,
-        description: `銀行振込によるチャージ: ${bankTransfer.transferorName}`,
-        chargeRequestId: chargeRequest.id,
-      },
-    });
+      // ChargeRequest を承認
+      await tx.chargeRequest.update({
+        where: { id: chargeRequest.id },
+        data: {
+          status: ChargeRequestStatus.APPROVED,
+          transferorName: bankTransfer.transferorName,
+          transferDate: bankTransfer.transferDate,
+          approvedAt: new Date(),
+        },
+      });
 
-    // ChargeRequest を承認
-    await this.prisma.chargeRequest.update({
-      where: { id: chargeRequest.id },
-      data: {
-        status: ChargeRequestStatus.APPROVED,
-        transferorName: bankTransfer.transferorName,
-        transferDate: bankTransfer.transferDate,
-        approvedAt: new Date(),
-      },
-    });
+      // BankTransferとの紐付け
+      await tx.bankTransfer.update({
+        where: { id: bankTransfer.id },
+        data: { chargeRequestId: chargeRequest.id },
+      });
 
-    // BankTransferとの紐付け
-    await this.prisma.bankTransfer.update({
-      where: { id: bankTransfer.id },
-      data: { chargeRequestId: chargeRequest.id },
+      return updated;
     });
 
     this.logger.log(
-      `Fan credit charged. Fan: ${fanProfile.id}, New balance: ${newBalance}`,
+      `Fan credit charged. Fan: ${fanProfile.id}, New balance: ${updatedFan.credits}`,
     );
 
     // Increment trust score for Tier 0 users to help them graduate

@@ -196,6 +196,11 @@ export async function POST(request: NextRequest) {
                 },
             });
 
+            // マイナス残高防止（トランザクション外のチェックとの間に別の減算が入った場合のガード）
+            if (updatedFanProfile.credits < 0) {
+                throw new Error("INSUFFICIENT_CREDITS");
+            }
+
             // Create subscription
             const subscription = await tx.subscription.create({
                 data: {
@@ -250,6 +255,12 @@ export async function POST(request: NextRequest) {
         });
     } catch (error) {
         console.error("Subscription error:", error);
+        if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+            return NextResponse.json(
+                { error: "クレジットが不足しています。残高をご確認ください。" },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
             { error: "プランへの登録に失敗しました" },
             { status: 500 }

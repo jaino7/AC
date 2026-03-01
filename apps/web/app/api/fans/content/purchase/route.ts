@@ -162,6 +162,11 @@ export async function POST(request: NextRequest) {
                 },
             });
 
+            // マイナス残高防止（トランザクション外のチェックとの間に別の減算が入った場合のガード）
+            if (updatedFan.credits < 0) {
+                throw new Error("INSUFFICIENT_CREDITS");
+            }
+
             console.log("Fan profile updated, new credits:", updatedFan.credits);
 
             // Create purchase record
@@ -216,6 +221,12 @@ export async function POST(request: NextRequest) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error("Error details:", errorMessage);
 
+        if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+            return NextResponse.json(
+                { error: "クレジットが不足しています。残高をご確認ください。" },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
             {
                 error: "購入処理に失敗しました",
