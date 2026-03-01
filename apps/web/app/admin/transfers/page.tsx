@@ -100,6 +100,7 @@ export default function AdminTransfersPage() {
     const [loading, setLoading] = useState(true);
     const [confirming, setConfirming] = useState<string | null>(null);
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+    const [tier0Amounts, setTier0Amounts] = useState<Record<string, number>>({});
 
     const fetchTransfers = useCallback(async () => {
         setLoading(true);
@@ -123,7 +124,7 @@ export default function AdminTransfersPage() {
         fetchTransfers();
     }, [fetchTransfers]);
 
-    const handleConfirm = async (type: TabType, id: string) => {
+    const handleConfirm = async (type: TabType, id: string, actualAmount?: number) => {
         if (!confirm("振込を確認して処理を実行しますか？")) return;
 
         setConfirming(id);
@@ -132,7 +133,7 @@ export default function AdminTransfersPage() {
             const res = await fetch("/api/admin/transfers/confirm", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type, id }),
+                body: JSON.stringify({ type, id, actualAmount }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -346,7 +347,11 @@ export default function AdminTransfersPage() {
                                                     <div>
                                                         <span className="text-gray-500">申請金額</span>
                                                         <p className="font-semibold text-gray-900">
-                                                            ¥{t.amount.toLocaleString()}
+                                                            {t.amount === 0 ? (
+                                                                <span className="text-amber-600">未確定</span>
+                                                            ) : (
+                                                                `¥${t.amount.toLocaleString()}`
+                                                            )}
                                                         </p>
                                                     </div>
                                                     <div>
@@ -366,6 +371,28 @@ export default function AdminTransfersPage() {
                                                         <p className="font-semibold text-gray-900">{t.trustScore}</p>
                                                     </div>
                                                 </div>
+
+                                                {/* Tier 0 amount input */}
+                                                {t.amount === 0 && !t.claim && (
+                                                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                                                        <p className="mb-2 text-xs font-semibold text-amber-700">
+                                                            📋 Tier 0 振込申告 — 実際の振込金額を入力してください
+                                                        </p>
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            placeholder="振込金額（円）"
+                                                            value={tier0Amounts[t.id] || ""}
+                                                            onChange={(e) =>
+                                                                setTier0Amounts((prev) => ({
+                                                                    ...prev,
+                                                                    [t.id]: parseInt(e.target.value) || 0,
+                                                                }))
+                                                            }
+                                                            className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                )}
 
                                                 {/* Claim info */}
                                                 {t.claim && (
@@ -417,15 +444,24 @@ export default function AdminTransfersPage() {
                                             {/* Right: Action */}
                                             <div className="flex-shrink-0">
                                                 <button
-                                                    onClick={() => handleConfirm("fan", t.id)}
-                                                    disabled={confirming === t.id}
+                                                    onClick={() => handleConfirm(
+                                                        "fan",
+                                                        t.id,
+                                                        t.amount === 0 && !t.claim ? tier0Amounts[t.id] : undefined
+                                                    )}
+                                                    disabled={
+                                                        confirming === t.id ||
+                                                        (t.amount === 0 && !t.claim && !(tier0Amounts[t.id] > 0))
+                                                    }
                                                     className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:opacity-50"
                                                 >
                                                     {confirming === t.id
                                                         ? "処理中..."
-                                                        : t.claim
-                                                            ? `✓ 確認 → +¥${t.claim.pendingCredit.toLocaleString()} 付与`
-                                                            : `✓ 確認 → +¥${t.amount.toLocaleString()} 付与`}
+                                                        : t.amount === 0 && !t.claim
+                                                            ? `✓ 確認 → +¥${(tier0Amounts[t.id] || 0).toLocaleString()} 付与`
+                                                            : t.claim
+                                                                ? `✓ 確認 → +¥${t.claim.pendingCredit.toLocaleString()} 付与`
+                                                                : `✓ 確認 → +¥${t.amount.toLocaleString()} 付与`}
                                                 </button>
                                             </div>
                                         </div>

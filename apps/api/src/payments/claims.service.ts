@@ -148,7 +148,7 @@ export class ClaimsService {
   }
 
   /**
-   * Send Discord notification for Tier 0 claim (No charge request created)
+   * Send Discord notification for Tier 0 claim and create ChargeRequest for admin visibility
    */
   async notifyTier0Claim(fanId: string) {
     const fan = await this.prisma.fanProfile.findUnique({
@@ -169,6 +169,22 @@ export class ClaimsService {
         fanId: fanId,
         purpose: 'FAN_CREDIT',
         isActive: true,
+      },
+    });
+
+    // Create a ChargeRequest with amount=0 so the admin panel can track this claim
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    const identifierCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    await this.prisma.chargeRequest.create({
+      data: {
+        fanId,
+        amount: 0,
+        status: 'PENDING',
+        expiresAt,
+        identifierCode,
+        hasClaim: true,
       },
     });
 

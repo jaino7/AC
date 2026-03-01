@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { type, id } = body; // type: "creator" | "fan", id: subscription or chargeRequest id
+        const { type, id, actualAmount } = body; // type: "creator" | "fan", id: subscription or chargeRequest id
 
         if (!type || !id) {
             return NextResponse.json(
@@ -138,10 +138,14 @@ export async function POST(request: NextRequest) {
 
             const claim = chargeRequest.bankTransferClaims[0];
             const immediateAlreadyGranted = claim?.immediateCredit ?? 0;
-            const pendingToGrant = claim?.pendingCredit ?? chargeRequest.amount;
+            // For Tier 0 (amount=0), use actualAmount provided by admin
+            const resolvedAmount = chargeRequest.amount === 0 && actualAmount > 0
+                ? actualAmount
+                : chargeRequest.amount;
+            const pendingToGrant = claim?.pendingCredit ?? resolvedAmount;
             const totalCreditsToAdd = claim
                 ? pendingToGrant // Only add the pending portion (immediate was already granted)
-                : chargeRequest.amount; // No claim exists, grant full amount
+                : resolvedAmount; // No claim exists, grant full amount
 
             // Calculate new trust score and tier
             const newTrustScore = chargeRequest.fan.trustScore + 1;
@@ -175,13 +179,14 @@ export async function POST(request: NextRequest) {
                         chargeRequestId: chargeRequest.id,
                     },
                 }),
-                // 3. Update charge request status
+                // 3. Update charge request status (and amount if it was 0)
                 prisma.chargeRequest.update({
                     where: { id },
                     data: {
                         status: "APPROVED",
                         approvedBy: admin.id,
                         approvedAt: new Date(),
+                        ...(chargeRequest.amount === 0 && actualAmount > 0 ? { amount: actualAmount } : {}),
                     },
                 }),
                 // 4. Update claim status if exists
