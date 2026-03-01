@@ -409,6 +409,7 @@ model ChargeRequest {
 
   // Self-declaration
   hasClaim           Boolean               @default(false)
+  identifierCode     String?
   bankTransferClaims BankTransferClaim[]
 
   expiresAt DateTime // 有効期限
@@ -477,7 +478,8 @@ model BankTransferClaim {
   processedBy String? // Admin who processed (if manual)
   processedAt DateTime?
 
-  createdAt DateTime @default(now())
+  identifierCode  String?
+  createdAt       DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([fanId])
