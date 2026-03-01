@@ -177,7 +177,7 @@ export class ClaimsService {
     expiresAt.setDate(expiresAt.getDate() + 7);
     const identifierCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    await this.prisma.chargeRequest.create({
+    const chargeRequest = await this.prisma.chargeRequest.create({
       data: {
         fanId,
         amount: 0,
@@ -187,6 +187,14 @@ export class ClaimsService {
         hasClaim: true,
       },
     });
+
+    // Link the pre-reserved VA to this ChargeRequest so admin panel shows the account number
+    if (virtualAccount) {
+      await this.prisma.virtualAccount.update({
+        where: { id: virtualAccount.id },
+        data: { assignedToPaymentId: chargeRequest.id },
+      });
+    }
 
     try {
       await this.discordService.sendClaimNotification({

@@ -364,11 +364,13 @@ export class BankTransfersService {
    * @param paymentId CreatorSubscription.id または ChargeRequest.id
    * @param purpose CREATOR_PLAN または FAN_CREDIT
    * @param creatorId クリエイターID（CREATOR_PLANの場合、固定口座として割り当てるため必要）
+   * @param fanProfileId ファンプロフィールID（FAN_CREDITの場合、事前予約口座を優先利用するため）
    */
   async assignVirtualAccount(
     paymentId: string,
     purpose: BankTransferType,
     creatorId?: string,
+    fanProfileId?: string,
   ) {
     this.logger.log(
       `Assigning virtual account for payment: ${paymentId}, purpose: ${purpose}, creatorId: ${creatorId || 'N/A'}`,
@@ -446,17 +448,42 @@ export class BankTransfersService {
           }
         }
       } else {
-        // ファンクレジットの場合: 既存のロジック（一時的な割り当て）
-        availableAccount = await tx.virtualAccount.findFirst({
-          where: {
-            isUsed: false,
-            isActive: true,
-            purpose,
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        });
+        // ファンクレジットの場合: 使い捨て方式
+        if (fanProfileId) {
+          // 1. ファンが事前予約した口座を優先利用（modal表示時に確保済みのもの）
+          availableAccount = await tx.virtualAccount.findFirst({
+            where: {
+              fanId: fanProfileId,
+              isUsed: true,
+              assignedToPaymentId: null,
+              isActive: true,
+              purpose,
+            },
+          });
+        }
+
+        if (!availableAccount) {
+          // 2. プールから未割り当て口座を取得（フォールバック）
+          availableAccount = await tx.virtualAccount.findFirst({
+            where: {
+              fanId: null,
+              isUsed: false,
+              isActive: true,
+              purpose,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          });
+
+          if (availableAccount && fanProfileId) {
+            // プール口座をファンに事前予約として設定
+            await tx.virtualAccount.update({
+              where: { id: availableAccount.id },
+              data: { fanId: fanProfileId, isUsed: true },
+            });
+          }
+        }
       }
 
       if (!availableAccount) {
@@ -604,13 +631,14 @@ export class BankTransfersService {
       // 固定口座（creatorIdが設定されている）の場合は、creatorIdを保持したまま解放
       const isFixedAccount = virtualAccount.creatorId !== null;
 
-      // 在庫に戻す
+      // 在庫に戻す（ファン口座は fanId もクリアして完全解放）
       const releasedAccount = await tx.virtualAccount.update({
         where: { id: virtualAccount.id },
         data: {
           isUsed: false,
           assignedToPaymentId: null,
           assignedAt: null,
+          fanId: isFixedAccount ? undefined : null, // ファン口座は完全解放
           releasedAt: isFixedAccount ? null : new Date(), // 固定口座の場合は冷却期間不要
         },
       });

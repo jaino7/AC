@@ -78,6 +78,8 @@ export class PaymentsService {
       const virtualAccount = await this.bankTransfersService.assignVirtualAccount(
         chargeRequest.id,
         BankTransferType.FAN_CREDIT,
+        undefined,
+        fanProfile.id,
       );
 
       this.logger.log(

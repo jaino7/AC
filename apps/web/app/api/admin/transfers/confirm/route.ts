@@ -204,6 +204,20 @@ export async function POST(request: NextRequest) {
                     : []),
             ]);
 
+            // Release the virtual account back to pool (disposable model: clear fanId too)
+            await prisma.virtualAccount.updateMany({
+                where: {
+                    assignedToPaymentId: id,
+                    purpose: "FAN_CREDIT",
+                },
+                data: {
+                    isUsed: false,
+                    fanId: null,
+                    assignedToPaymentId: null,
+                    assignedAt: null,
+                },
+            });
+
             const fanName = chargeRequest.fan.displayName || chargeRequest.fan.user?.name || "ファン";
 
             return NextResponse.json({

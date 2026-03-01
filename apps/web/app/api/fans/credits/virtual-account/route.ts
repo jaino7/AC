@@ -81,32 +81,25 @@ export async function GET(request: NextRequest) {
             fanProfile = fanProfiles[0];
         }
 
-        // Check if there's already an active virtual account assigned to this fan
+        // Check if there's already a pre-reserved virtual account for this fan
+        // (fanId set, isUsed=true, not yet linked to a specific ChargeRequest)
         let virtualAccount = await prisma.virtualAccount.findFirst({
             where: {
                 fanId: fanProfile.id,
                 purpose: "FAN_CREDIT",
                 isActive: true,
+                isUsed: true,
+                assignedToPaymentId: null,
             },
         });
 
-        // Check if the assigned account is a dummy (accountNumber starts with "VA" followed by timestamp)
-        const isDummyAccount = virtualAccount && virtualAccount.accountNumber.startsWith("VA") && /^VA\d+/.test(virtualAccount.accountNumber);
-
-        // If no real account is assigned, take one from the pool
-        if (!virtualAccount || isDummyAccount) {
-            // If there's a dummy account, unassign it first
-            if (isDummyAccount && virtualAccount) {
-                await prisma.virtualAccount.update({
-                    where: { id: virtualAccount.id },
-                    data: { fanId: null, isActive: false },
-                });
-            }
-
+        // If no pre-reserved account, take one from the pool
+        if (!virtualAccount) {
             // Find an unassigned real account from the pool
             virtualAccount = await prisma.virtualAccount.findFirst({
                 where: {
                     fanId: null,
+                    isUsed: false,
                     purpose: "FAN_CREDIT",
                     isActive: true,
                     accountNumber: {
@@ -124,10 +117,10 @@ export async function GET(request: NextRequest) {
                 );
             }
 
-            // Assign this real account to the fan
+            // Pre-reserve this account for the fan (disposable: held until transfer confirmed or expires)
             virtualAccount = await prisma.virtualAccount.update({
                 where: { id: virtualAccount.id },
-                data: { fanId: fanProfile.id },
+                data: { fanId: fanProfile.id, isUsed: true },
             });
         }
 
