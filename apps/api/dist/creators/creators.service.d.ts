@@ -29,8 +29,8 @@ export declare class CreatorsService {
     }>;
     findCreatorByUserId(userId: string): Promise<{
         id: string;
-        handle: string;
         displayName: string;
+        handle: string;
     } | null>;
     requestPasswordReset(payload: PasswordResetRequestDto): Promise<{
         message: string;

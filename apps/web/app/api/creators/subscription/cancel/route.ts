@@ -61,6 +61,34 @@ export async function PATCH(request: NextRequest) {
             );
         }
 
+        // If the subscription is PENDING (unpaid), change status to CANCELLED and clear projected dates
+        // This preserves billingBalance while preventing access
+        if (subscription.status === "PENDING") {
+            await prisma.$transaction([
+                prisma.creatorSubscription.update({
+                    where: { id: subscription.id },
+                    data: {
+                        status: "CANCELLED",
+                        endDate: null,
+                        nextBillingDate: null,
+                    }
+                }),
+                prisma.virtualAccount.updateMany({
+                    where: { assignedToPaymentId: subscription.id },
+                    data: {
+                        isUsed: false,
+                        assignedToPaymentId: null,
+                        assignedAt: null
+                    }
+                })
+            ]);
+
+            return NextResponse.json({
+                success: true,
+                message: `${subscription.plan.name}プランの申し込みをキャンセルしました。`,
+            });
+        }
+
         // Update subscription status to CANCELLED
         // The subscription will remain active until endDate, but won't auto-renew
         const updatedSubscription = await prisma.creatorSubscription.update({

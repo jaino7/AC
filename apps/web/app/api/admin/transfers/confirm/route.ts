@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
                     startDate: now,
                     endDate: endDate,
                     nextBillingDate: endDate,
-                    billingBalance: amount,
+                    billingBalance: Math.max(0, subscription.billingBalance - amount),
                 },
             });
 

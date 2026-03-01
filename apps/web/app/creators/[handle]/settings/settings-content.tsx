@@ -247,6 +247,14 @@ export default function SettingsContent() {
                 await fetchPlans();
                 setShowConfirmModal(false);
                 setConfirmingPlan(null);
+
+                // 専用口座情報を表示するためにスクロール (少し待機して要素がレンダリングされるのを待つ)
+                setTimeout(() => {
+                    const accountInfo = document.getElementById('virtual-account-info');
+                    if (accountInfo) {
+                        accountInfo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
             } else {
                 const errorData = await response.json();
                 if (errorData.error && typeof errorData.error === 'string' && errorData.error.startsWith("INSUFFICIENT_BALANCE:")) {
@@ -887,7 +895,10 @@ export default function SettingsContent() {
                                         <div className="grid gap-4 md:grid-cols-3">
                                             {/* Free Plan Card */}
                                             {(() => {
-                                                const isCurrent = !subscription || subscription.status === "FREE" || (subscription.plan.type === "FREE");
+                                                const isCurrent = !subscription ||
+                                                    subscription.status === "FREE" ||
+                                                    (subscription.plan.type === "FREE") ||
+                                                    (subscription.status === "CANCELLED" && (!subscription.endDate || new Date(subscription.endDate) <= new Date()));
                                                 return (
                                                     <div className={`relative rounded-2xl border-2 p-5 transition-all ${isCurrent
                                                         ? "border-green-500 bg-green-50/50"
@@ -929,7 +940,11 @@ export default function SettingsContent() {
                                             {allPlans
                                                 .filter(p => p.type !== "FREE")
                                                 .map((plan) => {
-                                                    const isCurrent = subscription && subscription.plan.type === plan.type && (subscription.status === "ACTIVE" || subscription.status === "PENDING" || subscription.status === "CANCELLED");
+                                                    const isCurrent = subscription && subscription.plan.type === plan.type && (
+                                                        subscription.status === "ACTIVE" ||
+                                                        subscription.status === "PENDING" ||
+                                                        (subscription.status === "CANCELLED" && subscription.endDate && new Date(subscription.endDate) > new Date())
+                                                    );
                                                     const price = billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
                                                     const displayPrice = billingCycle === "yearly" && price > 0 ? Math.floor(price / 12) : price;
                                                     const isCancelled = isCurrent && subscription?.status === "CANCELLED";
@@ -1064,7 +1079,7 @@ export default function SettingsContent() {
 
                                         {/* Virtual Account Info */}
                                         {virtualAccount && (
-                                            <div className="rounded-2xl border border-black/10 bg-white p-6">
+                                            <div id="virtual-account-info" className="rounded-2xl border border-black/10 bg-white p-6 scroll-mt-20">
                                                 <h3 className="mb-3 text-sm font-semibold text-neutral-700">あなたの専用振込口座</h3>
                                                 <p className="mb-4 text-xs text-neutral-600">
                                                     この口座に振り込むと、自動的にプリペイド残高にチャージされます。

@@ -238,12 +238,18 @@ export class PaymentsService {
 
     } else {
       // サブスクリプションが存在しない場合は新規作成
+      // PENDING状態でも、次回更新予定日(目安)としてendDateを算出してセットします
+      const now = new Date();
+      const projectedEndDate = calculateNextBillingDate(now, isYearly);
+
       subscription = await this.prisma.creatorSubscription.create({
         data: {
           creatorId,
           planId: plan.id,
           isYearly,
           status: CreatorSubscriptionStatus.PENDING,
+          endDate: projectedEndDate,
+          nextBillingDate: projectedEndDate,
         },
         include: { plan: true },
       });
