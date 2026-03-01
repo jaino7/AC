@@ -144,13 +144,25 @@ export async function GET(request: NextRequest) {
             const results = await Promise.all(
                 chargeRequests.map(async (cr) => {
                     const claim = cr.bankTransferClaims[0] ?? null;
-                    const va = await prisma.virtualAccount.findFirst({
+                    // First try to find VA by ChargeRequest ID (Tier 1+)
+                    let va = await prisma.virtualAccount.findFirst({
                         where: {
                             assignedToPaymentId: cr.id,
                             purpose: "FAN_CREDIT",
                         },
                         select: { accountNumber: true, branchName: true },
                     });
+                    // Fallback: Tier 0 fans have VA assigned by fanId, not by ChargeRequest
+                    if (!va) {
+                        va = await prisma.virtualAccount.findFirst({
+                            where: {
+                                fanId: cr.fan.id,
+                                purpose: "FAN_CREDIT",
+                                isActive: true,
+                            },
+                            select: { accountNumber: true, branchName: true },
+                        });
+                    }
 
                     return {
                         id: cr.id,
