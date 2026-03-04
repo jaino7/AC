@@ -63,7 +63,11 @@
       "Bash(__NEW_LINE_e1fc65c80e0a467f__ head -5 \"/c/dev/ACD/Creator/apps/web/app/$f/content/[id]/page.tsx\")",
       "Bash(done)",
       "Bash(cmd /c \"dir /s /b C:\\\\dev\\\\ACD\\\\Creator\\\\apps\\\\web\\\\app\\\\*content* 2>nul\")",
-      "Bash(cmd /c \"grep -n isLoggedIn C:\\\\dev\\\\ACD\\\\Creator\\\\apps\\\\web\\\\app\\\\creator-pro\\\\content\\\\[id]\\\\page.tsx 2>&1\")"
+      "Bash(cmd /c \"grep -n isLoggedIn C:\\\\dev\\\\ACD\\\\Creator\\\\apps\\\\web\\\\app\\\\creator-pro\\\\content\\\\[id]\\\\page.tsx 2>&1\")",
+      "Bash(python generate_doc.py)",
+      "Bash(docker restart:*)",
+      "Bash(python3:*)",
+      "Bash(find \"/c/dev/ACD/Creator/apps/web/app/[handle]\" -type f 2>/dev/null | sort\nfind \"/c/dev/ACD/Creator/apps/web/app/creator-pro/login\" -type f 2>/dev/null)"
     ]
   }
 }

@@ -4,17 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface Folder {
-  id: string;
-  name: string;
-  _count?: { posts: number };
-}
-
-interface Tag {
-  id: string;
-  name: string;
-  _count?: { posts: number };
-}
 
 interface Post {
   id: string;
@@ -26,8 +15,6 @@ interface Post {
   isLocked: boolean;
   createdAt: string;
   updatedAt: string;
-  folder?: { id: string; name: string } | null;
-  tags?: { tag: { id: string; name: string } }[];
 }
 
 const PostBadge = ({ text }: { text: string }) => (
@@ -122,54 +109,26 @@ export default function ContentPage() {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
-  const [selectedTagId, setSelectedTagId] = useState<string>("");
   const [selectedVisibility, setSelectedVisibility] = useState<"all" | "public" | "draft">("all");
-  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [showNewTagModal, setShowNewTagModal] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [newTagName, setNewTagName] = useState("");
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<"all" | "free" | "plan" | "single">("all");
 
   // アコーディオン・スマホメニュー状態
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isFoldersOpen, setIsFoldersOpen] = useState(true);
-  const [isTagsOpen, setIsTagsOpen] = useState(true);
 
   // 一括選択・削除
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  // Fetch folders
-  const { data: foldersData } = useQuery({
-    queryKey: ["folders"],
-    queryFn: async () => {
-      const res = await fetch("/api/creators/folders");
-      if (!res.ok) throw new Error("Failed to fetch folders");
-      return res.json();
-    },
-  });
-
-  // Fetch tags
-  const { data: tagsData } = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => {
-      const res = await fetch("/api/creators/tags");
-      if (!res.ok) throw new Error("Failed to fetch tags");
-      return res.json();
-    },
-  });
-
   // Fetch posts with filters
   const { data: postsData, isLoading: loadingPosts } = useQuery({
-    queryKey: ["posts", searchQuery, selectedFolderId, selectedTagId, selectedVisibility],
+    queryKey: ["posts", searchQuery, selectedVisibility, selectedTypeFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append("search", searchQuery);
-      if (selectedFolderId) params.append("folderId", selectedFolderId);
-      if (selectedTagId) params.append("tagId", selectedTagId);
       if (selectedVisibility === "public") params.append("visibility", "PUBLIC");
       if (selectedVisibility === "draft") params.append("visibility", "DRAFT");
+      if (selectedTypeFilter !== "all") params.append("type", selectedTypeFilter);
 
       const res = await fetch(`/api/creators/content?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch posts");
@@ -177,45 +136,7 @@ export default function ContentPage() {
     },
   });
 
-  const folders: Folder[] = foldersData?.folders || [];
-  const tags: Tag[] = tagsData?.tags || [];
   const posts: Post[] = postsData?.posts || [];
-
-  // Create folder mutation
-  const createFolderMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const res = await fetch("/api/creators/folders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) throw new Error("Failed to create folder");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
-      setNewFolderName("");
-      setShowNewFolderModal(false);
-    },
-  });
-
-  // Create tag mutation
-  const createTagMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const res = await fetch("/api/creators/tags", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) throw new Error("Failed to create tag");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
-      setNewTagName("");
-      setShowNewTagModal(false);
-    },
-  });
 
   // Bulk delete mutation
   const bulkDeleteMutation = useMutation({
@@ -362,84 +283,7 @@ export default function ContentPage() {
               </button>
             </div>
 
-            <div className="space-y-2">
-              <button
-                onClick={() => setIsFoldersOpen(!isFoldersOpen)}
-                className="flex w-full items-center justify-between text-xs uppercase tracking-[0.3em] text-neutral-500"
-              >
-                <span>フォルダ</span>
-                <span
-                  className={`transition-transform duration-200 ${isFoldersOpen ? "rotate-180" : ""
-                    }`}
-                >
-                  ▼
-                </span>
-              </button>
-              {isFoldersOpen && (
-                <ul className="mt-3 space-y-2 text-sm">
-                  {folders.map((folder) => (
-                    <li
-                      key={folder.id}
-                      onClick={() =>
-                        setSelectedFolderId(folder.id === selectedFolderId ? "" : folder.id)
-                      }
-                      className={`cursor-pointer rounded-2xl border px-4 py-2 transition-colors ${selectedFolderId === folder.id
-                        ? "border-black bg-black text-white"
-                        : "border-black/10 hover:border-black/40"
-                        }`}
-                    >
-                      {folder.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <button
-                onClick={() => setIsTagsOpen(!isTagsOpen)}
-                className="flex w-full items-center justify-between text-xs uppercase tracking-[0.3em] text-neutral-500"
-              >
-                <span>タグ</span>
-                <span
-                  className={`transition-transform duration-200 ${isTagsOpen ? "rotate-180" : ""
-                    }`}
-                >
-                  ▼
-                </span>
-              </button>
-              {isTagsOpen && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      onClick={() => setSelectedTagId(tag.id === selectedTagId ? "" : tag.id)}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${selectedTagId === tag.id
-                        ? "border-black bg-black text-white"
-                        : "border-black/10 hover:border-black/40"
-                        }`}
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <button
-                onClick={() => setShowNewFolderModal(true)}
-                className="w-full rounded-2xl border border-black/10 px-4 py-2.5 font-semibold hover:border-black/40 lg:py-3"
-              >
-                新規フォルダ
-              </button>
-              <button
-                onClick={() => setShowNewTagModal(true)}
-                className="w-full rounded-2xl border border-black/10 px-4 py-2.5 font-semibold hover:border-black/40 lg:py-3"
-              >
-                新規タグ
-              </button>
-            </div>
 
             {/* ストレージ使用量 */}
             <StorageUsage />
@@ -493,28 +337,47 @@ export default function ContentPage() {
                 />
               </div>
               <button className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold">
-                フィルター
-              </button>
-              <button className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold">
                 新着順
               </button>
+            </div>
+
+            {/* コンテンツ種別フィルター */}
+            <div className="flex gap-2 pb-2 overflow-x-auto">
               <button
-                onClick={() => setViewMode("grid")}
-                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${viewMode === "grid"
+                onClick={() => setSelectedTypeFilter("all")}
+                className={`flex-shrink-0 rounded-2xl border px-5 py-2 text-sm font-semibold transition-colors ${selectedTypeFilter === "all"
                   ? "border-black bg-black text-white"
-                  : "border-black/10 bg-white text-black"
+                  : "border-black/10 bg-white text-black hover:border-black/40"
                   }`}
               >
-                ⊞ グリッド
+                すべて
               </button>
               <button
-                onClick={() => setViewMode("list")}
-                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${viewMode === "list"
+                onClick={() => setSelectedTypeFilter("free")}
+                className={`flex-shrink-0 rounded-2xl border px-5 py-2 text-sm font-semibold transition-colors ${selectedTypeFilter === "free"
                   ? "border-black bg-black text-white"
-                  : "border-black/10 bg-white text-black"
+                  : "border-black/10 bg-white text-black hover:border-black/40"
                   }`}
               >
-                ☰ リスト
+                無料
+              </button>
+              <button
+                onClick={() => setSelectedTypeFilter("plan")}
+                className={`flex-shrink-0 rounded-2xl border px-5 py-2 text-sm font-semibold transition-colors ${selectedTypeFilter === "plan"
+                  ? "border-black bg-black text-white"
+                  : "border-black/10 bg-white text-black hover:border-black/40"
+                  }`}
+              >
+                プラン限定
+              </button>
+              <button
+                onClick={() => setSelectedTypeFilter("single")}
+                className={`flex-shrink-0 rounded-2xl border px-5 py-2 text-sm font-semibold transition-colors ${selectedTypeFilter === "single"
+                  ? "border-black bg-black text-white"
+                  : "border-black/10 bg-white text-black hover:border-black/40"
+                  }`}
+              >
+                単体販売
               </button>
             </div>
           </header>
@@ -523,9 +386,9 @@ export default function ContentPage() {
             <div className="text-center py-12 text-neutral-500">読み込み中...</div>
           ) : posts.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
-              投稿がありません。新規投稿を作成してください。
+              投稿がありません。
             </div>
-          ) : viewMode === "grid" ? (
+          ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {posts.map((post) => (
                 <div
@@ -597,7 +460,7 @@ export default function ContentPage() {
                     </div>
                     <div className="mt-4 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        {post.folder && <PostBadge text={post.folder.name} />}
+
                         <span className="text-xs text-neutral-500">
                           {new Date(post.createdAt).toLocaleDateString("ja-JP")}
                         </span>
@@ -607,18 +470,6 @@ export default function ContentPage() {
                         {post.content || "説明なし"}
                       </p>
 
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-2">
-                          {post.tags.map((tagItem) => (
-                            <span
-                              key={tagItem.tag.id}
-                              className="rounded-full border border-black/10 px-2 py-0.5 text-xs"
-                            >
-                              {tagItem.tag.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
 
                       <div className="pt-2">
                         <span className={`text-sm font-semibold ${post.visibility === "PUBLIC" ? "text-green-600" : "text-amber-600"
@@ -631,169 +482,10 @@ export default function ContentPage() {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="flex w-full gap-4 rounded-3xl border border-black/10 bg-white p-4 shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-all hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] relative"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedPostIds.includes(post.id)}
-                    onChange={() => handleSelectPost(post.id)}
-                    className="absolute top-4 left-4 h-5 w-5 cursor-pointer z-10"
-                  />
-                  <div className="absolute top-4 right-4 z-10">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === post.id ? null : post.id);
-                      }}
-                      className="p-2 rounded-full hover:bg-neutral-100"
-                    >
-                      •••
-                    </button>
-                    {openMenuId === post.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border border-black/10 rounded-xl shadow-lg z-20">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePublishMutation.mutate({
-                              postId: post.id,
-                              visibility: post.visibility === "PUBLIC" ? "DRAFT" : "PUBLIC",
-                            });
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-neutral-100 rounded-t-xl"
-                        >
-                          {post.visibility === "PUBLIC" ? "下書きに戻す" : "公開する"}
-                        </button>
-                        <Link
-                          href={`content/${post.id}/edit`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-neutral-100"
-                        >
-                          編集
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteSingleMutation.mutate(post.id);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-xl"
-                        >
-                          削除
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <Link href={`content/${post.id}/edit`} className="flex w-full gap-4 ml-8">
-                    <div className="h-24 w-32 flex-shrink-0 overflow-hidden rounded-2xl border border-black/10 bg-neutral-100">
-                      {post.thumbnailUrl ? (
-                        <img
-                          src={post.thumbnailUrl}
-                          alt={post.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-neutral-400 text-xs">
-                          画像なし
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-1 flex-col space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {post.folder && <PostBadge text={post.folder.name} />}
-                        <span className="text-xs text-neutral-500">
-                          {new Date(post.createdAt).toLocaleDateString("ja-JP")}
-                        </span>
-                      </div>
-                      <h2 className="text-lg font-semibold">{post.title}</h2>
-                      <p className="text-sm text-neutral-600 line-clamp-1">
-                        {post.content || "説明なし"}
-                      </p>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center">
-                      <span className={`text-sm font-semibold ${post.visibility === "PUBLIC" ? "text-green-600" : "text-amber-600"
-                        }`}>
-                        {post.visibility === "PUBLIC" ? "公開中" : post.visibility === "DRAFT" ? "下書き" : "限定公開"}
-                      </span>
-                    </div>
-                  </Link>
-                </div>
-              ))}
-            </div>
           )}
         </section>
       </div>
 
-      {/* New Folder Modal */}
-      {showNewFolderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-3xl bg-white p-8 shadow-2xl w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">新規フォルダ作成</h2>
-            <input
-              type="text"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="フォルダ名を入力..."
-              className="w-full rounded-2xl border border-black/10 px-4 py-3 mb-6 focus:border-black/40 focus:outline-none"
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowNewFolderModal(false);
-                  setNewFolderName("");
-                }}
-                className="rounded-2xl border border-black/10 px-6 py-3 font-semibold"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={() => createFolderMutation.mutate(newFolderName)}
-                disabled={!newFolderName.trim() || createFolderMutation.isPending}
-                className="rounded-2xl border border-black bg-black px-6 py-3 font-semibold text-white disabled:opacity-50"
-              >
-                {createFolderMutation.isPending ? "作成中..." : "作成"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* New Tag Modal */}
-      {showNewTagModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-3xl bg-white p-8 shadow-2xl w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">新規タグ作成</h2>
-            <input
-              type="text"
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              placeholder="タグ名を入力..."
-              className="w-full rounded-2xl border border-black/10 px-4 py-3 mb-6 focus:border-black/40 focus:outline-none"
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowNewTagModal(false);
-                  setNewTagName("");
-                }}
-                className="rounded-2xl border border-black/10 px-6 py-3 font-semibold"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={() => createTagMutation.mutate(newTagName)}
-                disabled={!newTagName.trim() || createTagMutation.isPending}
-                className="rounded-2xl border border-black bg-black px-6 py-3 font-semibold text-white disabled:opacity-50"
-              >
-                {createTagMutation.isPending ? "作成中..." : "作成"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
