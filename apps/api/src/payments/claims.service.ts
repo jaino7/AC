@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { BankTransferClaimStatus, BankTransfer, BankTransferClaim } from '@prisma/client';
 import { DiscordService } from '../notifications/discord.service';
+import { MailService } from '../mail/mail.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class ClaimsService {
   constructor(
     private prisma: PrismaService,
     private discordService: DiscordService,
+    private mailService: MailService,
   ) { }
 
   /**
@@ -80,15 +82,28 @@ export class ClaimsService {
       throw new BadRequestException('A claim already exists for this charge request');
     }
 
-    // Get used immediate credits to enforce limits
-    const usedImmediateCredit = await this.getUsedImmediateCredit(fanId);
+    // Check if fan can use immediate credit (cooldown + verification check)
+    const { canUse, reason } = await this.canUseImmediateCredit(fanId);
 
-    // Calculate immediate vs pending credits based on tier
-    const { immediateCredit, pendingCredit } = this.calculateCreditAllocation(
-      fan.tier,
-      chargeRequest.amount,
-      usedImmediateCredit,
-    );
+    let immediateCredit: number;
+    let pendingCredit: number;
+
+    if (!canUse) {
+      // Cooldown active or previous claim unverified: all credit goes to pending
+      immediateCredit = 0;
+      pendingCredit = chargeRequest.amount;
+      console.log(`Immediate credit blocked for fan ${fanId}: ${reason}`);
+    } else {
+      // Get used immediate credits to enforce limits
+      const usedImmediateCredit = await this.getUsedImmediateCredit(fanId);
+
+      // Calculate immediate vs pending credits based on tier
+      ({ immediateCredit, pendingCredit } = this.calculateCreditAllocation(
+        fan.tier,
+        chargeRequest.amount,
+        usedImmediateCredit,
+      ));
+    }
 
     // Create claim
     // Generate a unique identifier code for the claim (required by schema)
@@ -268,6 +283,45 @@ export class ClaimsService {
     });
 
     return claims.reduce((sum, claim) => sum + claim.immediateCredit, 0);
+  }
+
+  /**
+   * Check if a fan can use immediate credit.
+   * Condition: The last claim with immediateCredit > 0 must be VERIFIED.
+   * If no previous immediate-credit claim exists, the fan can use immediate credit (first time).
+   */
+  async canUseImmediateCredit(fanId: string): Promise<{
+    canUse: boolean;
+    reason: string | null;
+  }> {
+    // Find the most recent claim that had immediate credit
+    const lastImmediateClaim = await this.prisma.bankTransferClaim.findFirst({
+      where: {
+        fanId,
+        immediateCredit: { gt: 0 },
+      },
+      orderBy: {
+        claimedAt: 'desc',
+      },
+      select: {
+        status: true,
+      },
+    });
+
+    // No previous immediate-credit claim: first time, allow it
+    if (!lastImmediateClaim) {
+      return { canUse: true, reason: null };
+    }
+
+    // Previous claim must be VERIFIED
+    if (lastImmediateClaim.status !== BankTransferClaimStatus.VERIFIED) {
+      return {
+        canUse: false,
+        reason: 'pending_unverified',
+      };
+    }
+
+    return { canUse: true, reason: null };
   }
 
   /**
@@ -501,6 +555,13 @@ export class ClaimsService {
   async approveClaim(claimId: string, adminId: string) {
     const claim = await this.prisma.bankTransferClaim.findUnique({
       where: { id: claimId },
+      include: {
+        fan: {
+          include: {
+            user: { select: { id: true, email: true, name: true } },
+          },
+        },
+      },
     });
 
     if (!claim) {
@@ -529,6 +590,32 @@ export class ClaimsService {
         processedAt: new Date(),
       },
     });
+
+    // Send credit notification email to fan
+    const fan = claim.fan;
+    const user = fan?.user;
+    if (user?.email) {
+      try {
+        const updatedFan = await this.prisma.fanProfile.findUnique({
+          where: { id: claim.fanId },
+        });
+        const totalGranted = claim.immediateCredit + claim.pendingCredit;
+
+        await this.mailService.sendDepositSuccessEmail(
+          user.email,
+          {
+            fanName: fan.displayName || user.name || 'ファン',
+            amount: totalGranted,
+            balance: updatedFan?.credits || 0,
+            transferorName: fan.displayName || user.name || 'ファン',
+            transferDate: new Date(),
+          },
+          user.id,
+        );
+      } catch (error) {
+        console.error('Failed to send credit notification email:', error);
+      }
+    }
 
     return { success: true };
   }

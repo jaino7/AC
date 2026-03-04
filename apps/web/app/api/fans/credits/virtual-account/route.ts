@@ -134,23 +134,54 @@ export async function GET(request: NextRequest) {
             accountHolder: virtualAccount.accountName,
         };
 
-        // Calculate remaining immediate limit
+        // Calculate remaining immediate limit with cooldown check
         let remainingImmediateLimit = 0;
         const TIER_IMMEDIATE_LIMIT: Record<number, number> = { 0: 0, 1: 3000, 2: 20000 };
         const maxLimit = TIER_IMMEDIATE_LIMIT[fanProfile.tier] ?? 0;
 
+        // Cooldown info for frontend
+        let cooldownInfo: {
+            isCooldown: boolean;
+            reason: string | null;
+        } = {
+            isCooldown: false,
+            reason: null,
+        };
+
         if (maxLimit > 0) {
-            const pendingClaims = await prisma.bankTransferClaim.findMany({
+            // Check if previous immediate-credit claim is VERIFIED
+            const lastImmediateClaim = await prisma.bankTransferClaim.findFirst({
                 where: {
                     fanId: fanProfile.id,
-                    status: "PENDING",
-                    immediateCredit: { gt: 0 }
+                    immediateCredit: { gt: 0 },
                 },
-                select: { immediateCredit: true }
+                orderBy: { claimedAt: "desc" },
+                select: { status: true },
             });
 
-            const usedLimit = pendingClaims.reduce((sum, claim) => sum + claim.immediateCredit, 0);
-            remainingImmediateLimit = Math.max(maxLimit - usedLimit, 0);
+            let canUseImmediate = true;
+
+            if (lastImmediateClaim && lastImmediateClaim.status !== "VERIFIED") {
+                canUseImmediate = false;
+                cooldownInfo = {
+                    isCooldown: true,
+                    reason: "pending_unverified",
+                };
+            }
+
+            if (canUseImmediate) {
+                const pendingClaims = await prisma.bankTransferClaim.findMany({
+                    where: {
+                        fanId: fanProfile.id,
+                        status: "PENDING",
+                        immediateCredit: { gt: 0 }
+                    },
+                    select: { immediateCredit: true }
+                });
+
+                const usedLimit = pendingClaims.reduce((sum, claim) => sum + claim.immediateCredit, 0);
+                remainingImmediateLimit = Math.max(maxLimit - usedLimit, 0);
+            }
         }
 
         return NextResponse.json({
@@ -162,6 +193,7 @@ export async function GET(request: NextRequest) {
             },
             creatorId: fanProfile.creatorId,
             remainingImmediateLimit,
+            cooldownInfo,
         });
     } catch (error) {
         console.error("Error getting virtual account:", error);

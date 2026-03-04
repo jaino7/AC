@@ -58,7 +58,7 @@ export default function NewContentPage() {
         const fetchPlans = async () => {
             setLoadingPlans(true);
             try {
-                const response = await fetch("/api/creators/plans");
+                const response = await fetch("/api/creators/subscription-plans");
                 if (response.ok) {
                     const data = await response.json();
                     setPlans(data.plans || []);

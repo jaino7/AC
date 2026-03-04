@@ -177,6 +177,10 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
     const [claimResult, setClaimResult] = useState<{ immediateCredit: number; pendingCredit: number } | null>(null);
 
     const [remainingLimit, setRemainingLimit] = useState<number | null>(null);
+    const [cooldownInfo, setCooldownInfo] = useState<{
+        isCooldown: boolean;
+        reason: string | null;
+    } | null>(null);
 
     const immediateLimit = remainingLimit !== null ? remainingLimit : 0;
     const previewImmediate = Math.min(amount, immediateLimit);
@@ -203,6 +207,9 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                 if (d.creatorId) setCreatorId(d.creatorId);
                 if (typeof d.remainingImmediateLimit === "number") {
                     setRemainingLimit(d.remainingImmediateLimit);
+                }
+                if (d.cooldownInfo) {
+                    setCooldownInfo(d.cooldownInfo);
                 }
             })
             .catch(() => { setBankError("口座情報の取得に失敗しました"); })
@@ -452,7 +459,12 @@ export default function ChargeModal({ handle, tier, variant, onClose, onSuccess 
                                         {remainingLimit > 0 ? `¥${remainingLimit.toLocaleString()}` : "枠なし（全額保留）"}
                                     </span>
                                 </div>
-                                {remainingLimit === 0 && (
+                                {remainingLimit === 0 && cooldownInfo?.isCooldown && cooldownInfo.reason === "pending_unverified" && (
+                                    <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                        ※前回の振込確認が完了すると、次の即時付与枠が復活します。
+                                    </p>
+                                )}
+                                {remainingLimit === 0 && !cooldownInfo?.isCooldown && (
                                     <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
                                         ※現在保留中の振込確認が完了すると、次の即時付与枠が復活します。
                                     </p>

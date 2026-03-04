@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@creator/shared";
+import { sendEmailSafe } from "@/lib/email/client";
+import { CreatorWelcomeEmail } from "@/lib/email/templates/creator/CreatorWelcomeEmail";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -68,6 +70,17 @@ export default async function DashboardPage() {
       });
 
       console.log(`CreatorProfile created for user ${userId} with handle: ${handle}`);
+
+      // ウェルカムメール送信（fire and forget）
+      sendEmailSafe({
+        to: session.user.email,
+        subject: 'CocoBaへようこそ！クリエイター登録が完了しました',
+        react: CreatorWelcomeEmail({
+          creatorName: session.user.name || emailPrefix,
+        }),
+        emailType: 'CREATOR_REGISTRATION',
+        recipientId: userId,
+      }).catch((err) => console.error('Failed to send creator welcome email:', err));
     } catch (error) {
       console.error("Error creating CreatorProfile:", error);
       console.error("Error details:", {

@@ -23,13 +23,13 @@ const plans: Plan[] = [
         id: "lite",
         name: "Lite",
         price: {
-            monthly: 4000,
-            yearly: 40000, // 2ヶ月分お得
+            monthly: 2980,
+            yearly: 29800, // 2ヶ月分お得
         },
         description: "成長中のクリエイターに最適",
         features: [
             "200GB ストレージ",
-            "販売手数料 6.0%",
+            "販売手数料 5.0%",
             "独自ドメイン & 追加テーマ",
         ],
         highlighted: true,
@@ -39,13 +39,13 @@ const plans: Plan[] = [
         id: "business",
         name: "Business",
         price: {
-            monthly: 25000,
-            yearly: 250000,
+            monthly: 19800,
+            yearly: 198000,
         },
         description: "大規模な収益化に対応",
         features: [
             "1TB ストレージ",
-            "販売手数料 3.0%",
+            "販売手数料 2.8%",
             "優先サポート",
         ],
         cta: "Businessを選択",
@@ -53,8 +53,8 @@ const plans: Plan[] = [
 ];
 
 const comparisonFeatures = [
-    { name: "月額料金", free: "0円", lite: "4,000円 (年払い: 40,000円)", business: "25,000円 (年払い: 250,000円)" },
-    { name: "販売手数料", free: "10.00%", lite: "6.00%", business: "3.00%" },
+    { name: "月額料金", free: "0円", lite: "2,980円 (年払い: 29,800円)", business: "19,800円 (年払い: 198,000円)" },
+    { name: "販売手数料", free: "8%", lite: "5%", business: "2.8%" },
     { name: "ストレージ", free: "15GB", lite: "200GB", business: "1TB" },
     { name: "独自ドメイン", free: "×", lite: "○", business: "○" },
     { name: "カスタム設定", free: "標準のみ", lite: "追加テーマ", business: "カスタマイズOK" },

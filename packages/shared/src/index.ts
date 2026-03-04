@@ -6,15 +6,8 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = global as unknown as {
   prisma: PrismaClient;
-  prismaConnections: number;
+  prismaShutdownHook: boolean;
 };
-
-// 開発環境での接続追跡
-if (process.env.NODE_ENV !== "production") {
-  if (!globalForPrisma.prismaConnections) {
-    globalForPrisma.prismaConnections = 0;
-  }
-}
 
 export const prisma =
   globalForPrisma.prisma ||
@@ -24,12 +17,13 @@ export const prisma =
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+}
 
-  // プロセス終了時に接続をクローズ
-  if (!global.prismaShutdownHook) {
-    global.prismaShutdownHook = true;
-    process.on('beforeExit', async () => {
-      await prisma.$disconnect();
-    });
-  }
+// プロセス終了時に接続をクローズ（本番・開発共通）
+if (!globalForPrisma.prismaShutdownHook) {
+  globalForPrisma.prismaShutdownHook = true;
+  const disconnect = async () => { await prisma.$disconnect(); };
+  process.on("beforeExit", disconnect);
+  process.on("SIGINT", disconnect);
+  process.on("SIGTERM", disconnect);
 }

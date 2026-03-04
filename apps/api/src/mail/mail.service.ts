@@ -58,7 +58,7 @@ export class MailService {
     },
     recipientId: string,
   ) {
-    const subject = '入金が完了しました';
+    const subject = `${data.amount.toLocaleString('ja-JP')}円クレジットされました`;
     const html = await render(DepositSuccessEmail(data));
 
     return this.mailProvider.sendEmail({
@@ -206,7 +206,6 @@ export class MailService {
       accountType: string;
       accountNumber: string;
       accountHolder: string;
-      identifierCode: string;
       dueDate: Date;
     },
     recipientId: string,

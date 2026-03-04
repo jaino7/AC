@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
                         name: "無料プラン",
                         monthlyPrice: 0,
                         yearlyPrice: 0,
-                        feeRate: 0.10,
+                        feeRate: 0.08,
                     },
                     isYearly: false,
                     nextBillingDate: null,

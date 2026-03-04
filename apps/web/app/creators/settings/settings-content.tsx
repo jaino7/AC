@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import BrandAssetsSettings from "@/components/BrandAssetsSettings";
 
-type Tab = "profile" | "plans" | "notifications" | "domain";
+type Tab = "profile" | "brand" | "plans" | "notifications" | "domain";
 
 const tabs = [
     { id: "profile" as Tab, icon: "👤", label: "プロフィール" },
+    { id: "brand" as Tab, icon: "🎨", label: "ブランド" },
     { id: "plans" as Tab, icon: "💳", label: "プラン" },
     { id: "notifications" as Tab, icon: "🔔", label: "通知" },
     { id: "domain" as Tab, icon: "🌐", label: "ドメイン設定" }
@@ -18,12 +20,30 @@ export default function SettingsContent() {
     const [bio, setBio] = useState("");
     const [maintenanceNotification, setMaintenanceNotification] = useState(true);
     const [subscription, setSubscription] = useState<any>(null);
+    const [creatorId, setCreatorId] = useState<string>("");
+    const [initialAvatarUrl, setInitialAvatarUrl] = useState<string | null>(null);
+    const [initialLogoUrl, setInitialLogoUrl] = useState<string | null>(null);
+    const [initialFaviconUrl, setInitialFaviconUrl] = useState<string | null>(null);
+    const [initialShowNameInHeader, setInitialShowNameInHeader] = useState<boolean>(true);
 
     useEffect(() => {
         fetch("/api/creators/subscription")
             .then((r) => r.json())
             .then((d) => { if (d.subscription) setSubscription(d.subscription); })
-            .catch(() => {});
+            .catch(() => { });
+
+        fetch("/api/creators/profile")
+            .then((r) => r.json())
+            .then((d) => {
+                if (d.profile) {
+                    setCreatorId(d.profile.id);
+                    setInitialAvatarUrl(d.profile.avatarUrl ?? null);
+                    setInitialLogoUrl(d.profile.logoUrl ?? null);
+                    setInitialFaviconUrl(d.profile.faviconUrl ?? null);
+                    setInitialShowNameInHeader((d.profile.themeConfig as any)?.showNameInHeader ?? true);
+                }
+            })
+            .catch(() => { });
     }, []);
 
     return (
@@ -97,6 +117,24 @@ export default function SettingsContent() {
                                     </div>
                                 </section>
                             </>
+                        )}
+
+                        {activeTab === "brand" && (
+                            creatorId ? (
+                                <BrandAssetsSettings
+                                    creatorId={creatorId}
+                                    initialAvatarUrl={initialAvatarUrl}
+                                    initialLogoUrl={initialLogoUrl}
+                                    initialFaviconUrl={initialFaviconUrl}
+                                    initialShowNameInHeader={initialShowNameInHeader}
+                                />
+                            ) : (
+                                <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="text-neutral-400">読み込み中...</div>
+                                    </div>
+                                </section>
+                            )
                         )}
 
                         {activeTab === "plans" && (

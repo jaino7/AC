@@ -246,6 +246,7 @@ model CreatorProfile {
   customDomain String? @unique
 
   // ブランドアセット
+  avatarUrl  String? // プロフィール画像URL
   logoUrl    String? // ロゴ画像URL
   headerUrl  String? // ヘッダー画像URL
   faviconUrl String? // ファビコン画像URL
@@ -283,8 +284,9 @@ model CreatorProfile {
   virtualAccounts     VirtualAccount[]
 
   // 収益・支払い
-  earnings CreatorEarning[]
-  payouts  CreatorPayout[]
+  earnings             CreatorEarning[]
+  payouts              CreatorPayout[]
+  planTransferClaims   CreatorPlanTransferClaim[]
 }
 
 model SubscriptionPlan {
@@ -469,7 +471,7 @@ model BankTransferClaim {
 
   // Relations
   chargeRequestId String
-  chargeRequest   ChargeRequest @relation(fields: [chargeRequestId], references: [id])
+  chargeRequest   ChargeRequest @relation(fields: [chargeRequestId], references: [id], onDelete: Cascade)
 
   bankTransferId String?       @unique // Linked after GMO webhook
   bankTransfer   BankTransfer? @relation(fields: [bankTransferId], references: [id])
@@ -811,7 +813,7 @@ model CreatorPlan {
   yearlyPrice  Int // 年額料金（円）
 
   // 手数料率
-  feeRate Float // 手数料率（0.12 = 12%, 0.07 = 7%, 0.03 = 3%）
+  feeRate Float // 手数料率（8.0 = 8%, 5.0 = 5%, 2.8 = 2.8%）
 
   // プラン特典
   features Json? // プラン特典のJSON配列
@@ -847,7 +849,8 @@ model CreatorSubscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bankTransfers BankTransfer[]
+  bankTransfers       BankTransfer[]
+  transferClaims      CreatorPlanTransferClaim[]
 
   @@index([creatorId])
   @@index([planId])
@@ -923,10 +926,10 @@ model BankTransfer {
 
   // 関連エンティティ
   creatorSubscriptionId String?
-  creatorSubscription   CreatorSubscription? @relation(fields: [creatorSubscriptionId], references: [id])
+  creatorSubscription   CreatorSubscription? @relation(fields: [creatorSubscriptionId], references: [id], onDelete: SetNull)
 
   chargeRequestId String?
-  chargeRequest   ChargeRequest? @relation(fields: [chargeRequestId], references: [id])
+  chargeRequest   ChargeRequest? @relation(fields: [chargeRequestId], references: [id], onDelete: SetNull)
 
   // Claim reconciliation
   claim BankTransferClaim?
@@ -985,7 +988,7 @@ model CreatorPayout {
 
   // 振込先
   bankAccountId String
-  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
 
   processedAt DateTime?
   note        String?   @db.Text // 備考（失敗理由など）
@@ -997,6 +1000,37 @@ model CreatorPayout {
 
   @@index([creatorId, status])
   @@index([periodMonth, status])
+}
+
+// クリエイタープラン振込申告
+model CreatorPlanTransferClaim {
+  id String @id @default(cuid())
+
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  subscriptionId String
+  subscription   CreatorSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // 申告内容
+  amount         Int      // 申告振込額（円）
+  transferorName String   // 振込人名義
+  transferDate   DateTime // 振込日時
+  note           String?  @db.Text // 備考
+
+  // 処理状況
+  status          String    @default("PENDING") // PENDING, VERIFIED, REJECTED
+  processedBy     String?   // 処理した管理者ID
+  processedAt     DateTime?
+  rejectionReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // Cron Job実行ログ

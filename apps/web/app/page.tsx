@@ -32,34 +32,34 @@ const plans: Plan[] = [
     name: "Free",
     price: { monthly: 0, yearly: 0 },
     description: "まずは無料で体験",
-    features: ["15GB ストレージ", "販売手数料 10.0%", "標準テーマ"],
-    feeRate: "10.0%",
+    features: ["15GB ストレージ", "販売手数料 8.0%", "標準テーマ"],
+    feeRate: "8.0%",
     cta: "無料で始める",
   },
   {
     id: "lite",
     name: "Lite",
-    price: { monthly: 4000, yearly: 40000 },
+    price: { monthly: 2980, yearly: 29800 },
     description: "成長中のクリエイターに最適",
-    features: ["200GB ストレージ", "販売手数料 6.0%", "独自ドメイン & 追加テーマ"],
+    features: ["200GB ストレージ", "販売手数料 5.0%", "独自ドメイン & 追加テーマ"],
     highlighted: true,
-    feeRate: "6.0%",
+    feeRate: "5.0%",
     cta: "Liteを選択",
   },
   {
     id: "business",
     name: "Business",
-    price: { monthly: 25000, yearly: 250000 },
+    price: { monthly: 19800, yearly: 198000 },
     description: "大規模な収益化に対応",
-    features: ["1TB ストレージ", "販売手数料 3.0%", "優先サポート"],
-    feeRate: "3.0%",
+    features: ["1TB ストレージ", "販売手数料 2.8%", "優先サポート"],
+    feeRate: "2.8%",
     cta: "Businessを選択",
   },
 ];
 
 const comparisonFeatures = [
-  { name: "月額料金", free: "0円", lite: "4,000円", business: "25,000円" },
-  { name: "販売手数料", free: "10.00%", lite: "6.00%", business: "3.00%" },
+  { name: "月額料金", free: "0円", lite: "2,980円", business: "19,800円" },
+  { name: "販売手数料", free: "8%", lite: "5%", business: "2.8%" },
   { name: "ストレージ", free: "15GB", lite: "200GB", business: "1TB" },
   { name: "独自ドメイン", free: "×", lite: "○", business: "○" },
   { name: "カスタム設定", free: "標準のみ", lite: "追加テーマ", business: "カスタマイズOK" },
@@ -294,7 +294,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            業界最安水準 <span className="text-white font-semibold">3.0%</span> の手数料。
+            業界最安水準 <span className="text-white font-semibold">2.8%</span> の手数料。
             <br className="hidden sm:block" />
             独自ドメイン・完全自立型で、あなたのブランドを守りながら収益を最大化。
           </p>
@@ -369,7 +369,7 @@ export default function LandingPage() {
                   安全かつ長期的な収益最大化
                 </h3>
                 <p className="text-white/50 leading-relaxed">
-                  業界最安水準の手数料3.0%で、あなたの手残りを最大化。安定した決済基盤と透明な料金体系で、長期的な成長をサポートします。
+                  業界最安水準の手数料2.8%で、あなたの手残りを最大化。安定した決済基盤と透明な料金体系で、長期的な成長をサポートします。
                 </p>
                 <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(0,35,102,0.2), rgba(197,160,89,0.2))" }} />
               </div>

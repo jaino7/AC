@@ -14,7 +14,10 @@ const notoSans = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: "クリエイター登録 | Micro Funding",
   description:
-    "独自ドメインとアダルト対応決済で、クリエイターが安全に収益化できるプラットフォーム。"
+    "独自ドメインとアダルト対応決済で、クリエイターが安全に収益化できるプラットフォーム。",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

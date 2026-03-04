@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
 
         // Calculate amount based on plan type
         const planPrices: Record<string, { monthly: number; yearly: number }> = {
-            LITE: { monthly: 4000, yearly: 40000 },
-            BUSINESS: { monthly: 25000, yearly: 250000 },
+            LITE: { monthly: 2980, yearly: 29800 },
+            BUSINESS: { monthly: 19800, yearly: 198000 },
         };
 
         const prices = planPrices[planType];

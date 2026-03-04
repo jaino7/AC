@@ -49,6 +49,7 @@ type CreatorProfile = {
   discordUrl: string | null;
   otherUrl: string | null;
   otherUrlName?: string | null;
+  themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
 // Helper function to calculate time ago
@@ -76,6 +77,14 @@ const getTimeAgo = (date: Date): string => {
     return Math.floor(interval) + "分前";
   }
   return "たった今";
+};
+
+const resolveAssetUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/uploads/brand-assets/')) {
+    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${url}`;
+  }
+  return url;
 };
 
 function StudioProContentPageContent() {
@@ -110,6 +119,8 @@ function StudioProContentPageContent() {
   };
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [savedCards, setSavedCards] = useState<ContentCard[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -160,11 +171,9 @@ function StudioProContentPageContent() {
         // Fetch plans
         let plansResponse;
         if (handle) {
-          plansResponse = await fetch(`/api/creators/plans?handle=${handle}`);
+          plansResponse = await fetch(`/api/creators/subscription-plans?handle=${handle}`);
         } else if (isPreview) {
-          plansResponse = await fetch("/api/creators/plans");
-        } else {
-          plansResponse = await fetch("/api/creators/plans");
+          plansResponse = await fetch("/api/creators/subscription-plans");
         }
 
         if (plansResponse?.ok) {
@@ -212,6 +221,37 @@ function StudioProContentPageContent() {
     fetchData();
   }, [handle, isPreview]);
 
+  useEffect(() => {
+    if (activeTab === "saved" && !isPreview && savedCards.length === 0) {
+      const fetchSaved = async () => {
+        setSavedLoading(true);
+        try {
+          const res = await fetch("/api/fans/saved");
+          if (res.ok) {
+            const data = await res.json();
+            const arr = data.posts || [];
+            setSavedCards(arr.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              description: p.content?.substring(0, 80) || "",
+              cover: p.thumbnailUrl || p.mediaUrl || null,
+              isLocked: p.isLocked,
+              requiredTier: p.requiredPlan?.name,
+              price: p.price,
+              timeAgo: getTimeAgo(new Date(p.createdAt)),
+              media: p.media || [],
+            })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch saved posts:", err);
+        } finally {
+          setSavedLoading(false);
+        }
+      };
+      fetchSaved();
+    }
+  }, [activeTab, isPreview]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center">
@@ -221,14 +261,14 @@ function StudioProContentPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
+    <div className="flex min-h-screen flex-col bg-[#0a0e1a] text-white">
       {/* Header */}
       <header className="border-b border-white/10 bg-[#0a0e1a]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           {/* Logo */}
           <div className="flex items-center gap-3">
             {creatorProfile?.logoUrl ? (
-              <img src={creatorProfile.logoUrl} alt="Logo" className="h-9 w-9 rounded-lg object-cover" />
+              <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-9 w-auto max-w-[160px] rounded-lg object-contain" />
             ) : (
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -236,7 +276,9 @@ function StudioProContentPageContent() {
                 </svg>
               </div>
             )}
-            <span className="text-lg font-semibold">{creatorProfile?.displayName || "StudioPro"}</span>
+            {creatorProfile?.themeConfig?.showNameInHeader !== false && (
+              <span className="text-lg font-semibold">{creatorProfile?.displayName || "StudioPro"}</span>
+            )}
           </div>
 
           {/* Auth Buttons / Settings (Log in actions) */}
@@ -267,7 +309,7 @@ function StudioProContentPageContent() {
         </div>
       </header>
 
-      <main>
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="relative h-[400px] overflow-hidden">
           {creatorProfile?.headerUrl ? (
@@ -278,7 +320,7 @@ function StudioProContentPageContent() {
             />
           ) : creatorProfile?.logoUrl ? (
             <img
-              src={creatorProfile.logoUrl}
+              src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""}
               alt={creatorProfile.displayName}
               className="h-full w-full object-cover blur-sm brightness-50"
             />
@@ -293,8 +335,7 @@ function StudioProContentPageContent() {
               <div className="max-w-xl">
                 {/* Title */}
                 <h1 className="mb-4 text-4xl font-bold leading-tight">
-                  {creatorProfile?.displayName || "Creator"}&apos;s
-                  <span className="text-blue-400"> Studio</span>
+                  {creatorProfile?.displayName || "Creator"}
                 </h1>
 
                 {/* Description */}
@@ -378,11 +419,12 @@ function StudioProContentPageContent() {
           </div>
 
           {(() => {
-            const filteredCards = newReleases.filter(card => {
+            const displayCards = activeTab === "saved" ? savedCards : newReleases;
+            const filteredCards = displayCards.filter(card => {
               if (activeTab === "all") return true;
               if (activeTab === "plans") return card.requiredTier;
               if (activeTab === "single") return card.isLocked && card.price && card.price > 0 && !card.requiredTier;
-              if (activeTab === "saved") return false; // saved filter not implemented yet
+              if (activeTab === "saved") return true;
               return true;
             });
 

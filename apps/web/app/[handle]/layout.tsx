@@ -28,16 +28,24 @@ interface HandleLayoutProps {
 export async function generateMetadata({ params }: HandleLayoutProps): Promise<Metadata> {
     const creator = await prisma.creatorProfile.findUnique({
         where: { handle: params.handle },
-        select: { displayName: true, bio: true }
+        select: { displayName: true, bio: true, faviconUrl: true }
     });
 
     if (!creator) {
         return { title: "Not Found" };
     }
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const faviconHref = creator.faviconUrl
+        ? `${apiUrl}${creator.faviconUrl}`
+        : undefined;
+
     return {
         title: creator.displayName,
-        description: creator.bio || `${creator.displayName}のファンサイト`
+        description: creator.bio || `${creator.displayName}のファンサイト`,
+        ...(faviconHref && {
+            icons: { icon: faviconHref },
+        }),
     };
 }
 
@@ -69,7 +77,7 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
         notFound();
     }
 
-    // Check if fan account is locked
+    // Check if fan account is locked / create FanProfile for new OAuth users
     if (session?.user) {
         const userId = (session.user as any).id;
 

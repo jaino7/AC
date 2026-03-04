@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { renderAsync } from '@react-email/render';
 import { prisma } from '@/lib/prisma';
 import React from 'react';
 
@@ -37,12 +38,15 @@ export async function sendEmail({
     });
 
     try {
+        // React EmailコンポーネントをHTMLに事前レンダリング
+        const html = await renderAsync(react);
+
         // Resendでメール送信
         const { data, error } = await resend.emails.send({
-            from: process.env.EMAIL_FROM_ADDRESS || 'CreatorSpace <noreply@creatorspace.jp>',
+            from: process.env.EMAIL_FROM_ADDRESS || 'CocoBa <noreply@getcocoba.com>',
             to,
             subject,
-            react,
+            html,
         });
 
         if (error) {
@@ -79,7 +83,7 @@ export async function sendEmail({
                 status: 'FAILED',
                 errorMessage: error.message,
             },
-        });
+        }).catch(() => {/* ignore update failure */});
 
         console.error('Email sending exception:', error);
         return { success: false, error, emailLogId: emailLog.id };
@@ -113,6 +117,10 @@ export async function sendEmailDev(params: SendEmailParams) {
 }
 
 // 環境に応じてエクスポート
-export const sendEmailSafe = process.env.NODE_ENV === 'production'
-    ? sendEmail
-    : sendEmailDev;
+// RESEND_API_KEY が設定されていれば本番メール送信、なければ開発モード
+export async function sendEmailSafe(params: SendEmailParams) {
+    if (process.env.RESEND_API_KEY) {
+        return sendEmail(params);
+    }
+    return sendEmailDev(params);
+}

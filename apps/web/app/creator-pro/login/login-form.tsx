@@ -11,6 +11,7 @@ import {
     creatorLoginSchema
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 interface CreatorProLoginFormProps {
     handle?: string;
@@ -136,6 +137,12 @@ export const CreatorProLoginForm = ({ handle: propHandle }: CreatorProLoginFormP
                     <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
                 )}
             </label>
+
+            {handle && (
+                <div className="text-right text-xs text-cyan-300">
+                    <Link href={`/${handle}/password-reset`}>パスワードを忘れた方</Link>
+                </div>
+            )}
 
             {message && (
                 <p

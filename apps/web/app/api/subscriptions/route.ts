@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmailSafe } from '@/lib/email/client';
 import { PaymentInstructionsEmail } from '@/lib/email/templates/fan/PaymentInstructionsEmail';
-import { generateIdentifierCode } from '@/lib/email/utils/formatters';
+
 import { NewSubscriberEmail } from '@/lib/email/templates/creator/NewSubscriberEmail';
 
 /**
@@ -48,9 +48,6 @@ export async function POST(req: Request) {
             );
         }
 
-        // 識別コードを生成
-        const identifierCode = generateIdentifierCode();
-
         // トランザクションレコード作成（PENDING状態）
         const transaction = await prisma.transaction.create({
             data: {
@@ -77,7 +74,6 @@ export async function POST(req: Request) {
                 accountType: plan.creator.bankAccount.accountType,
                 accountNumber: plan.creator.bankAccount.accountNumber,
                 accountHolder: plan.creator.bankAccount.accountHolder,
-                identifierCode: identifierCode,
             }),
             emailType: 'FAN_PAYMENT_INSTRUCTIONS',
             recipientId: fan.userId,
@@ -114,7 +110,6 @@ export async function POST(req: Request) {
             success: true,
             transaction: {
                 id: transaction.id,
-                identifierCode: identifierCode,
                 amount: plan.price,
             },
         });

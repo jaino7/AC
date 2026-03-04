@@ -76,6 +76,28 @@ function TierBadge({ tier }: { tier: number }) {
     );
 }
 
+interface LookupResult {
+    creator: {
+        name: string;
+        handle: string;
+        email: string | null;
+        userId: string | null;
+    };
+    subscription: {
+        id: string;
+        planName: string;
+        planType: string;
+        isYearly: boolean;
+        amount: number;
+        status: string;
+        billingBalance: number;
+    };
+    virtualAccount: {
+        accountNumber: string;
+        branchName: string | null;
+    };
+}
+
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { label: string; color: string }> = {
         PENDING: { label: "振込待ち", color: "bg-yellow-100 text-yellow-800" },
@@ -101,6 +123,71 @@ export default function AdminTransfersPage() {
     const [confirming, setConfirming] = useState<string | null>(null);
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
     const [tier0Amounts, setTier0Amounts] = useState<Record<string, number>>({});
+
+    // Account number lookup state
+    const [searchAccountNumber, setSearchAccountNumber] = useState("");
+    const [searching, setSearching] = useState(false);
+    const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
+    const [lookupError, setLookupError] = useState<string | null>(null);
+    const [addAmount, setAddAmount] = useState<number>(0);
+    const [updating, setUpdating] = useState(false);
+
+    const handleLookup = async () => {
+        if (!searchAccountNumber.trim()) return;
+        setSearching(true);
+        setLookupResult(null);
+        setLookupError(null);
+        setAddAmount(0);
+        try {
+            const res = await fetch(`/api/admin/creators/lookup?accountNumber=${encodeURIComponent(searchAccountNumber.trim())}`);
+            const data = await res.json();
+            if (!res.ok) {
+                setLookupError(data.error || "検索に失敗しました");
+                return;
+            }
+            setLookupResult(data);
+        } catch {
+            setLookupError("検索に失敗しました");
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const handleBillingUpdate = async () => {
+        if (!lookupResult || addAmount <= 0) return;
+        if (!confirm(`${lookupResult.creator.name}に¥${addAmount.toLocaleString()}を加算しますか？`)) return;
+
+        setUpdating(true);
+        try {
+            const res = await fetch("/api/admin/creators/billing", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    subscriptionId: lookupResult.subscription.id,
+                    amount: addAmount,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setMessage({ text: data.error || "更新に失敗しました", type: "error" });
+                return;
+            }
+            setMessage({ text: data.message + ` (¥${data.previousBalance.toLocaleString()} → ¥${data.newBalance.toLocaleString()})`, type: "success" });
+            // Update the local result
+            setLookupResult({
+                ...lookupResult,
+                subscription: {
+                    ...lookupResult.subscription,
+                    billingBalance: data.newBalance,
+                },
+            });
+            setAddAmount(0);
+        } catch {
+            setMessage({ text: "更新に失敗しました", type: "error" });
+        } finally {
+            setUpdating(false);
+        }
+    };
 
     const fetchTransfers = useCallback(async () => {
         setLoading(true);
@@ -182,6 +269,102 @@ export default function AdminTransfersPage() {
                         {message.text}
                     </div>
                 )}
+
+                {/* Account Number Lookup Section */}
+                <div className="mb-8 rounded-3xl border border-indigo-200 bg-white p-6 shadow-sm">
+                    <h2 className="mb-4 text-lg font-semibold text-gray-900">🔍 口座番号からクリエイター検索</h2>
+                    <div className="flex gap-3">
+                        <input
+                            type="text"
+                            placeholder="口座番号を入力"
+                            value={searchAccountNumber}
+                            onChange={(e) => setSearchAccountNumber(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleLookup()}
+                            className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-mono focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <button
+                            onClick={handleLookup}
+                            disabled={searching || !searchAccountNumber.trim()}
+                            className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                            {searching ? "検索中..." : "検索"}
+                        </button>
+                    </div>
+
+                    {lookupError && (
+                        <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {lookupError}
+                        </div>
+                    )}
+
+                    {lookupResult && (
+                        <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="flex-1 space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                            {lookupResult.creator.name}
+                                        </h3>
+                                        <span className="text-sm text-gray-500">@{lookupResult.creator.handle}</span>
+                                        <StatusBadge status={lookupResult.subscription.status} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
+                                        <div>
+                                            <span className="text-gray-500">プラン</span>
+                                            <p className="font-semibold text-gray-900">
+                                                {lookupResult.subscription.planName}
+                                                <span className="ml-1 text-xs text-gray-500">
+                                                    ({lookupResult.subscription.isYearly ? "年額" : "月額"})
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">プラン料金</span>
+                                            <p className="font-semibold text-gray-900">
+                                                ¥{lookupResult.subscription.amount.toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">口座番号</span>
+                                            <p className="font-mono font-semibold text-gray-900">
+                                                {lookupResult.virtualAccount.accountNumber}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">プリペイド残高</span>
+                                            <p className="text-lg font-bold text-indigo-700">
+                                                ¥{lookupResult.subscription.billingBalance.toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {lookupResult.creator.email && (
+                                        <p className="text-xs text-gray-400">Email: {lookupResult.creator.email}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Billing balance update */}
+                            <div className="mt-4 flex items-center gap-3 rounded-xl border border-indigo-200 bg-white px-4 py-3">
+                                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">入金額:</span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    placeholder="金額（円）"
+                                    value={addAmount || ""}
+                                    onChange={(e) => setAddAmount(parseInt(e.target.value) || 0)}
+                                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                                />
+                                <button
+                                    onClick={handleBillingUpdate}
+                                    disabled={updating || addAmount <= 0}
+                                    className="rounded-xl bg-green-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    {updating ? "処理中..." : `残高に +¥${(addAmount || 0).toLocaleString()} 加算`}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Tabs */}
                 <div className="mb-6 flex gap-1 rounded-2xl bg-gray-100 p-1">

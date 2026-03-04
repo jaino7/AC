@@ -205,9 +205,14 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
                     </div>
 
                     <div>
-                        <label className={`mb-1 block text-xs font-semibold ${styles.label}`}>
-                            パスワード
-                        </label>
+                        <div className="mb-1 flex items-center justify-between">
+                            <label className={`block text-xs font-semibold ${styles.label}`}>
+                                パスワード
+                            </label>
+                            <Link href={`/${creatorHandle}/password-reset`} className={`text-xs ${styles.link}`}>
+                                パスワードを忘れた方
+                            </Link>
+                        </div>
                         <div className="relative">
                             <input
                                 type={showPassword ? "text" : "password"}

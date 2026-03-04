@@ -12,23 +12,23 @@ async function main() {
       name: 'Free Plan',
       monthlyPrice: 0,
       yearlyPrice: 0,
-      feeRate: 10.0,
+      feeRate: 8.0,
       storageLimitBytes: BigInt(15 * 1024 * 1024 * 1024), // 15GB
     },
     {
       type: 'LITE',
       name: 'Lite Plan',
-      monthlyPrice: 4000,
-      yearlyPrice: 40000,
-      feeRate: 6.0,
+      monthlyPrice: 2980,
+      yearlyPrice: 29800,
+      feeRate: 5.0,
       storageLimitBytes: BigInt(200 * 1024 * 1024 * 1024), // 200GB
     },
     {
       type: 'BUSINESS',
       name: 'Business Plan',
-      monthlyPrice: 25000,
-      yearlyPrice: 250000,
-      feeRate: 3.0,
+      monthlyPrice: 19800,
+      yearlyPrice: 198000,
+      feeRate: 2.8,
       storageLimitBytes: BigInt(1024 * 1024 * 1024 * 1024), // 1TB
     },
   ]

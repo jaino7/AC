@@ -33,7 +33,7 @@ export class BrandAssetsController {
     async uploadAsset(
         @UploadedFile() file: MulterFile,
         @Query("creatorId") creatorId: string,
-        @Query("type") type: "logo" | "favicon"
+        @Query("type") type: "avatar" | "logo" | "favicon"
     ) {
         if (!file) {
             throw new BadRequestException("ファイルが選択されていません");
@@ -43,8 +43,8 @@ export class BrandAssetsController {
             throw new BadRequestException("クリエイターIDとタイプは必須です");
         }
 
-        if (type !== "logo" && type !== "favicon") {
-            throw new BadRequestException("タイプはlogoまたはfaviconである必要があります");
+        if (type !== "avatar" && type !== "logo" && type !== "favicon") {
+            throw new BadRequestException("タイプはavatar、logo、またはfaviconである必要があります");
         }
 
         return this.brandAssetsService.uploadAsset(creatorId, type, file);
@@ -70,14 +70,14 @@ export class BrandAssetsController {
     @Delete()
     async deleteAsset(
         @Query("creatorId") creatorId: string,
-        @Query("type") type: "logo" | "favicon"
+        @Query("type") type: "avatar" | "logo" | "favicon"
     ) {
         if (!creatorId || !type) {
             throw new BadRequestException("クリエイターIDとタイプは必須です");
         }
 
-        if (type !== "logo" && type !== "favicon") {
-            throw new BadRequestException("タイプはlogoまたはfaviconである必要があります");
+        if (type !== "avatar" && type !== "logo" && type !== "favicon") {
+            throw new BadRequestException("タイプはavatar、logo、またはfaviconである必要があります");
         }
 
         return this.brandAssetsService.deleteAsset(creatorId, type);

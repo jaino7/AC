@@ -48,14 +48,10 @@ export const authOptions: NextAuthOptions = {
             where: { email: credentials.email }
           });
 
-          console.log("User found:", user ? "Yes" : "No");
-
           if (!user || !user.password) {
             console.error("User not found or no password set");
             throw new Error("メールアドレスまたはパスワードが正しくありません");
           }
-
-          console.log("Comparing passwords...");
 
           // パスワードを検証（argon2）
           const isValidPassword = await verify(

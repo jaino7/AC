@@ -13,7 +13,7 @@ export function formatDate(date: Date): string {
  * 金額をフォーマット
  */
 export function formatCurrency(amount: number): string {
-    return `¥${amount.toLocaleString('ja-JP')}`;
+    return `${amount.toLocaleString('ja-JP')}クレジット`;
 }
 
 /**

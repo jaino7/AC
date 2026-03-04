@@ -45,6 +45,7 @@ type CreatorProfile = {
   handle: string;
   displayName: string;
   bio: string | null;
+  avatarUrl: string | null;
   headerUrl: string | null;
   logoUrl: string | null;
   twitterUrl: string | null;
@@ -53,9 +54,18 @@ type CreatorProfile = {
   discordUrl: string | null;
   otherUrl: string | null;
   otherUrlName?: string | null;
+  themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
 type TabType = "all" | "plans" | "single" | "saved";
+
+const resolveAssetUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/uploads/brand-assets/')) {
+    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${url}`;
+  }
+  return url;
+};
 
 function VelvetProContentPageContent() {
   const pathname = usePathname();
@@ -75,6 +85,8 @@ function VelvetProContentPageContent() {
   const [contentCards, setContentCards] = useState<ContentCard[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savedCards, setSavedCards] = useState<ContentCard[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedCard, setSelectedCard] = useState<ContentCard | null>(null);
@@ -92,6 +104,7 @@ function VelvetProContentPageContent() {
             handle: "velvet-pro",
             displayName: "Velvet Pro Demo",
             bio: "これはVelvet Proテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            avatarUrl: null,
             headerUrl: null,
             logoUrl: null,
             twitterUrl: null,
@@ -136,11 +149,9 @@ function VelvetProContentPageContent() {
         // Fetch plans
         let plansResponse;
         if (handle) {
-          plansResponse = await fetch(`/api/creators/plans?handle=${handle}`);
+          plansResponse = await fetch(`/api/creators/subscription-plans?handle=${handle}`);
         } else if (isPreview) {
-          plansResponse = await fetch("/api/creators/plans");
-        } else {
-          plansResponse = await fetch("/api/creators/plans");
+          plansResponse = await fetch("/api/creators/subscription-plans");
         }
 
         if (plansResponse?.ok) {
@@ -194,6 +205,36 @@ function VelvetProContentPageContent() {
 
     fetchData();
   }, [handle, isPreview]);
+
+  useEffect(() => {
+    if (activeTab === "saved" && !isPreview && savedCards.length === 0) {
+      const fetchSaved = async () => {
+        setSavedLoading(true);
+        try {
+          const res = await fetch("/api/fans/saved");
+          if (res.ok) {
+            const data = await res.json();
+            const arr = data.posts || [];
+            setSavedCards(arr.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              cover: p.thumbnailUrl || p.mediaUrl || null,
+              type: "free" as const,
+              isLocked: p.isLocked,
+              requiredTier: p.requiredPlan?.name,
+              price: p.price,
+              media: p.media || [],
+            })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch saved posts:", err);
+        } finally {
+          setSavedLoading(false);
+        }
+      };
+      fetchSaved();
+    }
+  }, [activeTab, isPreview]);
 
   const getTimeAgo = (date: Date): string => {
     const now = new Date();
@@ -274,14 +315,20 @@ function VelvetProContentPageContent() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a1612] via-[#2a231d] to-[#1a1612] text-white">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#1a1612] via-[#2a231d] to-[#1a1612] text-white">
       {/* Header */}
       <header className="border-b border-yellow-900/20 bg-black/40 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-4 sm:px-10 lg:px-16">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <span className="text-2xl">💎</span>
-            <span className="text-lg font-semibold">{creatorProfile?.displayName || "Velvet Pro"}</span>
+            {creatorProfile?.logoUrl ? (
+              <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-8 w-auto max-w-[160px] rounded object-contain" />
+            ) : (
+              <span className="text-2xl">💎</span>
+            )}
+            {creatorProfile?.themeConfig?.showNameInHeader !== false && (
+              <span className="text-lg font-semibold">{creatorProfile?.displayName || "Velvet Pro"}</span>
+            )}
           </div>
 
           {/* Auth Buttons */}
@@ -310,16 +357,16 @@ function VelvetProContentPageContent() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-8 pb-24 sm:px-6 lg:px-8 md:pb-8">
+      <main className="flex-1 px-6 py-8 pb-24 sm:px-10 lg:px-16 md:pb-8">
         {/* Profile Section */}
         <section className="mb-12 text-center">
           {/* Avatar */}
           <div className="mb-6 flex justify-center">
             <div className="relative">
               <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-yellow-600 p-1 bg-black">
-                {creatorProfile?.logoUrl || creatorProfile?.headerUrl ? (
+                {creatorProfile?.avatarUrl || creatorProfile?.headerUrl ? (
                   <img
-                    src={creatorProfile.logoUrl || creatorProfile.headerUrl || ""}
+                    src={resolveAssetUrl(creatorProfile.avatarUrl) ?? (creatorProfile.headerUrl || "")}
                     alt={creatorProfile?.displayName || "CreatorProfile"}
                     className="h-full w-full rounded-full object-cover"
                   />
@@ -420,13 +467,14 @@ function VelvetProContentPageContent() {
         </div>
 
         {/* Content Grid */}
-        <section className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {(() => {
-            const filteredCards = contentCards.filter(card => {
+            const displayCards = activeTab === "saved" ? savedCards : contentCards;
+            const filteredCards = displayCards.filter(card => {
               if (activeTab === "all") return true;
               if (activeTab === "plans") return card.requiredTier;
               if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && !card.requiredTier;
-              if (activeTab === "saved") return false;
+              if (activeTab === "saved") return true;
               return true;
             });
 
@@ -567,7 +615,7 @@ function VelvetProContentPageContent() {
 
       {/* Footer */}
       <footer className="mt-16 border-t border-yellow-900/20 bg-black/40 pt-6 pb-24 md:pb-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-start px-6 text-sm text-gray-400">
+        <div className="flex items-center justify-start px-6 sm:px-10 lg:px-16 text-sm text-gray-400">
           <div className="flex flex-wrap justify-start gap-6 text-xs">
             <a href="/terms/fans" target="_blank" className="hover:text-yellow-500 whitespace-nowrap">
               利用規約

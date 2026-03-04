@@ -31,8 +31,8 @@ export default function WelcomeEmail({
     : `${creatorName}のファンコミュニティへようこそ！`;
 
   const ctaUrl = isCreator
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/creators/dashboard`
-    : `${process.env.NEXT_PUBLIC_WEB_URL}/${handle}`;
+    ? `${process.env.WEB_URL}/creators/dashboard`
+    : `${process.env.WEB_URL}/${handle}`;
   const ctaText = isCreator ? 'ダッシュボードへ' : 'コンテンツを見る';
 
   return (
@@ -57,18 +57,8 @@ export default function WelcomeEmail({
                   CocoBaへのクリエイター登録が完了しました。これからあなたの創作活動をサポートします。
                 </Text>
 
-                <Section style={infoBox}>
-                  <Text style={infoLabel}>登録メールアドレス</Text>
-                  <Text style={infoValue}>{email}</Text>
-
-                  <Text style={infoLabel}>プロフィールURL</Text>
-                  <Text style={infoValue}>
-                    {process.env.NEXT_PUBLIC_WEB_URL}/{handle}
-                  </Text>
-                </Section>
-
                 <Text style={paragraph}>
-                  ダッシュボードから、コンテンツの投稿やファンとの交流を始めましょう。
+                  ダッシュボードからプロフィールの設定やコンテンツの管理ができます。
                 </Text>
               </>
             ) : (

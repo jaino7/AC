@@ -2,9 +2,9 @@ import { SignupForm } from "./signup-form";
 
 const features = [
   {
-    title: "業界最安水準の手数料（3.0%〜）",
+    title: "業界最安水準の手数料（2.8%〜）",
     description:
-      "Businessプラン3.0%、Liteプラン6.0%の低手数料で、手残りを最大化。"
+      "Businessプラン2.8%、Liteプラン5%の低手数料で、手残りを最大化。"
   },
   {
     title: "凍結リスクゼロ・完全自立型",
@@ -45,7 +45,7 @@ export default function SignupPage() {
         {/* ブロックA-2: サブキャッチコピー・説明文（スマホではフォームの下、PCではキャッチコピーの直下） */}
         <div className="border-t border-neutral-100 px-6 pt-8 lg:col-start-1 lg:row-start-2 lg:border-t-0 lg:px-0 lg:pt-0">
           <p className="text-sm text-neutral-600 lg:text-base">
-            独自ドメイン・業界最安水準の手数料（3.0%〜）で、凍結リスクなく長期的な収益を最大化できるプラットフォーム。直感的な管理画面で、安心して活動を広げられます。
+            独自ドメイン・業界最安水準の手数料（2.8%〜）で、凍結リスクなく長期的な収益を最大化できるプラットフォーム。直感的な管理画面で、安心して活動を広げられます。
           </p>
         </div>
 

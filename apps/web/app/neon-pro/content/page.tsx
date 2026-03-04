@@ -8,6 +8,8 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { samplePosts } from "@/lib/sampleContent";
+import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
+import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
 
 type Media = {
   id: string;
@@ -37,6 +39,7 @@ type CreatorProfile = {
   handle: string;
   displayName: string;
   bio: string | null;
+  avatarUrl: string | null;
   logoUrl: string | null;
   twitterUrl: string | null;
   instagramUrl: string | null;
@@ -44,6 +47,7 @@ type CreatorProfile = {
   discordUrl: string | null;
   otherUrl: string | null;
   otherUrlName?: string | null;
+  themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
 type Plan = {
@@ -54,6 +58,14 @@ type Plan = {
 };
 
 type TabType = "all" | "plans" | "single" | "saved";
+
+const resolveAssetUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/uploads/brand-assets/')) {
+    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${url}`;
+  }
+  return url;
+};
 
 function NeonProContentPageContent() {
   const pathname = usePathname();
@@ -73,6 +85,16 @@ function NeonProContentPageContent() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [subscribedPlanIds, setSubscribedPlanIds] = useState<Set<string>>(new Set());
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+
+  const { data: creditsData } = useCredits(handle || undefined);
+  const invalidateCredits = useInvalidateCredits();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +105,7 @@ function NeonProContentPageContent() {
             handle: "neon-pro",
             displayName: "Neon Pro Demo",
             bio: "これはNeon Proテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            avatarUrl: null,
             logoUrl: null,
             twitterUrl: null,
             instagramUrl: null,
@@ -114,16 +137,24 @@ function NeonProContentPageContent() {
         // Fetch plans
         let plansResponse;
         if (handle) {
-          plansResponse = await fetch(`/api/creators/plans?handle=${handle}`);
+          plansResponse = await fetch(`/api/creators/subscription-plans?handle=${handle}`);
         } else if (isPreview) {
-          plansResponse = await fetch("/api/creators/plans");
-        } else {
-          plansResponse = await fetch("/api/creators/plans");
+          plansResponse = await fetch("/api/creators/subscription-plans");
         }
 
         if (plansResponse?.ok) {
           const plansData = await plansResponse.json();
           setPlans(plansData.plans || []);
+        }
+
+        // Fetch subscribed plans (only when logged in)
+        if (session?.user && handle) {
+          const subsResponse = await fetch(`/api/fans/subscribe?handle=${handle}`);
+          if (subsResponse.ok) {
+            const subsData = await subsResponse.json();
+            const ids = new Set<string>((subsData.subscriptions || []).map((s: any) => s.planId));
+            setSubscribedPlanIds(ids);
+          }
         }
 
         // Fetch published posts
@@ -164,7 +195,54 @@ function NeonProContentPageContent() {
     };
 
     fetchData();
-  }, [handle, isPreview]);
+  }, [handle, isPreview, session]);
+
+  const handleSubscribeClick = (plan: Plan) => {
+    if (!session) {
+      window.location.href = handle ? `/${handle}/login` : "/creators/login";
+      return;
+    }
+    setSelectedPlan(plan);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSubscribe = async () => {
+    if (!selectedPlan) return;
+
+    const currentCredits = creditsData?.credits || 0;
+    if (currentCredits < selectedPlan.price) {
+      setShowConfirmModal(false);
+      setShowInsufficientModal(true);
+      return;
+    }
+
+    setIsSubscribing(true);
+    setShowConfirmModal(false);
+    try {
+      const response = await fetch("/api/fans/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: selectedPlan.id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        invalidateCredits(handle || undefined);
+        setSubscribedPlanIds(prev => new Set(prev).add(selectedPlan.id));
+        alert(`「${selectedPlan.name}」プランに登録しました`);
+        window.location.reload();
+      } else if (data.shortage) {
+        setShowInsufficientModal(true);
+      } else {
+        alert(data.error || "プランへの登録に失敗しました");
+      }
+    } catch {
+      alert("プランへの登録に失敗しました");
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   const getTimeAgo = (date: Date): string => {
     const now = new Date();
@@ -178,6 +256,37 @@ function NeonProContentPageContent() {
     return `${diffDays}日前`;
   };
 
+  useEffect(() => {
+    if (activeTab === "saved" && !isPreview && savedPosts.length === 0) {
+      const fetchSaved = async () => {
+        setSavedLoading(true);
+        try {
+          const res = await fetch("/api/fans/saved");
+          if (res.ok) {
+            const data = await res.json();
+            const arr = data.posts || [];
+            setSavedPosts(arr.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              description: p.content || "",
+              cover: p.thumbnailUrl || p.mediaUrl,
+              isLocked: p.isLocked,
+              requiredTier: p.requiredPlan?.name,
+              price: p.price,
+              timeAgo: getTimeAgo(new Date(p.createdAt)),
+              media: p.media || [],
+            })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch saved posts:", err);
+        } finally {
+          setSavedLoading(false);
+        }
+      };
+      fetchSaved();
+    }
+  }, [activeTab, isPreview]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-[#0a0e12] text-white items-center justify-center">
@@ -188,16 +297,23 @@ function NeonProContentPageContent() {
 
 
   return (
+    <>
     <div className="flex min-h-screen flex-col lg:flex-row bg-[#0a0e12] text-white">
       {/* Mobile Header / Hamburger */}
       <div className="flex lg:hidden items-center justify-between border-b border-cyan-900/30 bg-[#0a0e12] p-4">
         <div className="flex items-center gap-2">
-          <svg className="h-6 w-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-          </svg>
-          <span className="font-mono text-lg font-bold tracking-wider text-cyan-400">
-            CYBER<span className="text-white">.SUBS</span>
-          </span>
+          {creatorProfile?.logoUrl ? (
+            <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-8 w-auto max-w-[160px] rounded object-contain" />
+          ) : (
+            <svg className="h-6 w-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+            </svg>
+          )}
+          {creatorProfile?.themeConfig?.showNameInHeader !== false && (
+            <span className="font-mono text-lg font-bold tracking-wider text-cyan-400">
+              {creatorProfile?.displayName || <><span>CYBER</span><span className="text-white">.SUBS</span></>}
+            </span>
+          )}
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -246,14 +362,18 @@ function NeonProContentPageContent() {
           <header className="hidden lg:flex border-b border-cyan-900/30 bg-[#0a0e12] px-6 py-3 items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <svg className="h-6 w-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-                </svg>
-                <div>
+                {creatorProfile?.logoUrl ? (
+                  <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-8 w-auto max-w-[160px] rounded object-contain" />
+                ) : (
+                  <svg className="h-6 w-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                  </svg>
+                )}
+                {creatorProfile?.themeConfig?.showNameInHeader !== false && (
                   <h1 className="font-mono text-lg font-bold tracking-wider text-cyan-400">
-                    CYBER<span className="text-white">.SUBS</span>
+                    {creatorProfile?.displayName || <><span>CYBER</span><span className="text-white">.SUBS</span></>}
                   </h1>
-                </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -279,7 +399,7 @@ function NeonProContentPageContent() {
               <div className="relative">
                 <div className="h-24 w-24 overflow-hidden rounded-lg border-2 border-cyan-400 bg-gradient-to-br from-cyan-400 to-blue-600">
                   <img
-                    src={creatorProfile?.logoUrl || "https://images.unsplash.com/photo-1614029655965-574f0f70e3b0?auto=format&fit=crop&w=200&q=80"}
+                    src={resolveAssetUrl(creatorProfile?.avatarUrl || creatorProfile?.logoUrl) ?? "https://images.unsplash.com/photo-1614029655965-574f0f70e3b0?auto=format&fit=crop&w=200&q=80"}
                     alt={creatorProfile?.displayName || "CreatorProfile"}
                     className="h-full w-full object-cover"
                   />
@@ -341,13 +461,22 @@ function NeonProContentPageContent() {
             <main className="flex-1 min-w-0">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {(() => {
-                  const filteredPosts = posts.filter(post => {
+                  const displayPosts = activeTab === "saved" ? savedPosts : posts;
+                  const filteredPosts = displayPosts.filter(post => {
                     if (activeTab === "all") return true;
                     if (activeTab === "plans") return post.isLocked && post.requiredTier;
                     if (activeTab === "single") return post.isLocked && post.price && post.price > 0 && (!post.requiredTier || post.requiredTier === "");
-                    if (activeTab === "saved") return false;
+                    if (activeTab === "saved") return true;
                     return true;
                   });
+
+                  if (savedLoading) {
+                    return (
+                      <div className="col-span-full text-center py-12 text-gray-400">
+                        読み込み中...
+                      </div>
+                    );
+                  }
 
                   if (filteredPosts.length === 0) {
                     return (
@@ -528,9 +657,19 @@ function NeonProContentPageContent() {
                         <div className="space-y-1 text-[10px]">
                           <p className="text-gray-300 mb-2 whitespace-pre-wrap">{plan.description || "このプランに参加して限定コンテンツを楽しもう！"}</p>
                         </div>
-                        <button className="mt-3 w-full rounded bg-cyan-600 py-1.5 text-[10px] font-bold uppercase text-black transition hover:bg-cyan-500">
-                          プランを選択
-                        </button>
+                        {subscribedPlanIds.has(plan.id) ? (
+                          <div className="mt-3 w-full rounded border border-cyan-700/50 py-1.5 text-center text-[10px] font-bold uppercase text-cyan-600">
+                            登録済み
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleSubscribeClick(plan)}
+                            disabled={isSubscribing}
+                            className={`mt-3 w-full rounded bg-cyan-600 py-1.5 text-[10px] font-bold uppercase text-black transition hover:bg-cyan-500 ${isSubscribing ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            {isSubscribing ? "処理中..." : "プランを選択"}
+                          </button>
+                        )}
                       </div>
                     ))
                   ) : (
@@ -564,6 +703,54 @@ function NeonProContentPageContent() {
         </footer>
       </div>
     </div>
+
+    {/* プラン登録確認モーダル */}
+    {showConfirmModal && selectedPlan && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)} />
+        <div className="relative w-full max-w-sm rounded-xl border border-cyan-900/50 bg-[#0d1520] p-6 shadow-2xl mx-4">
+          <h3 className="mb-1 font-mono text-base font-bold text-cyan-400">プランへの登録確認</h3>
+          <p className="mb-4 text-xs text-gray-400">以下のプランに登録します。よろしいですか？</p>
+
+          <div className="mb-5 rounded-lg border border-cyan-900/40 bg-cyan-950/30 p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-sm font-bold text-white">{selectedPlan.name}</span>
+              <span className="font-mono text-sm font-bold text-cyan-400">¥{selectedPlan.price.toLocaleString()}<span className="text-[10px] text-gray-500">/月</span></span>
+            </div>
+            {selectedPlan.description && (
+              <p className="mt-2 text-xs text-gray-400">{selectedPlan.description}</p>
+            )}
+            <p className="mt-3 text-[10px] text-gray-500">保有クレジット: {(creditsData?.credits || 0).toLocaleString()} pt</p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="flex-1 rounded-lg border border-gray-700 py-2 text-xs font-bold text-gray-400 transition hover:border-gray-500 hover:text-white"
+            >
+              キャンセル
+            </button>
+            <button
+              onClick={handleConfirmSubscribe}
+              disabled={isSubscribing}
+              className="flex-1 rounded-lg bg-cyan-600 py-2 text-xs font-bold text-black transition hover:bg-cyan-500 disabled:opacity-50"
+            >
+              {isSubscribing ? "処理中..." : "登録する"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <InsufficientCreditsModal
+      isOpen={showInsufficientModal}
+      onClose={() => setShowInsufficientModal(false)}
+      currentCredits={creditsData?.credits || 0}
+      requiredAmount={selectedPlan?.price || 0}
+      handle={handle || undefined}
+      contentTitle={selectedPlan?.name}
+    />
+    </>
   );
 }
 

@@ -48,6 +48,7 @@ type CreatorProfile = {
   discordUrl: string | null;
   otherUrl: string | null;
   otherUrlName?: string | null;
+  themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
 type Plan = {
@@ -83,6 +84,14 @@ const getTimeAgo = (date: Date): string => {
     return Math.floor(interval) + "分前";
   }
   return Math.floor(seconds) + "秒前";
+};
+
+const resolveAssetUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/uploads/brand-assets/')) {
+    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${url}`;
+  }
+  return url;
 };
 
 function CreatorProContentPageContent() {
@@ -151,9 +160,9 @@ function CreatorProContentPageContent() {
         // Fetch plans
         let plansResponse;
         if (handle) {
-          plansResponse = await fetch(`/api/creators/plans?handle=${handle}`);
+          plansResponse = await fetch(`/api/creators/subscription-plans?handle=${handle}`);
         } else if (isPreview) {
-          plansResponse = await fetch("/api/creators/plans");
+          plansResponse = await fetch("/api/creators/subscription-plans");
         }
 
         if (plansResponse?.ok) {
@@ -241,13 +250,9 @@ function CreatorProContentPageContent() {
 
   const filteredPosts = displayPosts.filter((post) => {
     if (activeTab === "all") return true;
+    if (activeTab === "plans") return post.isLocked && post.requiredPlan;
     if (activeTab === "single") return post.isLocked && post.price && post.price > 0 && !post.requiredPlan;
     if (activeTab === "saved") return true; // Already filtered by displayPosts
-    // プランIDの場合
-    const plan = plans.find(p => p.id === activeTab);
-    if (plan) {
-      return post.requiredPlan?.id === activeTab;
-    }
     return true;
   });
 
@@ -349,14 +354,16 @@ function CreatorProContentPageContent() {
         <header className="border-b border-gray-800 bg-[#0d1117] px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 font-bold text-white">
-                {creatorProfile?.logoUrl ? (
-                  <img src={creatorProfile.logoUrl} alt="Logo" className="h-full w-full rounded object-cover" />
-                ) : (
-                  creatorProfile?.displayName?.charAt(0) || "C"
-                )}
-              </div>
-              <span className="text-lg font-semibold">{creatorProfile?.displayName || "Creator"}</span>
+              {creatorProfile?.logoUrl ? (
+                <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-8 w-auto max-w-[160px] rounded object-contain" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 font-bold text-white">
+                  {creatorProfile?.displayName?.charAt(0) || "C"}
+                </div>
+              )}
+              {creatorProfile?.themeConfig?.showNameInHeader !== false && (
+                <span className="text-lg font-semibold">{creatorProfile?.displayName || "Creator"}</span>
+              )}
             </div>
             <div className="flex items-center gap-3">
               {!session ? (
@@ -432,7 +439,7 @@ function CreatorProContentPageContent() {
                   <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl border border-gray-800/50 p-6 backdrop-blur-sm">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-1 w-1 rounded-full bg-blue-500"></div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">About Creator</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">説明</h3>
                     </div>
                     <p className="text-sm leading-7 text-gray-300 whitespace-pre-wrap font-medium">
                       {creatorProfile.bio}
@@ -445,7 +452,7 @@ function CreatorProContentPageContent() {
                   <div className="flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-1 w-1 rounded-full bg-blue-500"></div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">Social Links</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">リンク</h3>
                     </div>
                     <div className="flex flex-wrap gap-3 lg:grid lg:grid-cols-1">
                       {creatorProfile?.twitterUrl && (
@@ -527,18 +534,17 @@ function CreatorProContentPageContent() {
             >
               すべての投稿
             </button>
-            {plans.map((plan) => (
+            {plans.length > 0 && (
               <button
-                key={plan.id}
-                onClick={() => setActiveTab(plan.id)}
-                className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === plan.id
+                onClick={() => setActiveTab("plans")}
+                className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "plans"
                   ? "border-b-2 border-blue-600 text-blue-500"
                   : "text-gray-400 hover:text-white"
                   }`}
               >
                 プラン
               </button>
-            ))}
+            )}
             <button
               onClick={() => setActiveTab("single")}
               className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "single"

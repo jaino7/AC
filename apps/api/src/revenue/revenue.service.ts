@@ -11,7 +11,7 @@ export class RevenueService {
 
   /**
    * クリエイターの現在の手数料率を取得
-   * サブスクリプションがない場合はFreeプラン(10%)を返す
+   * サブスクリプションがない場合はFreeプラン(8%)を返す
    */
   async getCreatorFeeRate(creatorId: string): Promise<number> {
     const subscription = await this.prisma.creatorSubscription.findUnique({
@@ -20,9 +20,9 @@ export class RevenueService {
     });
 
     // ACTIVEなサブスクリプションがある場合はそのプランの手数料率を使用
-    // それ以外(PENDING/EXPIRED/CANCELLED/未契約)はFreeプランのデフォルト(10%)を使用
+    // それ以外(PENDING/EXPIRED/CANCELLED/未契約)はFreeプランのデフォルト(8%)を使用
     if (subscription?.status === 'ACTIVE' && subscription.plan) {
-      // feeRate は DB に 10.0, 6.0, 3.0 で格納 → 0.10, 0.06, 0.03 に変換
+      // feeRate は DB に 8.0, 5.0, 2.8 で格納 → 0.08, 0.05, 0.028 に変換
       return subscription.plan.feeRate / 100;
     }
 
@@ -30,7 +30,7 @@ export class RevenueService {
     const freePlan = await this.prisma.creatorPlan.findUnique({
       where: { type: 'FREE' },
     });
-    return freePlan ? freePlan.feeRate / 100 : 0.10;
+    return freePlan ? freePlan.feeRate / 100 : 0.08;
   }
 
   /**

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ThemeContentWrapper } from "./theme-wrapper";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { sendEmailSafe } from "@/lib/email/client";
+import { WelcomeEmail } from "@/lib/email/templates/fan/WelcomeEmail";
 
 
 
@@ -24,6 +26,7 @@ export default async function Page({ params }: ContentPageProps) {
         select: {
             id: true,
             handle: true,
+            displayName: true,
             theme: true
         }
     });
@@ -54,7 +57,7 @@ export default async function Page({ params }: ContentPageProps) {
                     }
                 });
 
-                // FanProfileが存在しない場合は作成
+                // FanProfileが存在しない場合は作成（Google OAuthなど）
                 if (!existingFanProfile) {
                     const displayName = session.user.name || session.user.email?.split("@")[0] || "ゲスト";
 
@@ -68,6 +71,21 @@ export default async function Page({ params }: ContentPageProps) {
                     });
 
                     console.log(`FanProfile created for user ${userId} and creator ${creator.handle}`);
+
+                    // ウェルカムメール送信（fire and forget）
+                    if (session.user.email) {
+                        sendEmailSafe({
+                            to: session.user.email,
+                            subject: `${creator.displayName}のファンコミュニティへようこそ！`,
+                            react: WelcomeEmail({
+                                fanName: displayName,
+                                creatorName: creator.displayName,
+                                creatorHandle: creator.handle,
+                            }),
+                            emailType: 'FAN_EMAIL_VERIFICATION',
+                            recipientId: userId,
+                        }).catch((err) => console.error('Failed to send welcome email:', err));
+                    }
                 }
             } catch (error) {
                 // FanProfile作成エラーはログに記録するが、ページ表示は継続

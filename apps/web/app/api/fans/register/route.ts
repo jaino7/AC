@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@creator/shared";
 import { hash } from "argon2";
 import { fanSignupSchema } from "@/lib/validators/fan-auth";
+import { sendEmailSafe } from "@/lib/email/client";
+import { WelcomeEmail } from "@/lib/email/templates/fan/WelcomeEmail";
 
 export async function POST(request: NextRequest) {
     try {
@@ -110,6 +112,15 @@ export async function POST(request: NextRequest) {
 
             return newUser;
         });
+
+        const fanName = displayName || email.split("@")[0];
+        sendEmailSafe({
+            to: email,
+            subject: `${creator.displayName}のファンコミュニティへようこそ！`,
+            react: WelcomeEmail({ fanName, creatorName: creator.displayName, creatorHandle }),
+            emailType: "FAN_EMAIL_VERIFICATION",
+            recipientId: user.id,
+        }).catch((err) => console.error("Failed to send welcome email:", err));
 
         return NextResponse.json({
             success: true,

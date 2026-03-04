@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import BrandAssetsSettings from "@/components/BrandAssetsSettings";
 
-type Tab = "profile" | "plans" | "notifications" | "domain";
+type Tab = "profile" | "brand" | "plans" | "notifications" | "domain";
 
 const tabs = [
     { id: "profile" as Tab, icon: "👤", label: "プロフィール" },
+    { id: "brand" as Tab, icon: "🎨", label: "ブランド" },
     { id: "plans" as Tab, icon: "💳", label: "プラン" },
     { id: "notifications" as Tab, icon: "🔔", label: "通知" },
     { id: "domain" as Tab, icon: "🌐", label: "ドメイン設定" }
@@ -69,6 +71,9 @@ export default function SettingsContent() {
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [initialLogoUrl, setInitialLogoUrl] = useState<string | null>(null);
+    const [initialFaviconUrl, setInitialFaviconUrl] = useState<string | null>(null);
+    const [initialShowNameInHeader, setInitialShowNameInHeader] = useState<boolean>(true);
     const [headerUrl, setHeaderUrl] = useState<string | null>(null);
     const [twitterUrl, setTwitterUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
@@ -102,6 +107,14 @@ export default function SettingsContent() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
 
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentModalInfo, setPaymentModalInfo] = useState<{
+        amount: number;
+        planName: string;
+        isYearly: boolean;
+        virtualAccount: VirtualAccount;
+    } | null>(null);
+
     // Plans state
     const [allPlans, setAllPlans] = useState<CreatorPlan[]>([]);
     const [selectingPlan, setSelectingPlan] = useState<string | null>(null);
@@ -120,7 +133,10 @@ export default function SettingsContent() {
                     const data = await response.json();
                     setDisplayName(data.profile.displayName || "");
                     setBio(data.profile.bio || "");
-                    setAvatarUrl(data.profile.logoUrl || null);
+                    setAvatarUrl(data.profile.avatarUrl || null);
+                    setInitialLogoUrl(data.profile.logoUrl || null);
+                    setInitialFaviconUrl(data.profile.faviconUrl || null);
+                    setInitialShowNameInHeader((data.profile.themeConfig as any)?.showNameInHeader ?? true);
                     setHeaderUrl(data.profile.headerUrl || null);
                     setTwitterUrl(data.profile.twitterUrl || "");
                     setInstagramUrl(data.profile.instagramUrl || "");
@@ -243,18 +259,21 @@ export default function SettingsContent() {
             });
 
             if (response.ok) {
+                const data = await response.json();
                 await fetchSubscription();
                 await fetchPlans();
                 setShowConfirmModal(false);
                 setConfirmingPlan(null);
 
-                // 専用口座情報を表示するためにスクロール (少し待機して要素がレンダリングされるのを待つ)
-                setTimeout(() => {
-                    const accountInfo = document.getElementById('virtual-account-info');
-                    if (accountInfo) {
-                        accountInfo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 100);
+                if (data.virtualAccount) {
+                    setPaymentModalInfo({
+                        amount: data.amount,
+                        planName: data.planType,
+                        isYearly: data.isYearly,
+                        virtualAccount: data.virtualAccount,
+                    });
+                    setShowPaymentModal(true);
+                }
             } else {
                 const errorData = await response.json();
                 if (errorData.error && typeof errorData.error === 'string' && errorData.error.startsWith("INSUFFICIENT_BALANCE:")) {
@@ -859,6 +878,30 @@ export default function SettingsContent() {
                         )}
 
 
+                        {activeTab === "brand" && (
+                            isLoading ? (
+                                <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="text-neutral-400">読み込み中...</div>
+                                    </div>
+                                </section>
+                            ) : creatorProfile?.id ? (
+                                <BrandAssetsSettings
+                                    creatorId={creatorProfile.id}
+                                    initialLogoUrl={initialLogoUrl}
+                                    initialFaviconUrl={initialFaviconUrl}
+                                    initialShowNameInHeader={initialShowNameInHeader}
+                                    showAvatar={false}
+                                />
+                            ) : (
+                                <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="text-neutral-400">プロフィール情報を取得できませんでした。ページを再読み込みしてください。</div>
+                                    </div>
+                                </section>
+                            )
+                        )}
+
                         {activeTab === "plans" && (
                             <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -914,7 +957,7 @@ export default function SettingsContent() {
                                                             <span className="text-3xl font-bold">¥0</span>
                                                             <span className="text-sm text-neutral-500">/月</span>
                                                         </div>
-                                                        <p className="mt-2 text-xs text-neutral-600">手数料率: {subscription?.plan?.type === "FREE" ? Math.round(subscription.plan.feeRate < 1 ? subscription.plan.feeRate * 100 : subscription.plan.feeRate) : 10}%</p>
+                                                        <p className="mt-2 text-xs text-neutral-600">手数料率: {subscription?.plan?.type === "FREE" ? (subscription.plan.feeRate < 1 ? subscription.plan.feeRate * 100 : subscription.plan.feeRate) : 8}%</p>
 
                                                         {isCurrent ? (
                                                             <div className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-green-100 py-2.5 text-sm font-semibold text-green-700">
@@ -977,7 +1020,7 @@ export default function SettingsContent() {
                                                                 </p>
                                                             )}
                                                             <p className="mt-2 text-xs text-neutral-600">
-                                                                手数料率: {plan.type === "LITE" ? 6 : plan.type === "BUSINESS" ? 3 : Math.round(plan.feeRate < 1 ? plan.feeRate * 100 : plan.feeRate)}%
+                                                                手数料率: {plan.feeRate < 1 ? plan.feeRate * 100 : plan.feeRate}%
                                                             </p>
 
                                                             {isCurrent ? (
@@ -992,8 +1035,25 @@ export default function SettingsContent() {
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                                                             </svg>
                                                                         )}
-                                                                        {subscription?.status === "PENDING" ? "選択中" : isCancelled ? "キャンセル済み（利用期間中）" : "現在のプラン"}
+                                                                        {subscription?.status === "PENDING" ? "入金待ち" : isCancelled ? "キャンセル済み（利用期間中）" : "現在のプラン"}
                                                                     </div>
+                                                                    {subscription?.status === "PENDING" && virtualAccount && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const price = subscription.isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+                                                                                setPaymentModalInfo({
+                                                                                    amount: price,
+                                                                                    planName: plan.name,
+                                                                                    isYearly: subscription.isYearly,
+                                                                                    virtualAccount,
+                                                                                });
+                                                                                setShowPaymentModal(true);
+                                                                            }}
+                                                                            className="w-full rounded-xl border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                                                                        >
+                                                                            振込先を確認する
+                                                                        </button>
+                                                                    )}
                                                                     {subscription?.status === "ACTIVE" && (
                                                                         <button
                                                                             onClick={() => setShowCancelModal(true)}
@@ -1354,6 +1414,87 @@ export default function SettingsContent() {
                                 className="flex-1 rounded-2xl bg-pink-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-pink-700 disabled:opacity-50"
                             >
                                 {isCancelling ? "キャンセル中..." : "キャンセルする"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Instruction Modal */}
+            {showPaymentModal && paymentModalInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                    <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 shadow-xl">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h3 className="text-xl font-semibold">お振込のご案内</h3>
+                            <button
+                                onClick={() => setShowPaymentModal(false)}
+                                className="text-neutral-400 hover:text-neutral-600"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="space-y-5">
+                            {/* 金額 */}
+                            <div className="rounded-2xl bg-blue-50 p-5">
+                                <p className="text-xs text-neutral-600">お支払い金額</p>
+                                <p className="mt-1 text-3xl font-bold text-blue-600">
+                                    ¥{paymentModalInfo.amount.toLocaleString()}
+                                </p>
+                                <p className="mt-1 text-xs text-neutral-500">
+                                    {paymentModalInfo.planName}プラン（{paymentModalInfo.isYearly ? "年払い" : "月払い"}）
+                                </p>
+                            </div>
+
+                            {/* 振込先 */}
+                            <div className="space-y-3 rounded-2xl border border-black/10 p-5">
+                                <h4 className="text-sm font-semibold text-neutral-800">振込先口座</h4>
+                                <div className="space-y-2.5 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-500">銀行名</span>
+                                        <span className="font-semibold">GMOあおぞらネット銀行</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-500">支店名</span>
+                                        <span className="font-semibold">
+                                            {paymentModalInfo.virtualAccount.branchName
+                                                ? paymentModalInfo.virtualAccount.branchName.includes('（') || paymentModalInfo.virtualAccount.branchName.includes('(')
+                                                    ? paymentModalInfo.virtualAccount.branchName
+                                                    : `${paymentModalInfo.virtualAccount.branchName}（${paymentModalInfo.virtualAccount.branchCode}）`
+                                                : `${paymentModalInfo.virtualAccount.branchCode || "001"}支店`}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-500">口座種別</span>
+                                        <span className="font-semibold">普通</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-500">口座番号</span>
+                                        <span className="font-mono text-lg font-bold text-blue-600">
+                                            {paymentModalInfo.virtualAccount.accountNumber}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-500">口座名義</span>
+                                        <span className="font-semibold">{paymentModalInfo.virtualAccount.accountName}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 注意事項 */}
+                            <div className="rounded-2xl bg-neutral-50 p-4 text-xs text-neutral-600 space-y-1">
+                                <p>• 振込手数料はお客様のご負担となります</p>
+                                <p>• 入金確認後、自動的にプランが有効化されます</p>
+                                <p>• 入金確認は10分〜1日程度かかる場合があります</p>
+                            </div>
+
+                            <button
+                                onClick={() => setShowPaymentModal(false)}
+                                className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+                            >
+                                閉じる
                             </button>
                         </div>
                     </div>

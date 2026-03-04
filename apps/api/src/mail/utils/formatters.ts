@@ -9,8 +9,5 @@ export function formatDate(date: Date): string {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('ja-JP', {
-    style: 'currency',
-    currency: 'JPY',
-  }).format(amount);
+  return `${amount.toLocaleString('ja-JP')}クレジット`;
 }

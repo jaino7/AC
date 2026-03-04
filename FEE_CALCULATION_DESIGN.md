@@ -6,11 +6,11 @@
 ## Fee Rates
 | Plan Type | Monthly Price | Yearly Price | Fee Rate |
 |-----------|---------------|--------------|----------|
-| Free      | ¥0            | ¥0           | 10%      |
-| Lite      | ¥4,000        | ¥40,800      | 6%       |
-| Business  | ¥25,000       | ¥250,000     | 3%       |
+| Free      | ¥0            | ¥0           | 8%       |
+| Lite      | ¥2,980        | ¥29,800      | 5%       |
+| Business  | ¥19,800       | ¥198,000     | 2.8%     |
 
-手数料率は`CreatorPlan.feeRate`に格納（例: 0.10, 0.06, 0.03）
+手数料率は`CreatorPlan.feeRate`に格納（例: 8.0, 5.0, 2.8）
 
 ## Architecture
 
@@ -38,8 +38,8 @@ export class RevenueService {
       include: { plan: true },
     });
 
-    // サブスクリプションがない、またはFreeプランの場合はデフォルト12%
-    return subscription?.plan.feeRate ?? 0.10;
+    // サブスクリプションがない、またはFreeプランの場合はデフォルト8%
+    return subscription?.plan.feeRate ?? 0.08;
   }
 
   /**
@@ -159,17 +159,17 @@ async getCreatorBalance(creatorId: string): Promise<number> {
    ↓
 2. CreditHistoryに記録 (-¥1,000)
    ↓
-3. クリエイターの手数料率を取得 (例: Lite = 7%)
+3. クリエイターの手数料率を取得 (例: Lite = 5%)
    ↓
 4. 手数料計算
-   - Platform Fee: ¥70
-   - Creator Revenue: ¥930
+   - Platform Fee: ¥50
+   - Creator Revenue: ¥950
    ↓
 5. Transactionレコード作成
-   - amount: ¥930 (手数料控除後)
-   - metadata: { originalAmount: 1000, platformFee: 70, feeRate: 0.07 }
+   - amount: ¥950 (手数料控除後)
+   - metadata: { originalAmount: 1000, platformFee: 50, feeRate: 0.05 }
    ↓
-6. クリエイターが引き出し可能額: ¥930
+6. クリエイターが引き出し可能額: ¥950
 ```
 
 ## Database Schema Changes
@@ -180,8 +180,8 @@ async getCreatorBalance(creatorId: string): Promise<number> {
 ```json
 {
   "originalAmount": 1000,      // 元の金額
-  "platformFee": 70,           // プラットフォーム手数料
-  "feeRate": 0.07,             // 適用された手数料率
+  "platformFee": 50,           // プラットフォーム手数料
+  "feeRate": 0.05,             // 適用された手数料率
   "type": "PURCHASE",          // トランザクション種別
   "postId": "xxx"              // 関連エンティティID
 }
@@ -204,9 +204,9 @@ async getCreatorBalance(creatorId: string): Promise<number> {
 
 ## Testing Considerations
 
-- Freeプラン（12%）の手数料計算
-- Liteプラン（7%）の手数料計算
-- Businessプラン（3%）の手数料計算
+- Freeプラン（8%）の手数料計算
+- Liteプラン（5%）の手数料計算
+- Businessプラン（2.8%）の手数料計算
 - プラン未契約の場合のデフォルト動作
 - 端数処理（切り捨て）の確認
 - マイナス金額や0円の処理

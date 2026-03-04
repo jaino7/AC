@@ -11,6 +11,7 @@ import {
     creatorLoginSchema
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 interface NeonProLoginFormProps {
     handle?: string;
@@ -137,9 +138,11 @@ export const NeonProLoginForm = ({ handle: propHandle }: NeonProLoginFormProps =
                     <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
                 )}
             </label>
-            <div className="text-right text-xs text-cyan-300">
-                <a href="#">パスワードを忘れた？</a>
-            </div>
+            {handle && (
+                <div className="text-right text-xs text-cyan-300">
+                    <Link href={`/${handle}/password-reset`}>パスワードを忘れた方</Link>
+                </div>
+            )}
 
             {message && (
                 <p

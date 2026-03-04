@@ -136,8 +136,8 @@ export async function POST(request: NextRequest) {
         const rawFeeRate =
             creatorSubscription?.status === "ACTIVE" && creatorSubscription.plan
                 ? creatorSubscription.plan.feeRate
-                : (freePlan?.feeRate ?? 10);
-        const feeRate = rawFeeRate / 100; // 10.0 → 0.10
+                : (freePlan?.feeRate ?? 8);
+        const feeRate = rawFeeRate / 100; // 8.0 → 0.08
         const platformFee = Math.floor(content.price! * feeRate);
         const netAmount = content.price! - platformFee;
 

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         // Update creator profile
         await prisma.creatorProfile.update({
             where: { id: user.creatorProfile.id },
-            data: { logoUrl: avatarUrl }
+            data: { avatarUrl }
         });
 
         return NextResponse.json({

@@ -33,6 +33,7 @@ type CreatorProfile = {
   handle: string;
   displayName: string;
   bio: string | null;
+  avatarUrl: string | null;
   logoUrl: string | null;
   headerUrl: string | null;
   twitterUrl: string | null;
@@ -40,6 +41,7 @@ type CreatorProfile = {
   tiktokUrl: string | null;
   discordUrl: string | null;
   otherUrl: string | null;
+  themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
 type Plan = {
@@ -50,6 +52,14 @@ type Plan = {
 };
 
 type TabType = "all" | "plans" | "single" | "saved";
+
+const resolveAssetUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/uploads/brand-assets/')) {
+    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${url}`;
+  }
+  return url;
+};
 
 function ZineLiteContentPageContent() {
   const pathname = usePathname();
@@ -71,6 +81,8 @@ function ZineLiteContentPageContent() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savedCards, setSavedCards] = useState<ContentCard[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,6 +93,7 @@ function ZineLiteContentPageContent() {
             handle: "zine-lite",
             displayName: "Zine Lite Demo",
             bio: "これはZine Liteテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            avatarUrl: null,
             logoUrl: null,
             headerUrl: null,
             twitterUrl: null,
@@ -123,9 +136,9 @@ function ZineLiteContentPageContent() {
         // Fetch plans
         let plansResponse;
         if (handle) {
-          plansResponse = await fetch(`/api/creators/plans?handle=${handle}`);
-        } else {
-          plansResponse = await fetch("/api/creators/plans");
+          plansResponse = await fetch(`/api/creators/subscription-plans?handle=${handle}`);
+        } else if (isPreview) {
+          plansResponse = await fetch("/api/creators/subscription-plans");
         }
 
         if (plansResponse?.ok) {
@@ -192,11 +205,42 @@ function ZineLiteContentPageContent() {
     return `${diffWeeks}週間前`;
   };
 
-  const filteredCards = contentCards.filter((card) => {
+  useEffect(() => {
+    if (activeTab === "saved" && !isPreview && savedCards.length === 0) {
+      const fetchSaved = async () => {
+        setSavedLoading(true);
+        try {
+          const res = await fetch("/api/fans/saved");
+          if (res.ok) {
+            const data = await res.json();
+            const arr = data.posts || [];
+            setSavedCards(arr.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              cover: p.thumbnailUrl || p.mediaUrl || null,
+              type: "public" as const,
+              timeAgo: getTimeAgo(new Date(p.createdAt)),
+              media: p.media || [],
+              price: p.price,
+              isLocked: p.isLocked,
+            })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch saved posts:", err);
+        } finally {
+          setSavedLoading(false);
+        }
+      };
+      fetchSaved();
+    }
+  }, [activeTab, isPreview]);
+
+  const displayCards = activeTab === "saved" ? savedCards : contentCards;
+  const filteredCards = displayCards.filter((card) => {
     if (activeTab === "all") return true;
     if (activeTab === "plans") return card.type === "gold" || card.type === "bronze";
     if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && card.type === "public";
-    if (activeTab === "saved") return false;
+    if (activeTab === "saved") return true;
     return true;
   });
 
@@ -211,23 +255,25 @@ function ZineLiteContentPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="flex min-h-screen flex-col bg-white text-gray-900">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           {/* Logo and Navigation */}
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 text-sm font-bold text-white">
-                {creatorProfile?.logoUrl ? (
-                  <img src={creatorProfile.logoUrl} alt="Logo" className="h-full w-full rounded object-cover" />
-                ) : (
-                  "⊞"
-                )}
-              </div>
-              <span className="text-base font-semibold text-gray-900">
-                {creatorProfile?.displayName || "CreatorSpace"}
-              </span>
+              {creatorProfile?.logoUrl ? (
+                <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-8 w-auto max-w-[160px] rounded object-contain" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 text-sm font-bold text-white">
+                  ⊞
+                </div>
+              )}
+              {creatorProfile?.themeConfig?.showNameInHeader !== false && (
+                <span className="text-base font-semibold text-gray-900">
+                  {creatorProfile?.displayName || "CreatorSpace"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -274,7 +320,7 @@ function ZineLiteContentPageContent() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pb-24 md:pb-0">
+      <main className="flex-1 mx-auto max-w-6xl px-6 pb-24 md:pb-0">
         {/* Hero Image */}
         <div className="relative -mx-6 h-52 overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600">
           {creatorProfile?.headerUrl ? (
@@ -295,9 +341,9 @@ function ZineLiteContentPageContent() {
             <div className="flex items-end gap-6">
               {/* Avatar */}
               <div className="h-28 w-28 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-lg">
-                {creatorProfile?.logoUrl ? (
+                {creatorProfile?.avatarUrl ? (
                   <img
-                    src={creatorProfile.logoUrl}
+                    src={resolveAssetUrl(creatorProfile.avatarUrl) ?? ""}
                     alt={creatorProfile.displayName}
                     className="h-full w-full object-cover"
                   />

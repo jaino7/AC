@@ -11,6 +11,7 @@ import {
     creatorLoginSchema
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 interface ZineLiteLoginFormProps {
     handle?: string;
@@ -135,6 +136,12 @@ export const ZineLiteLoginForm = ({ handle: propHandle }: ZineLiteLoginFormProps
                     <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
                 )}
             </div>
+
+            {handle && (
+                <div className="text-right text-xs text-[#57ff57]">
+                    <Link href={`/${handle}/password-reset`}>パスワードを忘れた方</Link>
+                </div>
+            )}
 
             {message && (
                 <p

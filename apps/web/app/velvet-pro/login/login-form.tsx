@@ -11,6 +11,7 @@ import {
     creatorLoginSchema
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 interface VelvetProLoginFormProps {
     handle?: string;
@@ -137,6 +138,12 @@ export const VelvetProLoginForm = ({ handle: propHandle }: VelvetProLoginFormPro
                     <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
                 )}
             </label>
+
+            {handle && (
+                <div className="text-right text-xs text-yellow-400">
+                    <Link href={`/${handle}/password-reset`}>パスワードを忘れた方</Link>
+                </div>
+            )}
 
             {message && (
                 <p

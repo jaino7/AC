@@ -21,14 +21,12 @@ interface PaymentInstructionEmailProps {
   accountType: string;
   accountNumber: string;
   accountHolder: string;
-  identifierCode: string;
   dueDate: Date;
 }
 
 export default function PaymentInstructionEmail({
   fanName,
   creatorName,
-  creatorHandle,
   planName,
   amount,
   bankName,
@@ -36,10 +34,9 @@ export default function PaymentInstructionEmail({
   accountType,
   accountNumber,
   accountHolder,
-  identifierCode,
   dueDate,
 }: PaymentInstructionEmailProps) {
-  const accountTypeJa = accountType === 'ORDINARY' ? '普通' : '当座';
+  const accountTypeJa = accountType === 'ORDINARY' || accountType === '普通' ? '普通' : '当座';
 
   return (
     <Html>
@@ -58,13 +55,11 @@ export default function PaymentInstructionEmail({
             </Text>
 
             <Text style={paragraph}>
-              {creatorName}
-              {planName ? `（${planName}）` : ''}
-              へのお支払いについて、以下の口座へお振込をお願いします。
+              {creatorName}{planName ? `（${planName}）` : ''}へのチャージについて、以下の口座へお振込をお願いします。
             </Text>
 
             <Section style={amountBox}>
-              <Text style={amountLabel}>お支払い金額</Text>
+              <Text style={amountLabel}>お振込金額</Text>
               <Text style={amountValue}>{formatCurrency(amount)}</Text>
             </Section>
 
@@ -97,16 +92,6 @@ export default function PaymentInstructionEmail({
               </Section>
             </Section>
 
-            <Section style={identifierBox}>
-              <Text style={identifierLabel}>
-                ⚠️ 重要：振込人名義に必ず以下の識別コードを含めてください
-              </Text>
-              <Text>{identifierCode}</Text>
-              <Text style={identifierNote}>
-                例: {identifierCode} ヤマダタロウ
-              </Text>
-            </Section>
-
             <Section style={dueDateBox}>
               <Text style={dueDateLabel}>お振込期限</Text>
               <Text style={dueDateValue}>{formatDate(dueDate)}</Text>
@@ -115,13 +100,16 @@ export default function PaymentInstructionEmail({
             <Section style={noteBox}>
               <Text style={noteTitle}>ご注意</Text>
               <Text style={noteText}>
-                • 識別コードを振込人名義に含めないと、入金確認が遅れる場合があります
+                • この口座はお客様専用の使い捨て口座です。他の方と共有しないでください。
               </Text>
               <Text style={noteText}>
-                • 振込手数料はお客様のご負担となります
+                • 振込手数料はお客様のご負担となります。
               </Text>
               <Text style={noteText}>
-                • 入金確認後、自動的にクレジットが付与されます
+                • 入金確認後、自動的にクレジットが付与されます。
+              </Text>
+              <Text style={noteText}>
+                • 期限を過ぎると口座が無効になります。期限内にお振込ください。
               </Text>
             </Section>
           </Section>
@@ -183,7 +171,7 @@ const paragraph = {
 };
 
 const amountBox = {
-  backgroundColor: '#fff3e0',
+  backgroundColor: '#EEF2FF',
   padding: '24px',
   borderRadius: '8px',
   textAlign: 'center' as const,
@@ -192,14 +180,14 @@ const amountBox = {
 
 const amountLabel = {
   fontSize: '14px',
-  color: '#e65100',
+  color: '#223C7D',
   margin: '0 0 8px',
 };
 
 const amountValue = {
   fontSize: '32px',
   fontWeight: 'bold',
-  color: '#bf360c',
+  color: '#223C7D',
   margin: 0,
 };
 
@@ -208,6 +196,7 @@ const bankInfoCard = {
   padding: '24px',
   borderRadius: '8px',
   margin: '24px 0',
+  border: '1px solid #e5e5e5',
 };
 
 const cardTitle = {
@@ -232,37 +221,6 @@ const bankValue = {
   color: '#1a1a1a',
   fontWeight: '500',
   margin: 0,
-};
-
-const identifierBox = {
-  backgroundColor: '#fff9c4',
-  padding: '20px',
-  borderRadius: '8px',
-  margin: '24px 0',
-  border: '2px solid #fbc02d',
-};
-
-const identifierLabel = {
-  fontSize: '14px',
-  color: '#f57f17',
-  fontWeight: 'bold',
-  margin: '0 0 12px',
-};
-
-const identifierCode = {
-  fontSize: '24px',
-  fontWeight: 'bold',
-  color: '#e65100',
-  textAlign: 'center' as const,
-  margin: '12px 0',
-  letterSpacing: '2px',
-};
-
-const identifierNote = {
-  fontSize: '12px',
-  color: '#666666',
-  textAlign: 'center' as const,
-  margin: '8px 0 0',
 };
 
 const dueDateBox = {

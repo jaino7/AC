@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
+import { sendEmailSafe } from "@/lib/email/client";
+import { DepositSuccessEmail } from "@/lib/email/templates/fan/DepositSuccessEmail";
 
 // Admin guard
 async function requireAdmin() {
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
                             tier: true,
                             trustScore: true,
                             displayName: true,
-                            user: { select: { name: true } },
+                            user: { select: { id: true, name: true, email: true } },
                         },
                     },
                     bankTransferClaims: {
@@ -219,6 +221,32 @@ export async function POST(request: NextRequest) {
             });
 
             const fanName = chargeRequest.fan.displayName || chargeRequest.fan.user?.name || "ファン";
+            const fanEmail = chargeRequest.fan.user?.email;
+            const fanUserId = chargeRequest.fan.user?.id;
+            const newBalance = chargeRequest.fan.credits + totalCreditsToAdd;
+
+            // Send credit notification email to fan
+            if (fanEmail && fanUserId) {
+                try {
+                    await sendEmailSafe({
+                        to: fanEmail,
+                        subject: `${totalCreditsToAdd.toLocaleString('ja-JP')}円クレジットされました`,
+                        react: DepositSuccessEmail({
+                            fanName,
+                            amount: totalCreditsToAdd,
+                            balance: newBalance,
+                        }),
+                        emailType: 'FAN_RECEIPT',
+                        recipientId: fanUserId,
+                        metadata: {
+                            chargeRequestId: chargeRequest.id,
+                            amount: totalCreditsToAdd,
+                        },
+                    });
+                } catch (emailError) {
+                    console.error('Failed to send credit notification email:', emailError);
+                }
+            }
 
             return NextResponse.json({
                 success: true,

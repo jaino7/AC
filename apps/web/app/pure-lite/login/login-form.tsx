@@ -11,6 +11,7 @@ import {
     creatorLoginSchema
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 interface PureLiteLoginFormProps {
     handle?: string;
@@ -140,9 +141,11 @@ export const PureLiteLoginForm = ({ handle: propHandle }: PureLiteLoginFormProps
                 )}
             </label>
 
-            <div className="text-right text-xs text-[#7c5dfa]">
-                <a href="#">パスワードを忘れた？</a>
-            </div>
+            {handle && (
+                <div className="text-right text-xs text-[#7c5dfa]">
+                    <Link href={`/${handle}/password-reset`}>パスワードを忘れた方</Link>
+                </div>
+            )}
 
             {message && (
                 <p

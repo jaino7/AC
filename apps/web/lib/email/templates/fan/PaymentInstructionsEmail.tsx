@@ -22,7 +22,6 @@ interface PaymentInstructionsEmailProps {
     accountType: string;
     accountNumber: string;
     accountHolder: string;
-    identifierCode: string;
     dueDate?: Date;
 }
 
@@ -37,29 +36,30 @@ export function PaymentInstructionsEmail({
     accountType,
     accountNumber,
     accountHolder,
-    identifierCode,
     dueDate,
 }: PaymentInstructionsEmailProps) {
-    const accountTypeText = accountType === 'SAVINGS' ? '普通' : '当座';
+    const accountTypeText = accountType === 'SAVINGS' || accountType === '普通' ? '普通' : '当座';
 
     return (
         <Html>
             <Head />
-            <Preview>【重要】お振込先のご案内 - {creatorName}</Preview>
+            <Preview>【お振込のご案内】{creatorName}</Preview>
             <Body style={main}>
                 <Container style={container}>
-                    <Heading style={h1}>💳 お振込先のご案内</Heading>
+                    <Text style={logo}>CocoBa</Text>
+                    <Heading style={h1}>お振込のご案内</Heading>
 
                     <Text style={text}>
                         {fanName} 様
                     </Text>
 
                     <Text style={text}>
-                        この度は {creatorName} の「{planName}」へのお申し込み、誠にありがとうございます。
+                        {creatorName} の「{planName}」へのお申し込み、ありがとうございます。<br />
+                        以下の口座へお振込をお願いします。
                     </Text>
 
                     <Section style={importantBox}>
-                        <Heading style={h2}>お振込先情報</Heading>
+                        <Heading style={h2}>振込先情報</Heading>
                         <Text style={infoText}>
                             <strong>金融機関：</strong>{bankName}<br />
                             <strong>支店名：</strong>{branchName}<br />
@@ -74,35 +74,23 @@ export function PaymentInstructionsEmail({
                         </div>
                     </Section>
 
-                    <Section style={warningBox}>
-                        <Text style={warningTitle}>⚠️ 重要：振込名義人について</Text>
-                        <Text style={warningText}>
-                            お振込の際、振込名義人には必ず以下の<strong>識別コード</strong>を先頭に含めてください：
-                        </Text>
-                        <div style={codeBox}>
-                            <Text style={codeText}>{identifierCode}</Text>
-                        </div>
-                        <Text style={warningText}>
-                            例：<code>{identifierCode} {fanName}</code>
-                        </Text>
-                        <Text style={warningSubtext}>
-                            識別コードがない場合、入金確認が遅れる可能性があります。
-                        </Text>
-                    </Section>
-
                     {dueDate && (
-                        <Text style={text}>
+                        <Text style={dueDateText}>
                             <strong>お振込期限：</strong>{formatDate(dueDate)}
                         </Text>
                     )}
 
-                    <Text style={text}>
-                        入金確認後、コンテンツへのアクセスが可能になります。通常、1-3営業日以内に反映されます。
-                    </Text>
+                    <Section style={noteBox}>
+                        <Text style={noteTitle}>ご注意</Text>
+                        <Text style={noteText}>• この口座はお客様専用の使い捨て口座です。他の方と共有しないでください。</Text>
+                        <Text style={noteText}>• 振込手数料はお客様のご負担となります。</Text>
+                        <Text style={noteText}>• 入金確認後、自動的にクレジットが付与されます。</Text>
+                        <Text style={noteText}>• 期限を過ぎると口座が無効になります。期限内にお振込ください。</Text>
+                    </Section>
 
                     <Section style={linkSection}>
                         <Link
-                            href={`https://creatorspace.jp/creators/${creatorHandle}`}
+                            href={`https://getcocoba.com/${creatorHandle}`}
                             style={button}
                         >
                             {creatorName}のページを見る
@@ -111,7 +99,7 @@ export function PaymentInstructionsEmail({
 
                     <Text style={footer}>
                         ご不明な点がございましたら、お気軽にお問い合わせください。<br />
-                        CreatorSpace運営チーム
+                        CocoBa運営チーム
                     </Text>
                 </Container>
             </Body>
@@ -131,17 +119,26 @@ const container = {
     maxWidth: '600px',
 };
 
+const logo = {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#223C7D',
+    margin: '30px 0 0 0',
+    padding: '0 40px',
+};
+
 const h1 = {
     color: '#1a1a1a',
-    fontSize: '28px',
+    fontSize: '24px',
     fontWeight: '700',
     lineHeight: '1.3',
-    margin: '30px 0',
+    margin: '16px 0',
+    padding: '0 40px',
 };
 
 const h2 = {
     color: '#1a1a1a',
-    fontSize: '20px',
+    fontSize: '18px',
     fontWeight: '600',
     margin: '0 0 16px 0',
 };
@@ -151,6 +148,7 @@ const text = {
     fontSize: '16px',
     lineHeight: '26px',
     margin: '16px 0',
+    padding: '0 40px',
 };
 
 const importantBox = {
@@ -158,7 +156,7 @@ const importantBox = {
     border: '2px solid #223C7D',
     borderRadius: '12px',
     padding: '24px',
-    margin: '24px 0',
+    margin: '24px 40px',
 };
 
 const infoText = {
@@ -169,7 +167,7 @@ const infoText = {
 };
 
 const amountBox = {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#EEF2FF',
     borderRadius: '8px',
     padding: '16px',
     margin: '20px 0 0 0',
@@ -177,7 +175,7 @@ const amountBox = {
 };
 
 const amountLabel = {
-    color: '#666',
+    color: '#223C7D',
     fontSize: '14px',
     margin: '0 0 8px 0',
 };
@@ -189,50 +187,33 @@ const amountValue = {
     margin: '0',
 };
 
-const warningBox = {
-    backgroundColor: '#fff3cd',
-    border: '1px solid #ffc107',
-    borderRadius: '8px',
-    padding: '20px',
-    margin: '24px 0',
+const dueDateText = {
+    color: '#b71c1c',
+    fontSize: '16px',
+    fontWeight: '600',
+    margin: '16px 0',
+    padding: '0 40px',
 };
 
-const warningTitle = {
-    color: '#856404',
-    fontSize: '16px',
+const noteBox = {
+    backgroundColor: '#f5f5f5',
+    borderRadius: '8px',
+    padding: '20px 24px',
+    margin: '24px 40px',
+};
+
+const noteTitle = {
+    color: '#1a1a1a',
+    fontSize: '14px',
     fontWeight: '700',
     margin: '0 0 12px 0',
 };
 
-const warningText = {
-    color: '#856404',
-    fontSize: '15px',
-    lineHeight: '24px',
-    margin: '8px 0',
-};
-
-const warningSubtext = {
-    color: '#856404',
-    fontSize: '13px',
-    margin: '12px 0 0 0',
-};
-
-const codeBox = {
-    backgroundColor: '#fff',
-    border: '2px dashed #ffc107',
-    borderRadius: '6px',
-    padding: '12px',
-    margin: '12px 0',
-    textAlign: 'center' as const,
-};
-
-const codeText = {
-    color: '#223C7D',
-    fontSize: '24px',
-    fontWeight: '700',
-    fontFamily: 'monospace',
-    letterSpacing: '2px',
-    margin: '0',
+const noteText = {
+    color: '#404040',
+    fontSize: '14px',
+    lineHeight: '22px',
+    margin: '0 0 6px 0',
 };
 
 const linkSection = {
@@ -257,4 +238,5 @@ const footer = {
     lineHeight: '22px',
     margin: '32px 0 0 0',
     textAlign: 'center' as const,
+    padding: '0 40px 40px',
 };

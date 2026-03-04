@@ -21,7 +21,7 @@ export class ResendMailProvider implements MailProvider {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.fromEmail = this.configService.get<string>(
       'MAIL_FROM_EMAIL',
-      'noreply@example.com',
+      'CocoBa <noreply@getcocoba.com>',
     );
 
     if (!apiKey) {

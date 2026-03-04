@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
                     displayName: true,
                     bio: true,
                     theme: true,
+                    themeConfig: true,
+                    avatarUrl: true,
                     logoUrl: true,
                     headerUrl: true,
                     faviconUrl: true,
@@ -49,6 +51,8 @@ export async function GET(request: NextRequest) {
                             displayName: true,
                             bio: true,
                             theme: true,
+                            themeConfig: true,
+                            avatarUrl: true,
                             logoUrl: true,
                             headerUrl: true,
                             faviconUrl: true,
@@ -128,7 +132,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl } = body;
+        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl, showNameInHeader } = body;
 
         console.log("Updating profile for:", user.creatorProfile.id, "with data:", {
             displayName,
@@ -163,6 +167,12 @@ export async function PUT(request: NextRequest) {
                 ...(otherUrl !== undefined && { otherUrl: otherUrl?.trim() || null }),
                 ...(otherUrlName !== undefined && { otherUrlName: otherUrlName?.trim() || null }),
                 ...(headerUrl !== undefined && { headerUrl: headerUrl?.trim() || null }),
+                ...(showNameInHeader !== undefined && {
+                    themeConfig: {
+                        ...((user.creatorProfile.themeConfig as Record<string, unknown>) || {}),
+                        showNameInHeader,
+                    },
+                }),
             },
             select: {
                 id: true,
@@ -170,6 +180,8 @@ export async function PUT(request: NextRequest) {
                 displayName: true,
                 bio: true,
                 theme: true,
+                themeConfig: true,
+                avatarUrl: true,
                 logoUrl: true,
                 headerUrl: true,
                 faviconUrl: true,

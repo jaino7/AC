@@ -34,6 +34,7 @@ type CreatorProfile = {
   handle: string;
   displayName: string;
   bio: string | null;
+  avatarUrl: string | null;
   logoUrl: string | null;
   twitterUrl: string | null;
   instagramUrl: string | null;
@@ -41,9 +42,18 @@ type CreatorProfile = {
   discordUrl: string | null;
   otherUrl: string | null;
   otherUrlName?: string | null;
+  themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
 type TabType = "all" | "plans" | "single" | "saved";
+
+const resolveAssetUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/uploads/brand-assets/')) {
+    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${url}`;
+  }
+  return url;
+};
 
 function PureLiteContentPageContent() {
   const pathname = usePathname();
@@ -63,6 +73,8 @@ function PureLiteContentPageContent() {
   const [contentCards, setContentCards] = useState<ContentCard[]>([]);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savedCards, setSavedCards] = useState<ContentCard[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +85,7 @@ function PureLiteContentPageContent() {
             handle: "pure-lite",
             displayName: "Pure Lite Demo",
             bio: "これはPure Liteテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
+            avatarUrl: null,
             logoUrl: null,
             twitterUrl: null,
             instagramUrl: null,
@@ -159,11 +172,44 @@ function PureLiteContentPageContent() {
     return `${diffDays}日前`;
   };
 
-  const filteredCards = contentCards.filter((card) => {
+  useEffect(() => {
+    if (activeTab === "saved" && !isPreview && savedCards.length === 0) {
+      const fetchSaved = async () => {
+        setSavedLoading(true);
+        try {
+          const res = await fetch("/api/fans/saved");
+          if (res.ok) {
+            const data = await res.json();
+            const arr = data.posts || [];
+            setSavedCards(arr.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              cover: p.thumbnailUrl || p.mediaUrl || null,
+              type: p.isLocked ? "premium" as const : "free" as const,
+              tier: p.requiredPlan?.name || "",
+              description: p.content?.substring(0, 80) || "",
+              timeAgo: getTimeAgo(new Date(p.createdAt)),
+              media: p.media || [],
+              price: p.price,
+              isLocked: p.isLocked,
+            })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch saved posts:", err);
+        } finally {
+          setSavedLoading(false);
+        }
+      };
+      fetchSaved();
+    }
+  }, [activeTab, isPreview]);
+
+  const displayCards = activeTab === "saved" ? savedCards : contentCards;
+  const filteredCards = displayCards.filter((card) => {
     if (activeTab === "all") return true;
     if (activeTab === "plans") return card.type === "premium" && card.tier !== "";
     if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && (card.tier === "");
-    if (activeTab === "saved") return false;
+    if (activeTab === "saved") return true;
     return true;
   });
 
@@ -185,16 +231,18 @@ function PureLiteContentPageContent() {
           {/* Logo and Navigation */}
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 text-sm font-bold text-white">
-                {creatorProfile?.logoUrl ? (
-                  <img src={creatorProfile.logoUrl} alt="Logo" className="h-full w-full rounded-lg object-cover" />
-                ) : (
-                  "C"
-                )}
-              </div>
-              <span className="text-base font-semibold text-gray-900">
-                {creatorProfile?.displayName || "CreatorSpace"}
-              </span>
+              {creatorProfile?.logoUrl ? (
+                <img src={resolveAssetUrl(creatorProfile.logoUrl) ?? ""} alt="Logo" className="h-8 w-auto max-w-[160px] rounded-lg object-contain" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 text-sm font-bold text-white">
+                  C
+                </div>
+              )}
+              {creatorProfile?.themeConfig?.showNameInHeader !== false && (
+                <span className="text-base font-semibold text-gray-900">
+                  {creatorProfile?.displayName || "CreatorSpace"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -247,9 +295,9 @@ function PureLiteContentPageContent() {
           {/* Avatar */}
           <div className="mb-4 flex justify-center">
             <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-md bg-gradient-to-br from-purple-500 to-purple-600">
-              {creatorProfile?.logoUrl ? (
+              {creatorProfile?.avatarUrl ? (
                 <img
-                  src={creatorProfile.logoUrl}
+                  src={resolveAssetUrl(creatorProfile.avatarUrl) ?? ""}
                   alt={creatorProfile.displayName}
                   className="h-full w-full object-cover"
                 />
