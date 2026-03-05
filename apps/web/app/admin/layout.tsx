@@ -97,6 +97,12 @@ export default async function AdminLayout({
             >
               振込確認
             </a>
+            <a
+              href={`${adminBasePath}/creators`}
+              className="border-b-2 border-transparent px-1 py-4 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
+            >
+              クリエイター
+            </a>
 
           </div>
         </div>
