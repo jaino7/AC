@@ -5,6 +5,7 @@ import { SHARED_GREETING } from "@creator/shared";
 
 console.log(SHARED_GREETING);
 import { Providers } from "./providers";
+import { ClarityScript } from "./components/clarity-script";
 
 const notoSans = Noto_Sans_JP({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning>
       <body className={notoSans.className} suppressHydrationWarning>
+        <ClarityScript />
         <Providers>{children}</Providers>
       </body>
     </html>
