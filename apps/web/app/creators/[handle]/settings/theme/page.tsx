@@ -21,12 +21,20 @@ export default async function ThemeSettingsPage() {
         redirect("/creators/login");
     }
 
-    // Get creator profile with theme
+    // Get creator profile with theme and subscription plan
     const creatorProfile = await prisma.creatorProfile.findUnique({
         where: { userId: user.id },
         select: {
             theme: true,
             themeConfig: true,
+            creatorSubscription: {
+                select: {
+                    plan: {
+                        select: { type: true }
+                    },
+                    status: true,
+                },
+            },
         },
     });
 
@@ -37,6 +45,13 @@ export default async function ThemeSettingsPage() {
     const currentTheme = creatorProfile.theme || "creator-pro";
     const currentThemeConfig = creatorProfile.themeConfig as any;
 
+    // サブスクリプションがACTIVEの場合のみプランタイプを反映
+    const creatorPlanType = (
+        creatorProfile.creatorSubscription?.status === "ACTIVE"
+            ? creatorProfile.creatorSubscription.plan.type
+            : "FREE"
+    ) as "FREE" | "LITE" | "BUSINESS";
+
     return (
         <div className="space-y-6">
             <header>
@@ -46,7 +61,7 @@ export default async function ThemeSettingsPage() {
                 </p>
             </header>
 
-            <ThemeSelector currentTheme={currentTheme} />
+            <ThemeSelector currentTheme={currentTheme} creatorPlanType={creatorPlanType} />
         </div>
     );
 }

@@ -320,7 +320,7 @@ function ZineLiteContentPageContent() {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto max-w-6xl px-6 pb-24 md:pb-0">
+      <main className="flex-1 w-full mx-auto max-w-6xl px-6 pb-24 md:pb-0">
         {/* Hero Image */}
         <div className="relative -mx-6 h-52 overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600">
           {creatorProfile?.headerUrl ? (
@@ -380,7 +380,7 @@ function ZineLiteContentPageContent() {
 
         {/* Tab Navigation */}
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)] md:relative md:bottom-auto md:mb-6 md:bg-transparent md:shadow-none md:border-b md:border-gray-200">
-          <nav className="mx-auto max-w-6xl flex items-center justify-between overflow-x-auto border-t border-gray-200 px-6 pb-[env(safe-area-inset-bottom)] md:flex-wrap md:border-t-0 md:px-0 md:pb-0">
+          <nav className="mx-auto w-full max-w-6xl flex items-center justify-between overflow-x-auto border-t border-gray-200 px-6 pb-[env(safe-area-inset-bottom)] md:flex-wrap md:border-t-0 md:px-0 md:pb-0">
             <div className="flex items-center gap-2 py-1 md:py-0 md:flex-wrap w-full">
               <button
                 onClick={() => setActiveTab("all")}
@@ -554,7 +554,7 @@ function ZineLiteContentPageContent() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white pt-6 pb-24 md:pb-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-start px-6 text-sm text-gray-600">
+        <div className="mx-auto w-full flex max-w-6xl items-center justify-start px-6 text-sm text-gray-600">
           <div className="flex flex-wrap justify-start gap-6 text-xs text-gray-500">
             <a href="/terms/fans" target="_blank" className="hover:text-green-600 hover:underline whitespace-nowrap">
               利用規約

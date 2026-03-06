@@ -120,7 +120,7 @@ export default function ZineLiteContentDetailPage() {
         <div className="min-h-screen bg-white">
             {/* ヘッダー */}
             <header className="border-b border-neutral-200 px-6 py-4">
-                <div className="mx-auto max-w-5xl">
+                <div className="mx-auto max-w-6xl">
                     <Link
                         href="/zine-lite/content"
                         className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
@@ -137,8 +137,8 @@ export default function ZineLiteContentDetailPage() {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-5xl px-6 py-8">
-                <div className="grid gap-8 lg:grid-cols-[1fr,400px]">
+            <main className="mx-auto max-w-6xl px-6 py-8">
+                <div className="grid gap-8 lg:grid-cols-[1fr,320px]">
                     {/* メインエリア */}
                     <div className="space-y-6">
                         {/* サンプルメディア */}

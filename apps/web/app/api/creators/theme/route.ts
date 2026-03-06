@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
+// Pro系テーマのリスト
+const PRO_THEMES = ["creator-pro", "neon-pro", "studio-pro", "velvet-pro"];
+
 export async function PUT(req: Request) {
     const session = await getServerSession(authOptions);
 
@@ -28,27 +31,39 @@ export async function PUT(req: Request) {
             updateData.themeConfig = themeConfig;
         }
 
-        // 現在のテーマを取得
-        const currentProfile = await prisma.creatorProfile.findUnique({
-            where: { userId },
-            select: { theme: true }
-        });
+        // プラン制限チェック: Pro系テーマの場合、Lite以上のプランが必要
+        if (PRO_THEMES.includes(theme)) {
+            const creatorProfile = await prisma.creatorProfile.findUnique({
+                where: { userId },
+                select: {
+                    creatorSubscription: {
+                        select: {
+                            plan: { select: { type: true } },
+                            status: true,
+                        },
+                    },
+                },
+            });
 
-        console.log("=== Theme Update Debug ===");
-        console.log("User ID:", userId);
-        console.log("Current theme:", currentProfile?.theme);
-        console.log("New theme:", theme);
+            const planType = creatorProfile?.creatorSubscription?.status === "ACTIVE"
+                ? creatorProfile.creatorSubscription.plan.type
+                : "FREE";
+
+            if (planType === "FREE") {
+                return new NextResponse(
+                    "Proテーマを使用するにはLiteプラン以上へのアップグレードが必要です",
+                    { status: 403 }
+                );
+            }
+        }
 
         const updated = await prisma.creatorProfile.update({
             where: { userId },
             data: updateData,
         });
 
-        console.log("Updated theme:", updated.theme);
-        console.log("Update successful");
-
         // Get creator handle to revalidate fan pages
-        const creatorProfile = await prisma.creatorProfile.findUnique({
+        const creatorForRevalidation = await prisma.creatorProfile.findUnique({
             where: { userId },
             select: { handle: true }
         });
@@ -58,8 +73,8 @@ export async function PUT(req: Request) {
         revalidatePath("/creators/[handle]/settings/theme", "page");
 
         // Revalidate fan-facing pages if handle exists
-        if (creatorProfile?.handle) {
-            const handle = creatorProfile.handle;
+        if (creatorForRevalidation?.handle) {
+            const handle = creatorForRevalidation.handle;
             revalidatePath(`/${handle}`, 'layout'); // レイアウト全体を再検証
             revalidatePath(`/${handle}/content`, 'page');
             revalidatePath(`/${handle}/login`, 'page');

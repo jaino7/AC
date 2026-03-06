@@ -22,12 +22,20 @@ export default async function ThemeSettingsPage() {
         redirect("/creators/login");
     }
 
-    // Get creator profile with theme
+    // Get creator profile with theme and subscription plan
     const creatorProfile = await prisma.creatorProfile.findUnique({
         where: { userId: user.id },
         select: {
             theme: true,
             themeConfig: true,
+            creatorSubscription: {
+                select: {
+                    plan: {
+                        select: { type: true }
+                    },
+                    status: true,
+                },
+            },
         },
     });
 
@@ -36,11 +44,14 @@ export default async function ThemeSettingsPage() {
     }
 
     const currentTheme = creatorProfile.theme || "creator-pro";
-    const currentThemeConfig = creatorProfile.themeConfig as any; // TODO: Type properly
+    const currentThemeConfig = creatorProfile.themeConfig as any;
 
-    // Debug: Log the current theme
-    console.log("[Theme Settings] Current theme from DB:", creatorProfile.theme);
-    console.log("[Theme Settings] Final currentTheme:", currentTheme);
+    // サブスクリプションがACTIVEの場合のみプランタイプを反映
+    const creatorPlanType = (
+        creatorProfile.creatorSubscription?.status === "ACTIVE"
+            ? creatorProfile.creatorSubscription.plan.type
+            : "FREE"
+    ) as "FREE" | "LITE" | "BUSINESS";
 
     return (
         <div className="space-y-6">
@@ -51,15 +62,8 @@ export default async function ThemeSettingsPage() {
                 </p>
             </header>
 
-            {/* デバッグ情報 */}
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
-                <p className="font-semibold text-yellow-900">デバッグ情報:</p>
-                <p className="text-yellow-800">データベースから取得したテーマ: {creatorProfile.theme || "(null)"}</p>
-                <p className="text-yellow-800">最終的なcurrentTheme: {currentTheme}</p>
-            </div>
-
             {/* テーマ選択 */}
-            <ThemeSelector currentTheme={currentTheme} />
+            <ThemeSelector currentTheme={currentTheme} creatorPlanType={creatorPlanType} />
 
             {/* 高度なカスタマイズ */}
             <div className="mt-12">

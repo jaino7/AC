@@ -351,31 +351,11 @@ function PureLiteContentPageContent() {
             )}
           </div>
 
-          {/* Subscribe Button and Menu */}
+          {/* Subscribe Button */}
           <div className="flex items-center justify-center gap-3">
             <button className="rounded-full bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-purple-700 hover:to-purple-600">
               月額 ¥500で登録 →
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100"
-              >
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-              </button>
-              {showProfileMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg z-10">
-                  <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                    シェア
-                  </button>
-                  <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                    報告
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </section>
 

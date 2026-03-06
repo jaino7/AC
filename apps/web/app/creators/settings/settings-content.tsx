@@ -219,96 +219,21 @@ export default function SettingsContent() {
 
                         {activeTab === "domain" && (
                             <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                                <h2 className="mb-2 text-2xl font-semibold">独自ドメイン設定</h2>
-                                <p className="mb-6 text-sm text-gray-600">
-                                    独自ドメインを接続して、プロフェッショナルなサイトを運営できます。
-                                </p>
-
-                                <button className="mb-8 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                                    新しいドメインを追加
-                                </button>
-
-                                {/* DNS設定手順 */}
-                                <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50 p-6">
-                                    <h3 className="mb-3 text-sm font-semibold text-blue-900">DNS設定手順</h3>
-                                    <ol className="space-y-2 text-sm text-blue-800">
-                                        <li>1. 上記のボタンからドメインを追加</li>
-                                        <li>2. 表示されるDNSレコードをドメインプロバイダーで設定</li>
-                                        <li>3. 「検証」ボタンをクリックして確認</li>
-                                        <li>4. 検証が完了すると、ドメインが有効になります</li>
-                                    </ol>
-                                </div>
-
-                                {/* 検索入力 */}
-                                <div className="mb-6">
-                                    <input
-                                        type="text"
-                                        placeholder="ドメインを検索"
-                                        className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
-                                    />
-                                </div>
-
-                                {/* ドメイン一覧 */}
-                                <div className="space-y-4">
-                                    {/* サンプルドメイン1 - 有効 */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
-                                        <div>
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black">example.com</span>
-                                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                                                    有効
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-600">プライマリードメイン</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-                                                削除
-                                            </button>
-                                        </div>
+                                <div className="flex flex-col items-center justify-center py-16 text-center">
+                                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
+                                        <span className="text-4xl">🌐</span>
                                     </div>
-
-                                    {/* サンプルドメイン2 - 検証待ち */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
-                                        <div>
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black">www.my-creator-site.com</span>
-                                                <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700">
-                                                    検証待ち
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-600">DNS設定を確認してください</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                                                検証
-                                            </button>
-                                            <button className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-                                                削除
-                                            </button>
-                                        </div>
+                                    <h2 className="mb-3 text-2xl font-semibold text-neutral-900">独自ドメイン設定</h2>
+                                    <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-700">
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        近日リリース予定
                                     </div>
-
-                                    {/* サンプルドメイン3 - 検証失敗 */}
-                                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white p-4">
-                                        <div>
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black">shop.my-brand.com</span>
-                                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                                                    検証失敗
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-red-600">DNSレコードが見つかりません</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                                                再検証
-                                            </button>
-                                            <button className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-                                                削除
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <p className="max-w-md text-sm leading-relaxed text-neutral-600">
+                                        独自ドメインを接続して、プロフェッショナルなサイトを運営できる機能を準備中です。
+                                        リリースまでもうしばらくお待ちください。
+                                    </p>
                                 </div>
                             </section>
                         )}

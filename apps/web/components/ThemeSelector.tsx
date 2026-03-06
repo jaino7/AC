@@ -5,22 +5,25 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 const THEMES = [
-    { id: "creator-pro", name: "Creator Pro", description: "洗練されたダークテーマ", color: "bg-gradient-to-br from-slate-900 to-slate-800", previewUrl: "/creator-pro/content" },
-    { id: "neon-pro", name: "Neon Pro", description: "サイバーパンクスタイル", color: "bg-gradient-to-br from-[#041024] to-[#0a1a3a]", previewUrl: "/neon-pro/content" },
-    { id: "studio-pro", name: "Studio Pro", description: "プロフェッショナル向け", color: "bg-gradient-to-br from-slate-100 to-white", previewUrl: "/studio-pro/content" },
-    { id: "velvet-pro", name: "Velvet Pro", description: "エレガントなゴールドアクセント", color: "bg-gradient-to-br from-amber-50 to-white", previewUrl: "/velvet-pro/content" },
-    { id: "pure-lite", name: "Pure Lite", description: "ピンク系ライトテーマ", color: "bg-gradient-to-br from-pink-50 to-white", previewUrl: "/pure-lite/content" },
-    { id: "zine-lite", name: "Zine Lite", description: "フレッシュなグリーン", color: "bg-gradient-to-br from-emerald-50 to-white", previewUrl: "/zine-lite/content" },
+    { id: "creator-pro", name: "Creator Pro", description: "洗練されたダークテーマ", color: "bg-gradient-to-br from-slate-900 to-slate-800", previewUrl: "/creator-pro/content", tier: "pro" as const },
+    { id: "neon-pro", name: "Neon Pro", description: "サイバーパンクスタイル", color: "bg-gradient-to-br from-[#041024] to-[#0a1a3a]", previewUrl: "/neon-pro/content", tier: "pro" as const },
+    { id: "studio-pro", name: "Studio Pro", description: "プロフェッショナル向け", color: "bg-gradient-to-br from-slate-100 to-white", previewUrl: "/studio-pro/content", tier: "pro" as const },
+    { id: "velvet-pro", name: "Velvet Pro", description: "エレガントなゴールドアクセント", color: "bg-gradient-to-br from-amber-50 to-white", previewUrl: "/velvet-pro/content", tier: "pro" as const },
+    { id: "pure-lite", name: "Pure Lite", description: "ピンク系ライトテーマ", color: "bg-gradient-to-br from-pink-50 to-white", previewUrl: "/pure-lite/content", tier: "lite" as const },
+    { id: "zine-lite", name: "Zine Lite", description: "フレッシュなグリーン", color: "bg-gradient-to-br from-emerald-50 to-white", previewUrl: "/zine-lite/content", tier: "lite" as const },
 ];
 
 interface ThemeSelectorProps {
     currentTheme: string;
+    creatorPlanType?: "FREE" | "LITE" | "BUSINESS";
 }
 
-export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
+export function ThemeSelector({ currentTheme, creatorPlanType = "FREE" }: ThemeSelectorProps) {
     const [activeTheme, setActiveTheme] = useState(currentTheme);
     const [previewTheme, setPreviewTheme] = useState<string | null>(null);
     const router = useRouter();
+
+    const isFreePlan = creatorPlanType === "FREE";
 
     const updateTheme = async (themeId: string) => {
         const res = await fetch("/api/creators/theme", {
@@ -29,7 +32,10 @@ export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
             body: JSON.stringify({ theme: themeId }),
         });
 
-        if (!res.ok) throw new Error("Failed to update theme");
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText || "Failed to update theme");
+        }
         return themeId;
     };
 
@@ -44,6 +50,11 @@ export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
     });
 
     const handleCardClick = (themeId: string) => {
+        const theme = THEMES.find(t => t.id === themeId);
+        // 無料プランの場合、Proテーマはクリック不可
+        if (isFreePlan && theme?.tier === "pro") {
+            return;
+        }
         // カードクリックでプレビュー選択
         setPreviewTheme(themeId);
     };
@@ -58,45 +69,74 @@ export function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
 
     return (
         <div className="space-y-6">
+            {/* 無料プラン向けの案内 */}
+            {isFreePlan && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-sm text-amber-800">
+                        <span className="font-semibold">💡 Proテーマを使うには</span>
+                        <br />
+                        Liteプラン以上にアップグレードすると、4つのProテーマが利用可能になります。
+                    </p>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {THEMES.map((theme) => {
                     const isActive = activeTheme === theme.id;
                     const isPreview = previewTheme === theme.id;
+                    const isLocked = isFreePlan && theme.tier === "pro";
 
                     return (
                         <div
                             key={theme.id}
                             className={`
-                                relative cursor-pointer rounded-xl border-2 p-4 transition-all
+                                relative rounded-xl border-2 p-4 transition-all
+                                ${isLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
                                 ${isActive ? "border-green-500 ring-2 ring-green-500/20" : ""}
                                 ${isPreview && !isActive ? "border-blue-500 ring-2 ring-blue-500/20" : ""}
-                                ${!isActive && !isPreview ? "border-gray-200 hover:border-gray-300" : ""}
+                                ${!isActive && !isPreview && !isLocked ? "border-gray-200 hover:border-gray-300" : ""}
+                                ${isLocked ? "border-gray-200" : ""}
                             `}
                             onClick={() => handleCardClick(theme.id)}
                         >
+                            {/* ロックバッジ */}
+                            {isLocked && (
+                                <div className="absolute -top-2 -right-2 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                                    🔒 Pro
+                                </div>
+                            )}
+
                             {/* アクティブバッジ */}
-                            {isActive && (
+                            {isActive && !isLocked && (
                                 <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                                     使用中
                                 </div>
                             )}
 
                             {/* プレビュー選択バッジ */}
-                            {isPreview && !isActive && (
+                            {isPreview && !isActive && !isLocked && (
                                 <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                                     プレビュー中
                                 </div>
                             )}
 
-                            <div className={`h-32 w-full rounded-lg mb-3 ${theme.color} flex items-center justify-center border border-black/10`}>
+                            <div className={`h-32 w-full rounded-lg mb-3 ${theme.color} flex items-center justify-center border border-black/10 relative`}>
                                 <span className="text-xs font-medium bg-black/20 text-white px-2 py-1 rounded backdrop-blur-sm">
                                     {theme.name}
                                 </span>
+                                {isLocked && (
+                                    <div className="absolute inset-0 bg-gray-200/40 rounded-lg flex items-center justify-center">
+                                        <span className="text-2xl">🔒</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
                                 <h3 className="font-medium text-gray-900">{theme.name}</h3>
                                 <p className="text-sm text-gray-500 mt-1">{theme.description}</p>
+                                {isLocked && (
+                                    <p className="text-xs text-amber-600 mt-1 font-medium">Liteプラン以上で利用可能</p>
+                                )}
                             </div>
                         </div>
                     );

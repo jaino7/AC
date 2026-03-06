@@ -1223,145 +1223,23 @@ export default function SettingsContent() {
                         )}
 
                         {activeTab === "domain" && (
-                            <section className="relative rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                                {/* Upgrade Overlay */}
-                                {creatorProfile && !creatorProfile.hasAccess && (
-                                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/95 backdrop-blur-sm">
-                                        <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-                                            <h2 className="mb-4 text-2xl font-bold text-gray-900">
-                                                独自ドメイン機能
-                                            </h2>
-                                            <p className="mb-6 text-gray-600">
-                                                独自ドメインを使用するには、LiteまたはBusinessプランへのアップグレードが必要です。
-                                            </p>
-                                            <button
-                                                onClick={() => router.push("/creators/pricing")}
-                                                className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-                                            >
-                                                プランをアップグレード
-                                            </button>
-                                        </div>
+                            <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                <div className="flex flex-col items-center justify-center py-16 text-center">
+                                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
+                                        <span className="text-4xl">🌐</span>
                                     </div>
-                                )}
-
-                                <h2 className="mb-2 text-2xl font-semibold">独自ドメイン設定</h2>
-                                <p className="mb-6 text-sm text-gray-600">
-                                    独自ドメインを接続して、プロフェッショナルなサイトを運営できます。
-                                    {creatorProfile?.planType && ` (現在のプラン: ${creatorProfile.planType})`}
-                                </p>
-
-                                {domainError && (
-                                    <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
-                                        <p className="text-sm text-red-800">{domainError}</p>
+                                    <h2 className="mb-3 text-2xl font-semibold text-neutral-900">独自ドメイン設定</h2>
+                                    <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-700">
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        近日リリース予定
                                     </div>
-                                )}
-
-                                {/* Domain Input */}
-                                {!domainData ? (
-                                    <div className="mb-8 space-y-4">
-                                        <div>
-                                            <label className="mb-2 block text-sm font-semibold text-neutral-700">
-                                                ドメイン名
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={domainInput}
-                                                onChange={(e) => setDomainInput(e.target.value)}
-                                                placeholder="example.com"
-                                                className="w-full rounded-2xl border border-black/10 bg-neutral-50 px-4 py-3 text-sm focus:border-black/40 focus:outline-none"
-                                            />
-                                            <p className="mt-1 text-xs text-gray-500">
-                                                サブドメインは含めず、メインドメインのみを入力してください
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={handleSaveDomain}
-                                            disabled={domainLoading || !domainInput.trim()}
-                                            className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                                        >
-                                            {domainLoading ? "登録中..." : "ドメインを登録"}
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        {/* Current Domain */}
-                                        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 rounded-2xl border border-black/10 bg-white p-4">
-                                            <div>
-                                                <div className="mb-1 flex items-center gap-2">
-                                                    <span className="text-sm font-semibold text-black">{domainData.domain}</span>
-                                                    {getStatusBadge(domainData.status)}
-                                                </div>
-                                                {domainData.lastError && (
-                                                    <p className="text-xs text-red-600">{domainData.lastError}</p>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={handleVerifyDomain}
-                                                    disabled={domainVerifying || domainData.status === "ACTIVE"}
-                                                    className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                                                >
-                                                    {domainVerifying ? "検証中..." : "検証"}
-                                                </button>
-                                                <button
-                                                    onClick={handleDeleteDomain}
-                                                    disabled={domainLoading}
-                                                    className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 disabled:opacity-50"
-                                                >
-                                                    削除
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* DNS Setup Instructions */}
-                                        {domainData.sslValidationRecords && domainData.sslValidationRecords.length > 0 && (
-                                            <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50 p-6">
-                                                <h3 className="mb-3 text-sm font-semibold text-blue-900">DNS設定手順</h3>
-                                                <p className="mb-4 text-sm text-blue-800">
-                                                    以下のDNSレコードをドメインのDNS設定に追加してください。
-                                                </p>
-
-                                                <div className="space-y-4">
-                                                    {domainData.sslValidationRecords.map((record, index) => (
-                                                        <div key={index} className="rounded-2xl border border-blue-200 bg-white p-4">
-                                                            <div className="grid gap-2">
-                                                                <div>
-                                                                    <span className="text-xs font-medium text-gray-500">レコードタイプ:</span>
-                                                                    <p className="font-mono text-sm">TXT</p>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-xs font-medium text-gray-500">名前:</span>
-                                                                    <p className="break-all font-mono text-sm">{record.txt_name}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-xs font-medium text-gray-500">値:</span>
-                                                                    <p className="break-all font-mono text-sm">{record.txt_value}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                <p className="mt-4 text-xs text-blue-700">
-                                                    DNS設定の反映には最大48時間かかる場合がありますが、通常は数分から数時間で完了します。
-                                                </p>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-
-                                {/* General DNS Setup Instructions */}
-                                {!domainData && (
-                                    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6">
-                                        <h3 className="mb-3 text-sm font-semibold text-blue-900">DNS設定手順</h3>
-                                        <ol className="space-y-2 text-sm text-blue-800">
-                                            <li>1. 上記のフォームからドメインを登録</li>
-                                            <li>2. 表示されるDNSレコードをドメインプロバイダーで設定</li>
-                                            <li>3. 「検証」ボタンをクリックして確認</li>
-                                            <li>4. 検証が完了すると、ドメインが有効になります</li>
-                                        </ol>
-                                    </div>
-                                )}
+                                    <p className="max-w-md text-sm leading-relaxed text-neutral-600">
+                                        独自ドメインを接続して、プロフェッショナルなサイトを運営できる機能を準備中です。
+                                        リリースまでもうしばらくお待ちください。
+                                    </p>
+                                </div>
                             </section>
                         )}
                     </div>
