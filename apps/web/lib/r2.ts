@@ -2,6 +2,14 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * URLを正規化する（https:// が https:/ に壊れる問題への対策）
+ */
+function normalizeUrl(url: string): string {
+    // プロトコル部分の // が / に潰されていたら修正
+    return url.replace(/^(https?):\/([^\/])/, '$1://$2');
+}
+
 // R2クライアントの初期化
 const r2Client = new S3Client({
     region: "auto",
@@ -47,8 +55,9 @@ export async function generatePresignedUrl(
         expiresIn: 300, // 5分
     });
 
-    // 公開URL
-    const fileUrl = `${process.env.R2_CONTENT_PUBLIC_URL}/${key}`;
+    // 公開URL（環境変数のURL破損対策として正規化）
+    const rawUrl = `${process.env.R2_CONTENT_PUBLIC_URL}/${key}`;
+    const fileUrl = normalizeUrl(rawUrl);
 
     return {
         uploadUrl,

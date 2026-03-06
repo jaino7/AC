@@ -105,9 +105,13 @@ export async function POST(request: Request) {
                 filename,
                 contentType,
             });
+            console.log("[R2 UPLOAD] R2_CONTENT_PUBLIC_URL =", JSON.stringify(process.env.R2_CONTENT_PUBLIC_URL));
+            console.log("[R2 UPLOAD] Generated fileUrl =", result.fileUrl);
         } else {
             // 開発環境: モック実装を使用
             console.warn("[DEV MODE] R2 credentials not configured, using mock upload");
+            console.warn("[DEV MODE] R2_CONTENT_PUBLIC_URL =", JSON.stringify(process.env.R2_CONTENT_PUBLIC_URL));
+            console.warn("[DEV MODE] R2_CONTENT_BUCKET_NAME =", JSON.stringify(process.env.R2_CONTENT_BUCKET_NAME));
             result = await generatePresignedUrlMock({
                 filename,
                 contentType,
