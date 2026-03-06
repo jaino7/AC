@@ -3,11 +3,37 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
 /**
- * URLを正規化する（https:// が https:/ に壊れる問題への対策）
+ * URLを正規化する
+ * - Markdownリンク記法 [text](url) が混入している場合にURLだけ抽出
+ * - https:// が https:/ に壊されていた場合に修正
+ * - 末尾の余計なスラッシュを除去
  */
 function normalizeUrl(url: string): string {
+    let cleaned = url;
+
+    // Markdownリンク記法 [text](url) からURLだけ抽出
+    // 例: "[https://example.com](https://example.com/)" → "https://example.com/"
+    const markdownMatch = cleaned.match(/\[([^\]]*)\]\(([^)]*)\)/);
+    if (markdownMatch) {
+        // 括弧内のURLを使う（通常こちらが実際のURL）
+        cleaned = markdownMatch[2];
+    }
+
     // プロトコル部分の // が / に潰されていたら修正
-    return url.replace(/^(https?):\/([^\/])/, '$1://$2');
+    cleaned = cleaned.replace(/^(https?):\/([^\/])/, '$1://$2');
+
+    // 末尾のスラッシュを除去
+    cleaned = cleaned.replace(/\/+$/, '');
+
+    return cleaned;
+}
+
+/**
+ * 環境変数の値を安全に取得する（Markdownリンク記法の混入対策）
+ */
+function getCleanEnvUrl(envValue: string | undefined): string {
+    if (!envValue) return '';
+    return normalizeUrl(envValue);
 }
 
 // R2クライアントの初期化
@@ -55,9 +81,9 @@ export async function generatePresignedUrl(
         expiresIn: 300, // 5分
     });
 
-    // 公開URL（環境変数のURL破損対策として正規化）
-    const rawUrl = `${process.env.R2_CONTENT_PUBLIC_URL}/${key}`;
-    const fileUrl = normalizeUrl(rawUrl);
+    // 公開URL（環境変数のMarkdown記法混入・URL破損対策として正規化）
+    const publicUrl = getCleanEnvUrl(process.env.R2_CONTENT_PUBLIC_URL);
+    const fileUrl = `${publicUrl}/${key}`;
 
     return {
         uploadUrl,
