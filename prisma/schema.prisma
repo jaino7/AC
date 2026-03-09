@@ -843,6 +843,9 @@ model CreatorSubscription {
   // 次回更新
   nextBillingDate DateTime? // 次回請求日
 
+  // 無料トライアル
+  trialEndDate DateTime? // 2ヶ月無料トライアル終了日（設定時はトライアル中）
+
   // 支払い管理
   billingBalance Int @default(0) // 入金残高（円）
 

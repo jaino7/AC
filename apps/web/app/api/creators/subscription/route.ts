@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
                 startDate: subscription.startDate,
                 endDate: subscription.endDate,
                 nextBillingDate: subscription.nextBillingDate,
+                trialEndDate: subscription.trialEndDate,
                 billingBalance: subscription.billingBalance,
             },
             virtualAccount: virtualAccount || null,

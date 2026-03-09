@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
                     ? subscription.plan.yearlyPrice
                     : subscription.plan.monthlyPrice;
 
+                const isTrial = !!(subscription as any).trialEndDate;
+
                 if (subscription.billingBalance >= requiredAmount) {
                     // Renew: deduct balance and extend dates
                     const newEndDate = calculateNextEndDate(
@@ -93,6 +95,8 @@ export async function POST(request: NextRequest) {
                             billingBalance: newBalance,
                             endDate: newEndDate,
                             nextBillingDate: newEndDate,
+                            // トライアル終了後の初回課金 → trialEndDate をクリアして通常契約へ移行
+                            ...(isTrial && { trialEndDate: null }),
                         },
                     });
 
@@ -101,19 +105,19 @@ export async function POST(request: NextRequest) {
                         subscriptionId: subscription.id,
                         creator: `${subscription.creator.displayName} (@${subscription.creator.handle})`,
                         planName: subscription.plan.name,
-                        status: "renewed",
+                        status: isTrial ? "trial_converted" : "renewed",
                         deducted: requiredAmount,
                         newBalance,
                         newEndDate: newEndDate.toISOString(),
                     });
 
                     console.log(
-                        `[Cron] Renewed creator subscription: ${subscription.creator.displayName} ` +
-                        `(@${subscription.creator.handle}), plan: ${subscription.plan.name}, ` +
-                        `deducted: ¥${requiredAmount}, newBalance: ¥${newBalance}`
+                        `[Cron] ${isTrial ? "Trial converted to paid" : "Renewed"} creator subscription: ` +
+                        `${subscription.creator.displayName} (@${subscription.creator.handle}), ` +
+                        `plan: ${subscription.plan.name}, deducted: ¥${requiredAmount}, newBalance: ¥${newBalance}`
                     );
                 } else {
-                    // Insufficient balance → expire
+                    // Insufficient balance → expire (trial: back to FREE, regular: expired)
                     await prisma.creatorSubscription.update({
                         where: { id: subscription.id },
                         data: {
@@ -127,14 +131,15 @@ export async function POST(request: NextRequest) {
                         subscriptionId: subscription.id,
                         creator: `${subscription.creator.displayName} (@${subscription.creator.handle})`,
                         planName: subscription.plan.name,
-                        status: "expired",
+                        status: isTrial ? "trial_expired" : "expired",
                         requiredAmount,
                         availableBalance: subscription.billingBalance,
                     });
 
                     console.log(
-                        `[Cron] Expired creator subscription: ${subscription.creator.displayName} ` +
-                        `(@${subscription.creator.handle}), plan: ${subscription.plan.name}, ` +
+                        `[Cron] ${isTrial ? "Trial expired (no balance)" : "Expired"} creator subscription: ` +
+                        `${subscription.creator.displayName} (@${subscription.creator.handle}), ` +
+                        `plan: ${subscription.plan.name}, ` +
                         `balance: ¥${subscription.billingBalance} < required: ¥${requiredAmount}`
                     );
                 }

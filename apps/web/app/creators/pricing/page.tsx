@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 type BillingCycle = "monthly" | "yearly";
 
@@ -31,6 +32,7 @@ const plans: Plan[] = [
             "200GB ストレージ",
             "販売手数料 5.0%",
             "独自ドメイン & 追加テーマ",
+            "新規登録後 2ヶ月間無料",
         ],
         highlighted: true,
         cta: "Liteを選択",
@@ -54,6 +56,7 @@ const plans: Plan[] = [
 
 const comparisonFeatures = [
     { name: "月額料金", free: "0円", lite: "2,980円 (年払い: 29,800円)", business: "19,800円 (年払い: 198,000円)" },
+    { name: "無料トライアル", free: "—", lite: "初回 2ヶ月間無料", business: "—" },
     { name: "販売手数料", free: "8%", lite: "5%", business: "2.8%" },
     { name: "ストレージ", free: "15GB", lite: "200GB", business: "1TB" },
     { name: "独自ドメイン", free: "×", lite: "○", business: "○" },
@@ -63,6 +66,24 @@ const comparisonFeatures = [
 
 export default function PricingPage() {
     const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+    const { data: session, status } = useSession();
+    const [creatorHandle, setCreatorHandle] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (status !== "authenticated") return;
+        fetch("/api/creators/profile")
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (data?.profile?.handle) setCreatorHandle(data.profile.handle);
+            })
+            .catch(() => {});
+    }, [status]);
+
+    const planCtaHref = creatorHandle
+        ? `/creators/${creatorHandle}/settings?tab=plans`
+        : status === "unauthenticated"
+            ? "/creators/login"
+            : "/creators/dashboard";
 
     return (
         <main className="min-h-screen bg-white text-black">
@@ -110,6 +131,11 @@ export default function PricingPage() {
                                 key={plan.id}
                                 className="relative rounded-2xl border-2 border-blue-600 bg-white p-10 text-black transition-all shadow-lg hover:shadow-xl"
                             >
+                                {plan.id === "lite" && (
+                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-5 py-1.5 text-sm font-bold text-white shadow-md whitespace-nowrap">
+                                        新規登録後 2ヶ月間無料
+                                    </div>
+                                )}
                                 <div className="text-center">
                                     <h3 className="text-2xl font-bold">{plan.name}</h3>
                                     <p className="mt-2 text-sm text-neutral-600">
@@ -141,10 +167,10 @@ export default function PricingPage() {
                                 </div>
 
                                 <Link
-                                    href="/creators/dashboard"
+                                    href={planCtaHref}
                                     className="mt-8 block w-full rounded-full bg-blue-600 py-4 text-center font-semibold text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg"
                                 >
-                                    設定画面からプランを選択
+                                    {status === "unauthenticated" ? "ログインして選択" : "このプランを選択"}
                                 </Link>
 
                                 <ul className="mt-8 space-y-3">

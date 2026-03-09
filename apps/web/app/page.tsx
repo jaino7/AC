@@ -41,10 +41,10 @@ const plans: Plan[] = [
     name: "Lite",
     price: { monthly: 2980, yearly: 29800 },
     description: "成長中のクリエイターに最適",
-    features: ["200GB ストレージ", "販売手数料 5.0%", "独自ドメイン & 追加テーマ"],
+    features: ["新規登録後 2ヶ月間無料", "200GB ストレージ", "販売手数料 5.0%", "独自ドメイン & 追加テーマ"],
     highlighted: true,
     feeRate: "5.0%",
-    cta: "Liteを選択",
+    cta: "2ヶ月無料で試す",
   },
   {
     id: "business",
@@ -59,6 +59,7 @@ const plans: Plan[] = [
 
 const comparisonFeatures = [
   { name: "月額料金", free: "0円", lite: "2,980円", business: "19,800円" },
+  { name: "無料トライアル", free: "—", lite: "初回 2ヶ月間無料", business: "—" },
   { name: "販売手数料", free: "8%", lite: "5%", business: "2.8%" },
   { name: "ストレージ", free: "15GB", lite: "200GB", business: "1TB" },
   { name: "独自ドメイン", free: "×", lite: "○", business: "○" },
@@ -199,6 +200,7 @@ export default function LandingPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const planCtaHref = (_planId: string) => "/creators/signup";
 
   // Catchphrase rotation
   useEffect(() => {
@@ -449,12 +451,17 @@ export default function LandingPage() {
                       }`}
                   >
                     {isHighlighted && (
-                      <div
-                        className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full"
-                        style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
-                      >
-                        人気No.1
-                      </div>
+                      <>
+                        <div
+                          className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap"
+                          style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
+                        >
+                          人気No.1
+                        </div>
+                        <div className="absolute -top-3 right-4 rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-bold text-white">
+                          2ヶ月無料
+                        </div>
+                      </>
                     )}
 
                     <div className="text-center mb-6">
@@ -481,16 +488,19 @@ export default function LandingPage() {
                     </div>
 
                     <ul className="space-y-3 mb-8 flex-grow">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-3 text-sm">
-                          <Check className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#C5A059" }} />
-                          <span className="text-white/70">{feature}</span>
-                        </li>
-                      ))}
+                      {plan.features.map((feature, i) => {
+                        const isTrial = feature.includes("無料");
+                        return (
+                          <li key={i} className={`flex items-start gap-3 text-sm ${isTrial ? "rounded-lg bg-emerald-500/10 px-3 py-2 -mx-3" : ""}`}>
+                            <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isTrial ? "text-emerald-400" : ""}`} style={isTrial ? undefined : { color: "#C5A059" }} />
+                            <span className={isTrial ? "text-emerald-300 font-semibold" : "text-white/70"}>{feature}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
 
                     <Link
-                      href={plan.id === "free" ? "/creators/signup" : `/creators/pricing/${plan.id}-${billingCycle === "monthly" ? "m" : "y"}`}
+                      href={planCtaHref(plan.id)}
                       className={`block w-full text-center py-3.5 rounded-xl font-semibold transition-all hover:scale-[1.02] ${isHighlighted
                         ? "text-[#040B1A]"
                         : "bg-white/10 text-white hover:bg-white/20"

@@ -142,6 +142,12 @@ export class PaymentsService {
       include: { plan: true },
     });
 
+    // クリエイタープロフィールの登録日を取得（トライアル資格チェック用）
+    const creatorProfile = await this.prisma.creatorProfile.findUnique({
+      where: { id: creatorId },
+      select: { createdAt: true },
+    });
+
     const newAmount = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
     let amount = newAmount; // 最終的な請求額
 
@@ -240,8 +246,70 @@ export class PaymentsService {
 
     } else {
       // サブスクリプションが存在しない場合は新規作成
-      // PENDING状態でも、次回更新予定日(目安)としてendDateを算出してセットします
       const now = new Date();
+
+      // LITEプランの初回申込かつ登録から30日以内の場合、2ヶ月間無料トライアルを提供
+      const registeredDaysAgo = creatorProfile
+        ? Math.floor((now.getTime() - creatorProfile.createdAt.getTime()) / (1000 * 60 * 60 * 24))
+        : Infinity;
+      const isTrialEligible = planType === CreatorPlanType.LITE && registeredDaysAgo <= 30;
+
+      if (isTrialEligible) {
+        const trialEndDate = calculateNextBillingDate(
+          calculateNextBillingDate(now, false),
+          false,
+        ); // 2ヶ月後
+
+        subscription = await this.prisma.creatorSubscription.create({
+          data: {
+            creatorId,
+            planId: plan.id,
+            isYearly,
+            status: CreatorSubscriptionStatus.ACTIVE,
+            startDate: now,
+            endDate: trialEndDate,
+            nextBillingDate: trialEndDate,
+            trialEndDate: trialEndDate,
+          },
+          include: { plan: true },
+        });
+        this.logger.log(
+          `Created LITE trial subscription: ${subscription.id}, trial ends: ${trialEndDate.toISOString()}`,
+        );
+
+        // バーチャル口座を割り当て（トライアル終了後の残高チャージ用）
+        try {
+          const virtualAccount = await this.bankTransfersService.assignVirtualAccount(
+            subscription.id,
+            BankTransferType.CREATOR_PLAN,
+            creatorId,
+          );
+
+          return {
+            subscriptionId: subscription.id,
+            planName: plan.name,
+            amount: 0,
+            isYearly,
+            isTrial: true,
+            trialEndDate: trialEndDate.toISOString(),
+            expiresAt: trialEndDate,
+            virtualAccount: {
+              accountNumber: virtualAccount.accountNumber,
+              accountName: virtualAccount.accountName,
+              branchCode: virtualAccount.branchCode,
+              branchName: virtualAccount.branchName,
+            },
+          };
+        } catch (error) {
+          this.logger.error(
+            `Failed to assign virtual account for trial subscription: ${subscription.id}`,
+            (error as any).stack,
+          );
+          throw error;
+        }
+      }
+
+      // LITE以外の初回: 通常PENDING
       const projectedEndDate = calculateNextBillingDate(now, isYearly);
 
       subscription = await this.prisma.creatorSubscription.create({
@@ -280,6 +348,7 @@ export class PaymentsService {
         planName: plan.name,
         amount,
         isYearly,
+        isTrial: false,
         expiresAt,
         virtualAccount: {
           accountNumber: virtualAccount.accountNumber,

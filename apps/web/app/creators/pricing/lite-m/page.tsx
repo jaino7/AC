@@ -19,6 +19,7 @@ export default function LiteMonthlyPlanPage() {
         period: "月",
         description: "成長中のクリエイターに最適なプラン",
         features: [
+            { title: "新規登録後 2ヶ月間無料", description: "クレジットカード不要・初回登録時のみ適用" },
             { title: "200GB ストレージ", description: "画像、動画、ファイルを大量にアップロード可能" },
             { title: "販売手数料 5.0%", description: "収益の95%があなたのもの" },
             { title: "独自ドメイン", description: "自分のブランドでサイトを運営" },
@@ -76,15 +77,21 @@ export default function LiteMonthlyPlanPage() {
                         <p className="mt-3 text-neutral-600">{planDetails.description}</p>
                     </div>
 
+                    {/* トライアルバッジ */}
+                    <div className="mt-6 rounded-2xl bg-emerald-50 border border-emerald-200 px-5 py-3 text-center">
+                        <p className="text-sm font-bold text-emerald-700">新規登録後 2ヶ月間無料トライアル</p>
+                        <p className="mt-0.5 text-xs text-emerald-600">トライアル終了後 ¥2,980/月</p>
+                    </div>
+
                     {/* 価格表示 */}
-                    <div className="mt-8 text-center">
+                    <div className="mt-6 text-center">
                         <div className="flex items-baseline justify-center gap-1">
                             <span className="text-5xl font-bold text-neutral-900">
                                 ¥{planDetails.price.toLocaleString()}
                             </span>
                             <span className="text-xl text-neutral-600">/{planDetails.period}</span>
                         </div>
-                        <p className="mt-2 text-sm text-neutral-500">月払いプラン</p>
+                        <p className="mt-2 text-sm text-neutral-500">月払いプラン（2ヶ月無料後）</p>
                     </div>
 
                     {/* CTAボタン */}

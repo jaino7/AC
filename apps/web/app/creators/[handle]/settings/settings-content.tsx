@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import BrandAssetsSettings from "@/components/BrandAssetsSettings";
 
 type Tab = "profile" | "brand" | "plans" | "notifications" | "domain";
@@ -45,6 +45,7 @@ interface Subscription {
     isYearly: boolean;
     nextBillingDate?: string | null;
     endDate?: string | null;
+    trialEndDate?: string | null;
     billingBalance: number;
 }
 
@@ -67,7 +68,9 @@ interface VirtualAccount {
 
 export default function SettingsContent() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<Tab>("profile");
+    const searchParams = useSearchParams();
+    const initialTab = (searchParams.get("tab") as Tab) ?? "profile";
+    const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [displayName, setDisplayName] = useState("");
     const [bio, setBio] = useState("");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -265,7 +268,17 @@ export default function SettingsContent() {
                 setShowConfirmModal(false);
                 setConfirmingPlan(null);
 
-                if (data.virtualAccount) {
+                if (data.isTrial) {
+                    // トライアル開始 → 支払いモーダルではなくトライアル開始案内を表示
+                    const trialEnd = data.trialEndDate
+                        ? new Date(data.trialEndDate).toLocaleDateString("ja-JP")
+                        : "";
+                    alert(
+                        `✅ Liteプランの2ヶ月間無料トライアルが開始されました！\n\n` +
+                        `トライアル期間: ${trialEnd}まで無料\n\n` +
+                        `継続してご利用いただく場合は、トライアル終了前にプリペイド残高へ月額分（¥2,980）をご入金ください。残高が不足している場合は自動的にフリープランに戻ります。`
+                    );
+                } else if (data.virtualAccount && data.amount > 0) {
                     setPaymentModalInfo({
                         amount: data.amount,
                         planName: data.planType,
@@ -991,20 +1004,26 @@ export default function SettingsContent() {
                                                     const price = billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
                                                     const displayPrice = billingCycle === "yearly" && price > 0 ? Math.floor(price / 12) : price;
                                                     const isCancelled = isCurrent && subscription?.status === "CANCELLED";
+                                                    const isTrial = isCurrent && !!subscription?.trialEndDate;
 
                                                     return (
                                                         <div
                                                             key={plan.id}
                                                             className={`relative rounded-2xl border-2 p-5 transition-all ${isCurrent
                                                                 ? isCancelled
-                                                                    ? "border-blue-400 bg-white"   // キャンセル済みの今のプランは青枠
-                                                                    : "border-blue-500 bg-blue-50/50" // アクティブな今のプラン
+                                                                    ? "border-blue-400 bg-white"
+                                                                    : "border-blue-500 bg-blue-50/50"
                                                                 : "border-black/10 bg-white hover:border-black/20"
                                                                 }`}
                                                         >
                                                             {isCurrent && (
                                                                 <div className="absolute -top-2.5 right-4 rounded-full bg-blue-600 px-3 py-0.5 text-xs font-bold text-white">
-                                                                    {subscription?.status === "PENDING" ? "入金待ち" : "利用中"}
+                                                                    {subscription?.status === "PENDING" ? "入金待ち" : isTrial ? "トライアル中" : "利用中"}
+                                                                </div>
+                                                            )}
+                                                            {!isCurrent && plan.type === "LITE" && (
+                                                                <div className="absolute -top-2.5 left-4 rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-bold text-white">
+                                                                    新規登録2ヶ月無料
                                                                 </div>
                                                             )}
                                                             <h3 className="text-lg font-bold text-neutral-900">{plan.name}</h3>
@@ -1025,7 +1044,7 @@ export default function SettingsContent() {
 
                                                             {isCurrent ? (
                                                                 <div className="mt-5 space-y-2">
-                                                                    <div className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold ${isCancelled ? "bg-blue-50 text-blue-600" : "bg-blue-100 text-blue-700"}`}>
+                                                                    <div className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold ${isCancelled ? "bg-blue-50 text-blue-600" : isTrial ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
                                                                         {isCancelled ? (
                                                                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1035,8 +1054,13 @@ export default function SettingsContent() {
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                                                             </svg>
                                                                         )}
-                                                                        {subscription?.status === "PENDING" ? "入金待ち" : isCancelled ? "キャンセル済み（利用期間中）" : "現在のプラン"}
+                                                                        {subscription?.status === "PENDING" ? "入金待ち" : isCancelled ? "キャンセル済み（利用期間中）" : isTrial ? "無料トライアル中" : "現在のプラン"}
                                                                     </div>
+                                                                    {isTrial && subscription?.trialEndDate && (
+                                                                        <p className="text-center text-xs text-emerald-700">
+                                                                            {new Date(subscription.trialEndDate).toLocaleDateString("ja-JP")}まで無料
+                                                                        </p>
+                                                                    )}
                                                                     {subscription?.status === "PENDING" && virtualAccount && (
                                                                         <button
                                                                             onClick={() => {
@@ -1054,7 +1078,7 @@ export default function SettingsContent() {
                                                                             振込先を確認する
                                                                         </button>
                                                                     )}
-                                                                    {subscription?.status === "ACTIVE" && (
+                                                                    {subscription?.status === "ACTIVE" && !isTrial && (
                                                                         <button
                                                                             onClick={() => setShowCancelModal(true)}
                                                                             className="w-full text-xs font-medium text-pink-600 transition hover:text-pink-700"
@@ -1077,7 +1101,7 @@ export default function SettingsContent() {
                                                                     disabled={selectingPlan !== null}
                                                                     className="mt-5 w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
                                                                 >
-                                                                    {selectingPlan === plan.type ? "処理中..." : "利用する"}
+                                                                    {selectingPlan === plan.type ? "処理中..." : plan.type === "LITE" ? "2ヶ月無料で試す" : "利用する"}
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1165,9 +1189,17 @@ export default function SettingsContent() {
                                                     </div>
                                                     <div className="flex justify-between text-sm">
                                                         <span className="text-neutral-600">口座番号</span>
-                                                        <span className="font-mono font-semibold text-blue-600">
-                                                            {virtualAccount.accountNumber}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono font-semibold text-blue-600">
+                                                                {virtualAccount.accountNumber}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => navigator.clipboard.writeText(virtualAccount.accountNumber).then(() => alert("口座番号をコピーしました"))}
+                                                                className="rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-700"
+                                                            >
+                                                                コピー
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div className="flex justify-between text-sm">
                                                         <span className="text-neutral-600">口座名義</span>

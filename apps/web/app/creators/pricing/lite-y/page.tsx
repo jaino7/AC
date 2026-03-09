@@ -19,6 +19,7 @@ export default function LiteYearlyPlanPage() {
         monthlyEquivalent: Math.floor(29800 / 12),
         description: "成長中のクリエイターに最適なプラン",
         features: [
+            { title: "新規登録後 2ヶ月間無料", description: "クレジットカード不要・初回登録時のみ適用" },
             { title: "200GB ストレージ", description: "画像、動画、ファイルを大量にアップロード可能" },
             { title: "販売手数料 5.0%", description: "収益の95%があなたのもの" },
             { title: "独自ドメイン", description: "自分のブランドでサイトを運営" },
