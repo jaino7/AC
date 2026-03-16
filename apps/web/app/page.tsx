@@ -406,8 +406,11 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
               シンプルで透明な料金体系
             </h2>
-            <p className="text-center text-white/50 mb-12 max-w-2xl mx-auto">
+            <p className="text-center text-white/50 mb-4 max-w-2xl mx-auto">
               あなたの成長に合わせて選べる3つのプラン。すべてのプランに基本機能が含まれています。
+            </p>
+            <p className="text-center text-white/40 text-sm mb-12">
+              お支払い方法は銀行振込のみとなります
             </p>
           </AnimatedSection>
 
@@ -651,6 +654,9 @@ export default function LandingPage() {
               無料で始める
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
+            <p className="text-white/40 text-xs mt-6">
+              アダルトコンテンツの作成は本人確認が必要です
+            </p>
           </AnimatedSection>
         </div>
       </section>
