@@ -114,6 +114,11 @@ export class CreatorsService {
       throw new Error("User created without email");
     }
 
+    // Send Discord notification (non-blocking)
+    this.sendDiscordNotification(result.user.email, result.handle).catch((err) => {
+      this.logger.error(`Failed to send Discord notification: ${err.message}`);
+    });
+
     // Send welcome email (non-blocking - email failure should not fail signup)
     this.mailService.sendWelcomeEmail(
       result.user.email,
@@ -246,6 +251,42 @@ export class CreatorsService {
     }
 
     return { message: "プロフィールを更新しました" };
+  }
+
+  private async sendDiscordNotification(email: string, handle: string): Promise<void> {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    if (!webhookUrl) {
+      this.logger.warn('DISCORD_WEBHOOK_URL is not set, skipping notification');
+      return;
+    }
+
+    const siteUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const profileUrl = `${siteUrl}/${handle}`;
+
+    const payload = {
+      embeds: [
+        {
+          title: '🎉 新しいクリエイターが登録しました！',
+          color: 0x5865f2,
+          fields: [
+            { name: 'メールアドレス', value: email, inline: true },
+            { name: 'ハンドル', value: handle, inline: true },
+            { name: 'プロフィール', value: profileUrl },
+          ],
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Discord webhook returned ${response.status}`);
+    }
   }
 
   async findCreatorByUserId(userId: string) {

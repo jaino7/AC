@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@creator/shared";
 import { sendEmailSafe } from "@/lib/email/client";
 import { CreatorWelcomeEmail } from "@/lib/email/templates/creator/CreatorWelcomeEmail";
+import { sendCreatorRegistrationNotification } from "@/lib/discord";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -81,6 +82,10 @@ export default async function DashboardPage() {
         emailType: 'CREATOR_REGISTRATION',
         recipientId: userId,
       }).catch((err) => console.error('Failed to send creator welcome email:', err));
+
+      // Discord通知（fire and forget）
+      sendCreatorRegistrationNotification(session.user.email, handle)
+        .catch((err) => console.error('Failed to send Discord notification:', err));
     } catch (error) {
       console.error("Error creating CreatorProfile:", error);
       console.error("Error details:", {
