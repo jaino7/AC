@@ -213,7 +213,7 @@ export default withAuth(
 
                 // ルートパスの場合はクリエイターのトップページへ
                 if (path === "/" || path === "") {
-                    url.pathname = `/${handle}`;
+                    url.pathname = `/${handle}/content`;
                 } else {
                     // その他のパスはクリエイターのサブパスへ
                     url.pathname = `/${handle}${path}`;
