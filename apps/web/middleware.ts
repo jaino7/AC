@@ -41,9 +41,7 @@ async function getCreatorByDomain(domain: string): Promise<{
 
 export default withAuth(
     async function middleware(req) {
-        // Host ヘッダーから実際のホスト名を取得（ポート除去）
-        const hostHeader = req.headers.get('host') || '';
-        const hostname = hostHeader.split(':')[0] || req.nextUrl.hostname;
+        const hostname = req.nextUrl.hostname;
         const path = req.nextUrl.pathname;
 
         // Admin PathKey認証チェック（/admin/* パスのみ）
@@ -124,51 +122,13 @@ export default withAuth(
             // PathKeyが設定されていない場合はそのまま通す（開発環境）
         }
 
-        // サブドメインチェック
-        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN;
-        const mainDomainHost = mainDomain ? mainDomain.split(':')[0] : '';
-        const reservedSubdomains = ['www', 'api', 'admin', 'mail', 'app', 'ftp', 'ns1', 'ns2'];
-
-        if (
-            mainDomainHost &&
-            mainDomainHost !== 'localhost' &&
-            hostname.endsWith(`.${mainDomainHost}`) &&
-            hostname !== mainDomainHost
-        ) {
-            const subdomain = hostname.slice(0, hostname.length - mainDomainHost.length - 1);
-
-            if (subdomain && !subdomain.includes('.') && !reservedSubdomains.includes(subdomain)) {
-                const handle = subdomain;
-                const url = req.nextUrl.clone();
-                url.hostname = 'localhost';
-                url.port = req.nextUrl.port || '3000';
-
-                if (path.startsWith(`/${handle}`)) {
-                    return NextResponse.next();
-                }
-
-                if (path === "/" || path === "") {
-                    url.pathname = `/${handle}/content`;
-                } else {
-                    url.pathname = `/${handle}${path}`;
-                }
-
-                const response = NextResponse.rewrite(url);
-                response.headers.set('x-subdomain', subdomain);
-                response.headers.set('x-creator-handle', handle);
-                return response;
-            }
-        }
-
         // カスタムドメインチェック
         // localhost, 127.0.0.1, vercel.app などのデフォルトドメイン以外の場合
         const isCustomDomain =
             hostname !== "localhost" &&
             hostname !== "127.0.0.1" &&
             !hostname.endsWith(".vercel.app") &&
-            !hostname.endsWith(".ngrok.io") &&
-            !(mainDomainHost && hostname.endsWith(`.${mainDomainHost}`)) &&
-            hostname !== mainDomainHost;
+            !hostname.endsWith(".ngrok.io");
 
         if (isCustomDomain) {
             // カスタムドメインからクリエイター情報を取得
@@ -240,7 +200,7 @@ export default withAuth(
 
                 // ルートパスの場合はクリエイターのトップページへ
                 if (path === "/" || path === "") {
-                    url.pathname = `/${handle}/content`;
+                    url.pathname = `/${handle}`;
                 } else {
                     // その他のパスはクリエイターのサブパスへ
                     url.pathname = `/${handle}${path}`;

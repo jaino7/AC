@@ -5,8 +5,7 @@ import { Suspense } from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useCreatorHandle } from "@/lib/hooks/useCreatorHandle";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { samplePosts } from "@/lib/sampleContent";
 
@@ -57,8 +56,14 @@ const resolveAssetUrl = (url: string | null | undefined): string | null => {
 };
 
 function PureLiteContentPageContent() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const handle = useCreatorHandle();
+  const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
+  const pathSegment = pathname.split('/')[1] || '';
+  const propHandle = THEME_PREFIXES.includes(pathSegment)
+    ? (searchParams.get("handle") || undefined)
+    : (pathSegment || undefined);
+  const handle = propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 
