@@ -335,11 +335,19 @@ export default function SettingsContent() {
     };
 
     const handleSaveDomain = async () => {
-        if (!domainInput.trim()) {
+        // プロトコル、末尾スラッシュ、wwwを自動除去
+        const cleanDomain = domainInput
+            .trim()
+            .replace(/^https?:\/\//i, "")
+            .replace(/\/+$/, "")
+            .replace(/^www\./i, "");
+
+        if (!cleanDomain) {
             setDomainError("ドメイン名を入力してください");
             return;
         }
 
+        setDomainInput(cleanDomain);
         setDomainLoading(true);
         setDomainError(null);
 
@@ -347,7 +355,7 @@ export default function SettingsContent() {
             const response = await fetch("/api/domains", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ domain: domainInput.trim() }),
+                body: JSON.stringify({ domain: cleanDomain }),
             });
 
             if (!response.ok) {
