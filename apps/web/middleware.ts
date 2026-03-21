@@ -218,14 +218,14 @@ export default withAuth(
                     // その他のパスはクリエイターのサブパスへ
                     url.pathname = `/${handle}${path}`;
                 }
+                // カスタムドメイン経由であることをクエリパラメータで伝達
+                url.searchParams.set('handle', handle);
 
-                // カスタムヘッダーとクッキーを追加
+                // カスタムヘッダーを追加
                 const response = NextResponse.rewrite(url);
                 response.headers.set('x-custom-domain', hostname);
                 response.headers.set('x-creator-handle', handle);
                 response.headers.set('x-creator-id', creatorId);
-                // クライアント側でハンドルを取得できるようにクッキーを設定
-                response.cookies.set('x-creator-handle', handle, { path: '/' });
 
                 return response;
             } else {
