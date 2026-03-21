@@ -94,8 +94,9 @@ function StudioProContentPageContent() {
   const pathSegment = pathname.split('/')[1] || '';
   const propHandle = THEME_PREFIXES.includes(pathSegment)
     ? (searchParams.get("handle") || undefined)
-    : (pathSegment || undefined);
-  const handle = propHandle;
+    : (pathSegment && pathSegment !== 'content' ? pathSegment : undefined);
+  // カスタムドメイン経由の場合、クッキーからハンドルを取得
+  const handle = propHandle || document.cookie.match(/x-creator-handle=([^;]+)/)?.[1] || undefined;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 

@@ -219,11 +219,13 @@ export default withAuth(
                     url.pathname = `/${handle}${path}`;
                 }
 
-                // カスタムヘッダーを追加
+                // カスタムヘッダーとクッキーを追加
                 const response = NextResponse.rewrite(url);
                 response.headers.set('x-custom-domain', hostname);
                 response.headers.set('x-creator-handle', handle);
                 response.headers.set('x-creator-id', creatorId);
+                // クライアント側でハンドルを取得できるようにクッキーを設定
+                response.cookies.set('x-creator-handle', handle, { path: '/' });
 
                 return response;
             } else {
