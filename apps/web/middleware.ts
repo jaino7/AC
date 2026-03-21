@@ -41,7 +41,9 @@ async function getCreatorByDomain(domain: string): Promise<{
 
 export default withAuth(
     async function middleware(req) {
-        const hostname = req.nextUrl.hostname;
+        // Host ヘッダーから実際のホスト名を取得（Nginx等のリバースプロキシ対応）
+        const hostHeader = req.headers.get('host') || '';
+        const hostname = hostHeader.split(':')[0] || req.nextUrl.hostname;
         const path = req.nextUrl.pathname;
 
         // Admin PathKey認証チェック（/admin/* パスのみ）
@@ -123,12 +125,23 @@ export default withAuth(
         }
 
         // カスタムドメインチェック
-        // localhost, 127.0.0.1, vercel.app などのデフォルトドメイン以外の場合
+        // localhost, 127.0.0.1, vercel.app, メインドメインなどを除外
+        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN;
+        const mainDomainHost = mainDomain ? mainDomain.split(':')[0] : '';
+        // メインドメインとその関連ドメインを除外
+        const isOwnDomain =
+            hostname === mainDomainHost ||
+            hostname === `www.${mainDomainHost}` ||
+            hostname === 'getcocoba.com' ||
+            hostname === 'www.getcocoba.com' ||
+            hostname === 'cocoba.com' ||
+            hostname === 'www.cocoba.com';
         const isCustomDomain =
             hostname !== "localhost" &&
             hostname !== "127.0.0.1" &&
             !hostname.endsWith(".vercel.app") &&
-            !hostname.endsWith(".ngrok.io");
+            !hostname.endsWith(".ngrok.io") &&
+            !isOwnDomain;
 
         if (isCustomDomain) {
             // カスタムドメインからクリエイター情報を取得
