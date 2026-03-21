@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import BrandAssetsSettings from "@/components/BrandAssetsSettings";
 
 type Tab = "profile" | "brand" | "plans" | "notifications" | "domain";
@@ -69,6 +69,7 @@ interface VirtualAccount {
 export default function SettingsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const params = useParams();
     const initialTab = (searchParams.get("tab") as Tab) ?? "profile";
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [displayName, setDisplayName] = useState("");
@@ -127,6 +128,9 @@ export default function SettingsContent() {
     const [verificationStatus, setVerificationStatus] = useState<string>("NONE");
     const [verificationRejectReason, setVerificationRejectReason] = useState<string | null>(null);
 
+    // Subdomain
+    const creatorHandle = (params.handle as string) || "";
+
     // Fetch profile data on mount
     useEffect(() => {
         const fetchProfile = async () => {
@@ -152,7 +156,7 @@ export default function SettingsContent() {
                     setCreatorProfile({
                         id: data.profile.id,
                         hasAccess: data.profile.hasAccess || false,
-                        planType: data.profile.planType,
+                        planType: data.profile.type,
                     });
                 }
             } catch (error) {
@@ -1256,22 +1260,193 @@ export default function SettingsContent() {
 
                         {activeTab === "domain" && (
                             <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                                <div className="flex flex-col items-center justify-center py-16 text-center">
-                                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
-                                        <span className="text-4xl">🌐</span>
+                                <h2 className="mb-6 text-xl font-semibold text-neutral-900">ドメイン設定</h2>
+
+                                {/* サブドメイン（自動付与） */}
+                                {creatorHandle && (() => {
+                                    const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || "cocoba.com";
+                                    const mainDomainDisplay = mainDomain.split(':')[0];
+                                    const subdomainUrl = `${creatorHandle}.${mainDomainDisplay}`;
+                                    return (
+                                        <div className="mb-8 rounded-xl border border-neutral-200 bg-neutral-50 p-5">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <svg className="h-5 w-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                                </svg>
+                                                <p className="text-sm font-semibold text-neutral-900">サブドメイン（自動付与）</p>
+                                            </div>
+                                            <p className="text-sm text-neutral-600 mb-3">
+                                                登録不要で、以下のURLからあなたのサイトにアクセスできます。
+                                            </p>
+                                            <div className="flex items-center gap-3">
+                                                <code className="rounded-lg bg-white border border-neutral-200 px-3 py-2 text-sm font-mono font-semibold text-neutral-800">
+                                                    {subdomainUrl}
+                                                </code>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`https://${subdomainUrl}`);
+                                                        alert("URLをコピーしました");
+                                                    }}
+                                                    className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-100 transition-colors"
+                                                >
+                                                    コピー
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                <h3 className="mb-4 text-base font-semibold text-neutral-900">独自ドメイン</h3>
+
+                                {/* Plan access check */}
+                                {creatorProfile && !["LITE", "BUSINESS"].includes(creatorProfile.planType || "") && !domainData ? (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                                            <svg className="h-8 w-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                        </div>
+                                        <p className="mb-2 text-base font-semibold text-neutral-900">独自ドメインを利用するにはプランのアップグレードが必要です</p>
+                                        <p className="mb-4 text-sm text-neutral-500">Lite または Business プランで独自ドメインをご利用いただけます。</p>
+                                        <button
+                                            onClick={() => setActiveTab("plans")}
+                                            className="rounded-xl bg-black px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
+                                        >
+                                            プランを確認する
+                                        </button>
                                     </div>
-                                    <h2 className="mb-3 text-2xl font-semibold text-neutral-900">独自ドメイン設定</h2>
-                                    <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-700">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        近日リリース予定
+                                ) : !domainData ? (
+                                    /* Domain registration form */
+                                    <div className="space-y-6">
+                                        <p className="text-sm text-neutral-600">
+                                            独自ドメインを接続して、プロフェッショナルなURLでサイトを運営できます。
+                                        </p>
+
+                                        <div>
+                                            <label className="mb-1.5 block text-sm font-medium text-neutral-700">ドメイン名</label>
+                                            <div className="flex gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={domainInput}
+                                                    onChange={(e) => {
+                                                        setDomainInput(e.target.value);
+                                                        setDomainError(null);
+                                                    }}
+                                                    placeholder="example.com"
+                                                    className="flex-1 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                                                />
+                                                <button
+                                                    onClick={handleSaveDomain}
+                                                    disabled={domainLoading}
+                                                    className="rounded-xl bg-black px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                                                >
+                                                    {domainLoading ? "登録中..." : "登録"}
+                                                </button>
+                                            </div>
+                                            {domainError && (
+                                                <p className="mt-2 text-sm text-red-600">{domainError}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">ご利用の流れ</p>
+                                            <ol className="space-y-1.5 text-sm text-neutral-600 list-decimal list-inside">
+                                                <li>ドメイン名を入力して「登録」をクリック</li>
+                                                <li>表示されるDNSレコードをドメイン管理画面で設定</li>
+                                                <li>「検証」ボタンで接続を確認</li>
+                                            </ol>
+                                        </div>
                                     </div>
-                                    <p className="max-w-md text-sm leading-relaxed text-neutral-600">
-                                        独自ドメインを接続して、プロフェッショナルなサイトを運営できる機能を準備中です。
-                                        リリースまでもうしばらくお待ちください。
-                                    </p>
-                                </div>
+                                ) : (
+                                    /* Domain registered - show status and management */
+                                    <div className="space-y-6">
+                                        {/* Domain info header */}
+                                        <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-neutral-200">
+                                                    <svg className="h-5 w-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-neutral-900">{domainData.domain}</p>
+                                                    <div className="mt-0.5">{getStatusBadge(domainData.status)}</div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={handleDeleteDomain}
+                                                disabled={domainLoading}
+                                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                            >
+                                                {domainLoading ? "削除中..." : "削除"}
+                                            </button>
+                                        </div>
+
+                                        {/* Error message */}
+                                        {domainError && (
+                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                                {domainError}
+                                            </div>
+                                        )}
+
+                                        {/* Last error from server */}
+                                        {domainData.lastError && domainData.status === "FAILED" && (
+                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                                <p className="font-semibold mb-1">検証エラー</p>
+                                                <p>{domainData.lastError}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Active status message */}
+                                        {domainData.status === "ACTIVE" && (
+                                            <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                                                <p className="font-semibold mb-1">接続完了</p>
+                                                <p>独自ドメインが正常に接続されています。<a href={`https://${domainData.domain}`} target="_blank" rel="noopener noreferrer" className="underline font-medium">https://{domainData.domain}</a> でサイトにアクセスできます。</p>
+                                            </div>
+                                        )}
+
+                                        {/* DNS setup guide - shown when not yet active */}
+                                        {domainData.status !== "ACTIVE" && (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <p className="mb-3 text-sm font-semibold text-neutral-900">DNS設定</p>
+                                                    <p className="mb-3 text-sm text-neutral-600">
+                                                        ドメイン管理画面で以下のCNAMEレコードを追加してください。
+                                                    </p>
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                                                            <span className="w-24 text-xs font-medium uppercase tracking-wide text-neutral-500">タイプ</span>
+                                                            <span className="text-sm font-mono font-semibold">CNAME</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                                                            <span className="w-24 text-xs font-medium uppercase tracking-wide text-neutral-500">ホスト</span>
+                                                            <span className="text-sm font-mono font-semibold break-all">{domainData.domain.split('.')[0]}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                                                            <span className="w-24 text-xs font-medium uppercase tracking-wide text-neutral-500">値</span>
+                                                            <span className="text-sm font-mono font-semibold">getcocoba.com</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Verify button */}
+                                                <button
+                                                    onClick={handleVerifyDomain}
+                                                    disabled={domainVerifying}
+                                                    className="rounded-xl bg-black px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                                                >
+                                                    {domainVerifying ? "検証中..." : domainData.status === "VERIFYING" ? "再検証する" : "検証する"}
+                                                </button>
+
+                                                {domainData.status === "VERIFYING" && (
+                                                    <p className="text-xs text-neutral-500">
+                                                        DNS設定が反映されるまで最大48時間かかる場合があります。
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </section>
                         )}
                     </div>

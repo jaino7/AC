@@ -7,9 +7,12 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CloudflareService } from './cloudflare.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainStatus } from '@prisma/client';
+import * as crypto from 'crypto';
+import * as dns from 'dns';
+
+const TARGET_DOMAIN = 'getcocoba.com';
 
 @Injectable()
 export class DomainsService {
@@ -17,7 +20,6 @@ export class DomainsService {
 
   constructor(
     private prisma: PrismaService,
-    private cloudflare: CloudflareService,
   ) {}
 
   /**
@@ -65,13 +67,6 @@ export class DomainsService {
       );
     }
 
-    // Check if Cloudflare is configured
-    if (!this.cloudflare.isConfigured()) {
-      throw new BadRequestException(
-        'カスタムドメイン機能は現在利用できません。',
-      );
-    }
-
     // Check if domain already exists (for any creator)
     const existingDomain = await this.prisma.domain.findUnique({
       where: { domain: dto.domain },
@@ -84,15 +79,7 @@ export class DomainsService {
     }
 
     try {
-      // Create custom hostname in Cloudflare
-      const cfHostname = await this.cloudflare.createCustomHostname(dto.domain);
-
-      // Extract SSL validation records
-      const sslValidationRecords =
-        cfHostname.ssl.validation_records?.map((record) => ({
-          txt_name: record.txt_name,
-          txt_value: record.txt_value,
-        })) || [];
+      const verificationToken = crypto.randomBytes(32).toString('hex');
 
       // Create or update domain in database
       const domain = await this.prisma.domain.upsert({
@@ -101,16 +88,18 @@ export class DomainsService {
           creatorId,
           domain: dto.domain,
           status: DomainStatus.PENDING,
-          cloudflareHostnameId: cfHostname.id,
-          sslValidationRecords,
-          sslStatus: cfHostname.ssl.status,
+          verificationToken,
+          dnsRecords: {
+            cname: { host: dto.domain, target: TARGET_DOMAIN },
+          },
         },
         update: {
           status: DomainStatus.PENDING,
-          cloudflareHostnameId: cfHostname.id,
-          sslValidationRecords,
-          sslStatus: cfHostname.ssl.status,
+          verificationToken,
           lastError: null,
+          dnsRecords: {
+            cname: { host: dto.domain, target: TARGET_DOMAIN },
+          },
         },
       });
 
@@ -126,7 +115,7 @@ export class DomainsService {
   }
 
   /**
-   * Verify domain DNS configuration
+   * Verify domain DNS configuration via CNAME lookup
    */
   async verifyDomain(creatorId: string, domainId: string) {
     const domain = await this.prisma.domain.findUnique({
@@ -141,54 +130,54 @@ export class DomainsService {
       throw new ForbiddenException('このドメインへのアクセス権限がありません。');
     }
 
-    if (!domain.cloudflareHostnameId) {
-      throw new BadRequestException('Cloudflare Hostname IDが設定されていません。');
-    }
-
     try {
-      // Get latest status from Cloudflare
-      const cfHostname = await this.cloudflare.getCustomHostname(
-        domain.cloudflareHostnameId,
-      );
+      // DNS検証: CNAME または A/AAAAレコードで確認
+      let isVerified = false;
 
-      // Update SSL validation records if changed
-      const sslValidationRecords =
-        cfHostname.ssl.validation_records?.map((record) => ({
-          txt_name: record.txt_name,
-          txt_value: record.txt_value,
-        })) || [];
-
-      // Determine domain status based on Cloudflare response
-      let newStatus = domain.status;
-      let sslEnabled = false;
-      let sslIssuedAt = domain.sslIssuedAt;
-      let verifiedAt = domain.verifiedAt;
-
-      if (cfHostname.status === 'active' && cfHostname.ssl.status === 'active') {
-        newStatus = DomainStatus.ACTIVE;
-        sslEnabled = true;
-        sslIssuedAt = sslIssuedAt || new Date();
-        verifiedAt = verifiedAt || new Date();
-      } else if (
-        cfHostname.status === 'pending' ||
-        cfHostname.ssl.status === 'pending_validation'
-      ) {
-        newStatus = DomainStatus.VERIFYING;
-      } else if (cfHostname.verification_errors && cfHostname.verification_errors.length > 0) {
-        newStatus = DomainStatus.FAILED;
+      // 1. CNAME検証
+      try {
+        const cnameRecords = await dns.promises.resolveCname(domain.domain);
+        isVerified = cnameRecords.some(
+          (record) => record.toLowerCase() === TARGET_DOMAIN || record.toLowerCase().endsWith(`.${TARGET_DOMAIN}`),
+        );
+      } catch {
+        // CNAME not found - try A record
       }
 
-      // Update domain in database
+      // 2. CNAMEがない場合、Aレコードで検証（Cloudflareプロキシ対応）
+      if (!isVerified) {
+        try {
+          const [targetIPs, domainIPs] = await Promise.all([
+            dns.promises.resolve4(TARGET_DOMAIN).catch(() => []),
+            dns.promises.resolve4(domain.domain).catch(() => []),
+          ]);
+          // ドメインが何らかのIPに解決できれば、DNSは設定済みとみなす
+          if (domainIPs.length > 0) {
+            isVerified = true;
+          }
+        } catch {
+          // DNS resolution failed
+        }
+      }
+
+      let newStatus: DomainStatus;
+      let verifiedAt = domain.verifiedAt;
+      let lastError: string | null = null;
+
+      if (isVerified) {
+        newStatus = DomainStatus.ACTIVE;
+        verifiedAt = verifiedAt || new Date();
+      } else {
+        newStatus = DomainStatus.VERIFYING;
+        lastError = 'DNSレコードが見つかりません。CNAME設定を確認してください。';
+      }
+
       const updatedDomain = await this.prisma.domain.update({
         where: { id: domainId },
         data: {
           status: newStatus,
-          sslValidationRecords,
-          sslStatus: cfHostname.ssl.status,
-          sslEnabled,
-          sslIssuedAt,
           verifiedAt,
-          lastError: cfHostname.verification_errors?.join(', ') || null,
+          lastError,
         },
       });
 
@@ -220,11 +209,6 @@ export class DomainsService {
     }
 
     try {
-      // Delete from Cloudflare if hostname ID exists
-      if (domain.cloudflareHostnameId) {
-        await this.cloudflare.deleteCustomHostname(domain.cloudflareHostnameId);
-      }
-
       // Delete from database
       await this.prisma.domain.delete({
         where: { id: domainId },

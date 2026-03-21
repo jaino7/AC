@@ -5,7 +5,8 @@ import { Suspense } from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useCreatorHandle } from "@/lib/hooks/useCreatorHandle";
 import { useSession, signOut } from "next-auth/react";
 import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
 import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
@@ -68,14 +69,8 @@ const resolveAssetUrl = (url: string | null | undefined): string | null => {
 };
 
 function VelvetProContentPageContent() {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
-  const pathSegment = pathname.split('/')[1] || '';
-  const propHandle = THEME_PREFIXES.includes(pathSegment)
-    ? (searchParams.get("handle") || undefined)
-    : (pathSegment || undefined);
-  const handle = propHandle;
+  const handle = useCreatorHandle();
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 
