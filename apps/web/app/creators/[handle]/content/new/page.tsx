@@ -52,6 +52,73 @@ export default function NewContentPage() {
     // アダルトコンテンツ設定
     const [isAdultContent, setIsAdultContent] = useState(false);
     const [verificationStatus, setVerificationStatus] = useState<string>("NONE");
+    const [isSubmitted, setIsSubmitted] = useState(false);
+
+    // 未保存の変更があるかどうか
+    const hasUnsavedChanges = !isSubmitted && (
+        title.trim() !== "" ||
+        body.trim() !== "" ||
+        thumbnailFile !== null ||
+        sampleFiles.length > 0 ||
+        uploadedFiles.length > 0
+    );
+
+    // ブラウザのタブ閉じ・リロード時の警告
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+            }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [hasUnsavedChanges]);
+
+    // ブラウザの戻る/進むボタン時の警告
+    useEffect(() => {
+        if (!hasUnsavedChanges) return;
+
+        // 戻るボタンを検知するため、履歴にダミーを追加
+        window.history.pushState(null, "", window.location.href);
+
+        const handlePopState = () => {
+            if (hasUnsavedChanges) {
+                const confirmed = window.confirm("変更が保存されていません。このページを離れますか？");
+                if (confirmed) {
+                    window.history.back();
+                } else {
+                    window.history.pushState(null, "", window.location.href);
+                }
+            }
+        };
+
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, [hasUnsavedChanges]);
+
+    // ページ内リンククリック時の警告
+    useEffect(() => {
+        if (!hasUnsavedChanges) return;
+
+        const handleClick = (e: MouseEvent) => {
+            const anchor = (e.target as HTMLElement).closest("a");
+            if (!anchor) return;
+            const href = anchor.getAttribute("href");
+            if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+            // 外部リンク（target="_blank"等）は beforeunload で処理される
+            if (anchor.target && anchor.target !== "_self") return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            const confirmed = window.confirm("変更が保存されていません。このページを離れますか？");
+            if (confirmed) {
+                window.location.href = href;
+            }
+        };
+
+        document.addEventListener("click", handleClick, true);
+        return () => document.removeEventListener("click", handleClick, true);
+    }, [hasUnsavedChanges]);
 
     // プラン一覧を取得
     useEffect(() => {
@@ -322,6 +389,7 @@ export default function NewContentPage() {
             return response.json();
         },
         onSuccess: () => {
+            setIsSubmitted(true);
             setSuccessMessage("投稿を作成しました");
             setTimeout(() => {
                 router.back();
@@ -534,27 +602,51 @@ export default function NewContentPage() {
                                 />
                             </label>
                             {sampleFiles.length > 0 && (
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-4 space-y-3">
                                     <p className="text-sm font-semibold text-neutral-700">
                                         サンプル: {sampleFiles.length}ファイル
                                     </p>
-                                    {sampleFiles.map((file, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm"
-                                        >
-                                            <span className="flex-1 truncate">{file.name}</span>
-                                            <span className="text-xs text-neutral-500">
-                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                            </span>
-                                            <button
-                                                onClick={() => removeSample(index)}
-                                                className="text-red-500 hover:text-red-700"
+                                    <div className="space-y-3">
+                                        {sampleFiles.map((file, index) => (
+                                            <div
+                                                key={index}
+                                                className="group relative overflow-hidden rounded-xl border border-green-200 bg-green-50"
                                             >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
+                                                {file.type.startsWith("image/") ? (
+                                                    <img
+                                                        src={URL.createObjectURL(file)}
+                                                        alt={file.name}
+                                                        className="aspect-video w-full object-cover"
+                                                    />
+                                                ) : file.type.startsWith("video/") ? (
+                                                    <video
+                                                        src={URL.createObjectURL(file)}
+                                                        controls
+                                                        playsInline
+                                                        className="aspect-video w-full bg-black"
+                                                    />
+                                                ) : (
+                                                    <div className="flex aspect-video items-center justify-center bg-neutral-100 text-xs text-neutral-400">
+                                                        {file.name}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-between px-3 py-2">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-xs text-neutral-700">{file.name}</p>
+                                                        <p className="text-[10px] text-neutral-400">
+                                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeSample(index)}
+                                                        className="ml-2 rounded-full px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 hover:text-red-700"
+                                                    >
+                                                        削除
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -586,27 +678,51 @@ export default function NewContentPage() {
                                 />
                             </label>
                             {uploadedFiles.length > 0 && (
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-4 space-y-3">
                                     <p className="text-sm font-semibold text-neutral-700">
                                         コンテンツ: {uploadedFiles.length}ファイル
                                     </p>
-                                    {uploadedFiles.map((file, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm"
-                                        >
-                                            <span className="flex-1 truncate">{file.name}</span>
-                                            <span className="text-xs text-neutral-500">
-                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                            </span>
-                                            <button
-                                                onClick={() => removeFile(index)}
-                                                className="text-red-500 hover:text-red-700"
+                                    <div className="space-y-3">
+                                        {uploadedFiles.map((file, index) => (
+                                            <div
+                                                key={index}
+                                                className="group relative overflow-hidden rounded-xl border border-amber-200 bg-amber-50"
                                             >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
+                                                {file.type.startsWith("image/") ? (
+                                                    <img
+                                                        src={URL.createObjectURL(file)}
+                                                        alt={file.name}
+                                                        className="aspect-video w-full object-cover"
+                                                    />
+                                                ) : file.type.startsWith("video/") ? (
+                                                    <video
+                                                        src={URL.createObjectURL(file)}
+                                                        controls
+                                                        playsInline
+                                                        className="aspect-video w-full bg-black"
+                                                    />
+                                                ) : (
+                                                    <div className="flex aspect-video items-center justify-center bg-neutral-100 text-xs text-neutral-400">
+                                                        {file.name}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-between px-3 py-2">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-xs text-neutral-700">{file.name}</p>
+                                                        <p className="text-[10px] text-neutral-400">
+                                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeFile(index)}
+                                                        className="ml-2 rounded-full px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 hover:text-red-700"
+                                                    >
+                                                        削除
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
