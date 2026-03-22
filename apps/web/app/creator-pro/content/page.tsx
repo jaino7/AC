@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useCredits, useInvalidateCredits } from "@/components/hooks/useCredits";
 import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
@@ -102,7 +102,8 @@ function CreatorProContentPageContent() {
   const propHandle = THEME_PREFIXES.includes(pathSegment)
     ? (searchParams.get("handle") || undefined)
     : (pathSegment && pathSegment !== 'content' ? pathSegment : searchParams.get("handle") || undefined);
-  const handle = propHandle;
+  const routeParams = useParams();
+  const handle = (routeParams.handle as string | undefined) || propHandle;
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 
