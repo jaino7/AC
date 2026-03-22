@@ -63,16 +63,19 @@ export default function NewContentPage() {
         uploadedFiles.length > 0
     );
 
+    // confirmで離脱許可済みならbeforeunloadを抑制するフラグ
+    const [isLeavingConfirmed, setIsLeavingConfirmed] = useState(false);
+
     // ブラウザのタブ閉じ・リロード時の警告
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges) {
+            if (hasUnsavedChanges && !isLeavingConfirmed) {
                 e.preventDefault();
             }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [hasUnsavedChanges]);
+    }, [hasUnsavedChanges, isLeavingConfirmed]);
 
     // ブラウザの戻る/進むボタン時の警告
     useEffect(() => {
@@ -85,6 +88,7 @@ export default function NewContentPage() {
             if (hasUnsavedChanges) {
                 const confirmed = window.confirm("変更が保存されていません。このページを離れますか？");
                 if (confirmed) {
+                    setIsLeavingConfirmed(true);
                     window.history.back();
                 } else {
                     window.history.pushState(null, "", window.location.href);
@@ -112,6 +116,7 @@ export default function NewContentPage() {
             e.stopPropagation();
             const confirmed = window.confirm("変更が保存されていません。このページを離れますか？");
             if (confirmed) {
+                setIsLeavingConfirmed(true);
                 window.location.href = href;
             }
         };
