@@ -11,6 +11,7 @@ import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as dns from 'dns';
+import { exec } from 'child_process';
 
 const TARGET_DOMAIN = 'getcocoba.com';
 
@@ -164,6 +165,9 @@ export class DomainsService {
       if (isVerified) {
         newStatus = DomainStatus.ACTIVE;
         verifiedAt = verifiedAt || new Date();
+
+        // SSL証明書を自動発行
+        this.issueSslCertificate(domain.domain);
       } else {
         newStatus = DomainStatus.VERIFYING;
         lastError = 'DNSレコードが見つかりません。CNAME設定を確認してください。';
@@ -220,6 +224,31 @@ export class DomainsService {
         `ドメインの削除に失敗しました: ${(error as any).message}`,
       );
     }
+  }
+
+  /**
+   * SSL証明書を自動発行（非同期・バックグラウンド）
+   */
+  private issueSslCertificate(domain: string) {
+    // ドメイン名のバリデーション（コマンドインジェクション防止）
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+[a-zA-Z0-9]$/.test(domain)) {
+      this.logger.warn(`Invalid domain format for SSL: ${domain}`);
+      return;
+    }
+
+    const cmd = `sudo /usr/local/bin/cocoba-issue-cert.sh ${domain}`;
+    this.logger.log(`Issuing SSL certificate for ${domain}`);
+
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        this.logger.error(`SSL cert failed for ${domain}: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        this.logger.warn(`SSL cert stderr for ${domain}: ${stderr}`);
+      }
+      this.logger.log(`SSL cert result for ${domain}: ${stdout}`);
+    });
   }
 
   /**
