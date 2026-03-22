@@ -249,6 +249,6 @@ export class DomainsService {
       },
     });
 
-    return domain;
+    return domain || { creator: null };
   }
 }

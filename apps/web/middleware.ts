@@ -21,14 +21,20 @@ async function getCreatorByDomain(domain: string): Promise<{
         });
 
         if (response.ok) {
-            const data = await response.json();
-            if (data.creator) {
-                return {
-                    handle: data.creator.handle,
-                    creatorId: data.creator.id,
-                    status: data.creator.creatorSubscription?.status,
-                    endDate: data.creator.creatorSubscription?.endDate
-                };
+            const text = await response.text();
+            if (!text) return null;
+            try {
+                const data = JSON.parse(text);
+                if (data?.creator) {
+                    return {
+                        handle: data.creator.handle,
+                        creatorId: data.creator.id,
+                        status: data.creator.creatorSubscription?.status,
+                        endDate: data.creator.creatorSubscription?.endDate
+                    };
+                }
+            } catch {
+                // JSONパースエラーは無視
             }
         }
 
