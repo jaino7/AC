@@ -48,6 +48,7 @@ export function ThemeContentWrapper({ handle, initialTheme }: ThemeContentWrappe
     }, [handle, theme]);
 
     // テーマに応じたコンテンツページコンポーネントをレンダリング
+    // テーマページ側でusePathname()からハンドルを取得してクリエイターの実データを表示する
     const renderContent = () => {
         switch (theme) {
             case "neon-pro":
