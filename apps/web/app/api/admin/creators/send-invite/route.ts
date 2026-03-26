@@ -50,6 +50,10 @@ export async function POST(req: Request) {
     let failed = 0;
 
     for (const creator of creators) {
+      if (!creator.user.email) {
+        failed++;
+        continue;
+      }
       const result = await sendEmailSafe({
         to: creator.user.email,
         subject:
