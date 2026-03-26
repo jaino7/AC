@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 type DocumentType = "drivers_license" | "passport" | "mynumber_card";
 
 export default function VerifyIdentityPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [documentType, setDocumentType] = useState<DocumentType>("drivers_license");
     const [frontImage, setFrontImage] = useState<File | null>(null);
     const [backImage, setBackImage] = useState<File | null>(null);
@@ -113,6 +117,19 @@ export default function VerifyIdentityPage() {
     };
 
     const needsBackImage = documentTypes.find(d => d.id === documentType)?.needsBack;
+
+    if (status === "loading") {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-neutral-50">
+                <p className="text-gray-500">読み込み中...</p>
+            </main>
+        );
+    }
+
+    if (!session) {
+        router.push("/creators/login");
+        return null;
+    }
 
     return (
         <main className="min-h-screen bg-neutral-50 px-6 py-10">
