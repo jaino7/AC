@@ -301,7 +301,7 @@ export default async function AdminDashboardPage() {
                       {user.name || user.email}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {new Date(user.createdAt).toLocaleString("ja-JP")}
+                      {new Date(user.createdAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
                     </p>
                   </div>
                   <span
@@ -333,7 +333,7 @@ export default async function AdminDashboardPage() {
                   <p className="font-medium text-gray-900">{post.title}</p>
                   <p className="mt-1 text-sm text-gray-500">
                     {post.creator.displayName} •{" "}
-                    {new Date(post.createdAt).toLocaleString("ja-JP")}
+                    {new Date(post.createdAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
                   </p>
                 </div>
               ))}

@@ -223,7 +223,7 @@ export default function IdentityVerificationAdminPage() {
                                                 {documentTypeLabels[verification.documentType] || verification.documentType}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-600">
-                                                {new Date(verification.submittedAt).toLocaleString("ja-JP")}
+                                                {new Date(verification.submittedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
@@ -280,7 +280,7 @@ export default function IdentityVerificationAdminPage() {
 
                             <div className="mb-4 text-sm text-gray-600">
                                 <p>書類タイプ: {documentTypeLabels[selectedVerification.documentType]}</p>
-                                <p>提出日時: {new Date(selectedVerification.submittedAt).toLocaleString("ja-JP")}</p>
+                                <p>提出日時: {new Date(selectedVerification.submittedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
                                 <p className="mt-2 rounded-lg bg-yellow-50 p-3 text-yellow-800">
                                     ⚠️ この画像URLは5分間のみ有効です。ページを離れると再度生成が必要です。
                                 </p>
