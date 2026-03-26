@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
+import { sendIdentityVerificationNotification } from "@/lib/discord";
 
 
 export async function POST(request: NextRequest) {
@@ -124,6 +125,14 @@ export async function POST(request: NextRequest) {
                     status: "PENDING",
                 },
             });
+
+        // Discord通知（fire and forget）
+        sendIdentityVerificationNotification(
+            session.user.email,
+            user.creatorProfile.handle,
+            documentType.toUpperCase(),
+            !!existingVerification,
+        ).catch((err) => console.error('Failed to send Discord notification:', err));
 
         return NextResponse.json({
             success: true,
