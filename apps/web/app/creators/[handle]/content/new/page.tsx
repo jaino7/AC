@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
 type PublishMode = "publish" | "draft" | "scheduled";
@@ -15,6 +15,8 @@ interface Plan {
 
 export default function NewContentPage() {
     const router = useRouter();
+    const pathname = usePathname();
+    const handle = pathname.split("/")[2];
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
 
@@ -944,7 +946,7 @@ export default function NewContentPage() {
                                                     アダルトコンテンツの投稿には本人確認が必要です。
                                                 </p>
                                                 <a
-                                                    href="/creators/verify-identity"
+                                                    href={`/creators/${handle}/verify-identity`}
                                                     className="mt-2 inline-block text-xs font-semibold text-red-700 underline hover:text-red-900"
                                                 >
                                                     本人確認を申請する →

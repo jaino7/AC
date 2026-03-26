@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import BrandAssetsSettings from "@/components/BrandAssetsSettings";
 
 type Tab = "profile" | "brand" | "plans" | "notifications" | "domain";
@@ -69,6 +69,8 @@ interface VirtualAccount {
 export default function SettingsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const handle = pathname.split("/")[2];
     const initialTab = (searchParams.get("tab") as Tab) ?? "profile";
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [displayName, setDisplayName] = useState("");
@@ -606,7 +608,7 @@ export default function SettingsContent() {
                                                     アダルトコンテンツの投稿には本人確認が必要です。
                                                 </p>
                                                 <a
-                                                    href="/creators/verify-identity"
+                                                    href={`/creators/${handle}/verify-identity`}
                                                     className="mt-3 inline-block rounded-2xl bg-yellow-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-yellow-700"
                                                 >
                                                     本人確認を申請する
@@ -657,7 +659,7 @@ export default function SettingsContent() {
                                                     </p>
                                                 )}
                                                 <a
-                                                    href="/creators/verify-identity"
+                                                    href={`/creators/${handle}/verify-identity`}
                                                     className="mt-3 inline-block rounded-2xl bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
                                                 >
                                                     再申請する

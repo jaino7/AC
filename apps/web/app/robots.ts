@@ -13,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
           "/creators/earnings/",
           "/creators/fans/",
           "/creators/preview/",
-          "/creators/verify-identity/",
+          "/creators/*/verify-identity/",
           "/creators/password-reset/",
           "/*/account/",
           "/*/login",
