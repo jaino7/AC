@@ -48,7 +48,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
             const response = await fetch("/api/creators/profile");
             if (response.ok) {
                 const data = await response.json();
-                setAvatarUrl(data.profile.logoUrl || null);
+                setAvatarUrl(data.profile.avatarUrl || null);
             }
         } catch (error) {
             console.error("Failed to fetch profile:", error);
