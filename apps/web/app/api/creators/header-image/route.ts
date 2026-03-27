@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
+
+function getCleanEnvUrl(envValue: string | undefined): string {
+    if (!envValue) return '';
+    let cleaned = envValue;
+    const markdownMatch = cleaned.match(/\[([^\]]*)\]\(([^)]*)\)/);
+    if (markdownMatch) cleaned = markdownMatch[2];
+    cleaned = cleaned.replace(/^(https?):\/([^\/])/, '$1://$2');
+    cleaned = cleaned.replace(/\/+$/, '');
+    return cleaned;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -62,23 +73,54 @@ export async function POST(request: NextRequest) {
         const timestamp = Date.now();
         const ext = file.name.split(".").pop();
         const filename = `header-${user.creatorProfile.id}-${timestamp}.${ext}`;
+        const r2Key = `uploads/headers/${filename}`;
 
-        // Upload directory path
-        const uploadDir = join(process.cwd(), "public", "uploads", "headers");
-
-        // Create directory if it doesn't exist
-        if (!existsSync(uploadDir)) {
-            await mkdir(uploadDir, { recursive: true });
-        }
-
-        // Save file
+        // Read file bytes
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const filepath = join(uploadDir, filename);
-        await writeFile(filepath, buffer);
 
-        // Public URL
-        const headerUrl = `/uploads/headers/${filename}`;
+        // R2環境変数の確認
+        const hasR2Config =
+            process.env.R2_ACCOUNT_ID &&
+            process.env.R2_ACCESS_KEY_ID &&
+            process.env.R2_SECRET_ACCESS_KEY &&
+            process.env.R2_CONTENT_BUCKET_NAME &&
+            process.env.R2_CONTENT_PUBLIC_URL;
+
+        let headerUrl: string;
+
+        if (hasR2Config) {
+            // 本番環境: R2にアップロード
+            const r2Client = new S3Client({
+                region: "auto",
+                endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+                credentials: {
+                    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+                    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+                },
+            });
+
+            await r2Client.send(new PutObjectCommand({
+                Bucket: process.env.R2_CONTENT_BUCKET_NAME!,
+                Key: r2Key,
+                Body: buffer,
+                ContentType: file.type,
+            }));
+
+            const publicUrl = getCleanEnvUrl(process.env.R2_CONTENT_PUBLIC_URL);
+            headerUrl = `${publicUrl}/${r2Key}`;
+            console.log("[R2 HEADER] Uploaded to R2:", headerUrl);
+        } else {
+            // 開発環境: ローカルファイルシステムに保存
+            const uploadDir = join(process.cwd(), "public", "uploads", "headers");
+            if (!existsSync(uploadDir)) {
+                await mkdir(uploadDir, { recursive: true });
+            }
+            const filepath = join(uploadDir, filename);
+            await writeFile(filepath, buffer);
+            headerUrl = `/uploads/headers/${filename}`;
+            console.log("[LOCAL HEADER] Saved locally:", headerUrl);
+        }
 
         // Update creator profile
         await prisma.creatorProfile.update({
