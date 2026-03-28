@@ -21,6 +21,7 @@ export default function VerifyIdentityPage() {
         readable: false,
         noReflection: false
     });
+    const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
 
     const documentTypes = [
         { id: "drivers_license" as DocumentType, label: "運転免許証（表・裏）", needsBack: true },
@@ -82,6 +83,11 @@ export default function VerifyIdentityPage() {
 
         if (!checkList.fullVisible || !checkList.readable || !checkList.noReflection) {
             alert("すべてのチェック項目を確認してください");
+            return;
+        }
+
+        if (!agreedToPrivacy) {
+            alert("個人情報の取り扱いに同意してください");
             return;
         }
 
@@ -300,11 +306,37 @@ export default function VerifyIdentityPage() {
                         </div>
                     </section>
 
+                    {/* 個人情報の取り扱い */}
+                    <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm">
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">個人情報の取り扱いについて</h2>
+                        <div className="rounded-2xl bg-gray-50 p-6 text-sm text-gray-700 space-y-3">
+                            <p><strong>1. 利用目的</strong><br />
+                            提出いただいた本人確認書類は、クリエイターとしての本人確認（身元の確認）のみに使用します。</p>
+                            <p><strong>2. 保管・削除</strong><br />
+                            書類画像は暗号化された安全なストレージに保管し、審査完了後90日以内に自動削除します。</p>
+                            <p><strong>3. 第三者提供</strong><br />
+                            法令に基づく場合を除き、提出された書類を第三者に提供・開示することはありません。</p>
+                            <p><strong>4. 閲覧権限</strong><br />
+                            書類を閲覧できるのは、本人確認審査を担当する運営スタッフのみに限定しています。</p>
+                        </div>
+                        <label className="mt-4 flex cursor-pointer items-start gap-3">
+                            <input
+                                type="checkbox"
+                                checked={agreedToPrivacy}
+                                onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                                className="mt-1 h-4 w-4 rounded text-blue-600"
+                            />
+                            <span className="text-sm text-gray-900">
+                                上記の個人情報の取り扱いに同意します
+                            </span>
+                        </label>
+                    </section>
+
                     {/* 提出ボタン */}
                     <div className="flex justify-center">
                         <Button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !agreedToPrivacy}
                             className="px-8 py-3"
                         >
                             {isSubmitting ? "提出中..." : "本人確認書類を提出"}
