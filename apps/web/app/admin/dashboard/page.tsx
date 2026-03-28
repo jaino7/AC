@@ -5,9 +5,11 @@ import { prisma } from "@creator/shared";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
+  const adminPathKey = process.env.ADMIN_PATH_KEY || "";
+  const adminBasePath = adminPathKey ? `/admin/${adminPathKey}` : "/admin";
 
   if (!session?.user?.email) {
-    redirect("/admin/login");
+    redirect(`${adminBasePath}/login`);
   }
 
   // 統計データを取得
@@ -193,7 +195,7 @@ export default async function AdminDashboardPage() {
             </div>
             {pendingVerifications > 0 && (
               <a
-                href="/admin/identity-verification"
+                href={`${adminBasePath}/identity-verification`}
                 className="mt-3 block text-sm font-medium text-blue-600 hover:text-blue-700"
               >
                 審査に進む →
