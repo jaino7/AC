@@ -715,17 +715,19 @@ model IdentityVerification {
 
   documentType IdentityDocumentType
 
-  // R2に保存された画像のキー
-  frontImageKey String
+  // R2に保存された画像のキー（削除後はnull）
+  frontImageKey String?
   backImageKey  String? // 運転免許証のみ必須
 
   // ステータス
   status VerificationStatus @default(PENDING)
 
   // 審査情報
-  reviewedBy   String? // 審査した管理者のID
-  reviewedAt   DateTime?
-  rejectReason String?   @db.Text
+  reviewedBy      String?   // 審査した管理者のID
+  reviewedAt      DateTime?
+  rejectReason    String?   @db.Text
+  verifiedAt      DateTime? // 本人確認が承認された日時
+  documentPurgedAt DateTime? // 書類画像を削除した日時
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

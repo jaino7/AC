@@ -45,6 +45,7 @@ export async function POST(
                 status: "APPROVED",
                 reviewedBy: session.user.email,
                 reviewedAt: new Date(),
+                verifiedAt: new Date(),
                 rejectReason: null,
             },
         });
