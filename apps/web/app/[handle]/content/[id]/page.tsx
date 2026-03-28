@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import Link from "next/link";
 import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
+import { ImageLightbox } from "@/components/common/ImageLightbox";
 
 interface Media {
     id: string;
@@ -58,6 +59,7 @@ export default function ContentDetailPage() {
     } | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [localIsSaved, setLocalIsSaved] = useState<boolean | null>(null);
+    const [showCopied, setShowCopied] = useState(false);
 
     const { data, isLoading, refetch } = useQuery({
         queryKey: ["content-detail", handle, id],
@@ -236,6 +238,8 @@ export default function ContentDetailPage() {
     const mainMedia = post.media.filter((m) => !m.isSample);
     const hasAccess: boolean = data.hasAccess || false;
     const isLoggedIn: boolean = data.isLoggedIn || false;
+    const sampleImages = sampleMedia.filter((m) => m.type === "IMAGE").map((m) => ({ src: m.url, alt: "Sample" }));
+    const mainImages = mainMedia.filter((m) => m.type === "IMAGE").map((m) => ({ src: m.url, alt: "Content" }));
 
     return (
         <div className="min-h-screen bg-white">
@@ -256,31 +260,53 @@ export default function ContentDetailPage() {
                             <p className="text-sm text-neutral-500">{creator.displayName}</p>
                             <h1 className="text-3xl font-bold text-neutral-900 mt-1">{post.title}</h1>
                         </div>
-                        {isLoggedIn && (
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={handleSavePost}
-                                disabled={isSaving}
-                                className={`inline-flex min-w-[120px] items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${localIsSaved
-                                    ? "border-red-500 bg-red-50 text-red-600 hover:bg-red-100"
-                                    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                                    }`}
+                                onClick={async () => {
+                                    const shareUrl = `${window.location.origin}/${handle}/content/${id}`;
+                                    if (navigator.share) {
+                                        try {
+                                            await navigator.share({ title: post.title, url: shareUrl });
+                                        } catch {}
+                                    } else {
+                                        await navigator.clipboard.writeText(shareUrl);
+                                        setShowCopied(true);
+                                        setTimeout(() => setShowCopied(false), 2000);
+                                    }
+                                }}
+                                className="inline-flex min-w-[120px] items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
                             >
-                                <svg
-                                    className={`h-4 w-4 ${localIsSaved ? "fill-current" : ""}`}
-                                    fill={localIsSaved ? "currentColor" : "none"}
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={localIsSaved ? 1 : 2}
-                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                    />
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                                 </svg>
-                                {localIsSaved ? "保存済み" : "保存する"}
+                                {showCopied ? "コピーしました！" : "共有"}
                             </button>
-                        )}
+                            {isLoggedIn && (
+                                <button
+                                    onClick={handleSavePost}
+                                    disabled={isSaving}
+                                    className={`inline-flex min-w-[120px] items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${localIsSaved
+                                        ? "border-red-500 bg-red-50 text-red-600 hover:bg-red-100"
+                                        : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                                        }`}
+                                >
+                                    <svg
+                                        className={`h-4 w-4 ${localIsSaved ? "fill-current" : ""}`}
+                                        fill={localIsSaved ? "currentColor" : "none"}
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={localIsSaved ? 1 : 2}
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                        />
+                                    </svg>
+                                    {localIsSaved ? "保存済み" : "保存する"}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -312,10 +338,12 @@ export default function ContentDetailPage() {
                                             className="w-full aspect-video object-contain bg-black"
                                         />
                                     ) : (
-                                        <img
+                                        <ImageLightbox
                                             src={sampleMedia[selectedSampleIndex].url}
                                             alt={`Sample ${selectedSampleIndex + 1}`}
                                             className="w-full aspect-video object-contain bg-neutral-50"
+                                            images={sampleImages}
+                                            currentIndex={sampleImages.findIndex((img) => img.src === sampleMedia[selectedSampleIndex].url)}
                                         />
                                     )}
                                 </div>
@@ -465,10 +493,12 @@ export default function ContentDetailPage() {
                                                     className="w-full aspect-video object-contain bg-black"
                                                 />
                                             ) : (
-                                                <img
+                                                <ImageLightbox
                                                     src={media.url}
                                                     alt={`Content ${index + 1}`}
                                                     className="w-full object-contain bg-neutral-50"
+                                                    images={mainImages}
+                                                    currentIndex={mainImages.findIndex((img) => img.src === media.url)}
                                                 />
                                             )}
                                         </div>
