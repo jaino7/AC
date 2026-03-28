@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 
@@ -107,6 +108,8 @@ function StorageUsage() {
 
 export default function ContentPage() {
   const queryClient = useQueryClient();
+  const { handle } = useParams<{ handle: string }>();
+  const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVisibility, setSelectedVisibility] = useState<"all" | "public" | "draft">("all");
@@ -432,6 +435,20 @@ export default function ContentPage() {
                         >
                           編集
                         </Link>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const shareUrl = `${window.location.origin}/${handle}/content/${post.id}`;
+                            navigator.clipboard.writeText(shareUrl).then(() => {
+                              setCopiedPostId(post.id);
+                              setTimeout(() => setCopiedPostId(null), 2000);
+                            });
+                            setOpenMenuId(null);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-neutral-100"
+                        >
+                          {copiedPostId === post.id ? "コピーしました！" : "共有リンクを取得"}
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
