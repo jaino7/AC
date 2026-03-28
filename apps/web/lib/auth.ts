@@ -182,6 +182,15 @@ export const authOptions: NextAuthOptions = {
           return false;
         }
       }
+      // 最終ログイン時間を更新
+      const userId = user?.id;
+      if (userId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { lastLoginAt: new Date() },
+        }).catch((err) => console.error("Failed to update lastLoginAt:", err));
+      }
+
       return true;
     },
     async jwt({ token, user, trigger, session: updateData }) {
