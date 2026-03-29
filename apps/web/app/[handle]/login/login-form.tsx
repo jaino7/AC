@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { z } from "zod";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 // テーマに応じたスタイルマッピング（signup-formと同じ）
 const themeStyles: Record<string, {
@@ -108,6 +109,7 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
     const router = useRouter();
     const [message, setMessage] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const { isCustomDomain, path } = useHandlePath(creatorHandle);
 
     const {
         register,
@@ -127,7 +129,7 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
                 email: values.email,
                 password: values.password,
                 redirect: false,
-                callbackUrl: `/${creatorHandle}/content`
+                callbackUrl: path("/content")
             });
 
             if (!result || result.error) {
@@ -140,7 +142,7 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
         onSuccess: async () => {
             // セッションを確実に反映させるため、強制的にリロードして遷移
             // router.pushだとNext.jsのキャッシュが効いてしまう場合がある
-            window.location.href = `/${creatorHandle}/content`;
+            window.location.href = path("/content");
         }
     });
 
@@ -188,10 +190,10 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
                             // カスタムドメイン: メインドメイン経由でOAuth実行
                             const protocol = window.location.protocol;
                             const domain = window.location.host;
-                            const path = `/${creatorHandle}/content`;
-                            window.location.href = `${protocol}//${mainDomain}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(path)}`;
+                            const contentPath = path("/content");
+                            window.location.href = `${protocol}//${mainDomain}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(contentPath)}`;
                         } else {
-                            signIn("google", { callbackUrl: `/${creatorHandle}/content` });
+                            signIn("google", { callbackUrl: path("/content") });
                         }
                     }}
                     className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 py-3 text-sm font-semibold ${styles.text} transition hover:bg-white/5`}
@@ -226,7 +228,7 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
                             <label className={`block text-xs font-semibold ${styles.label}`}>
                                 パスワード
                             </label>
-                            <Link href={`/${creatorHandle}/password-reset`} className={`text-xs ${styles.link}`}>
+                            <Link href={path("/password-reset")} className={`text-xs ${styles.link}`}>
                                 パスワードを忘れた方
                             </Link>
                         </div>
@@ -273,7 +275,7 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
 
                     <p className={`text-center text-sm ${styles.text}`}>
                         アカウントをお持ちでないですか？{" "}
-                        <Link href={`/${creatorHandle}/signup`} className={styles.link}>
+                        <Link href={path("/signup")} className={styles.link}>
                             新規登録
                         </Link>
                     </p>

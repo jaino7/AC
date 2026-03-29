@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 // テーマに応じたスタイルマッピング
 const themeStyles: Record<string, {
@@ -120,6 +121,7 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
     const styles = themeStyles[creator.theme] || themeStyles["creator-pro"];
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState<string>("all");
+    const { path } = useHandlePath(creator.handle);
 
     const filteredPosts = activeTab === "all"
         ? posts
@@ -187,13 +189,13 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
                     {!session && (
                         <div className="mt-6 flex gap-3">
                             <Link
-                                href={`/${creator.handle}/login`}
+                                href={path("/login")}
                                 className={`rounded-full px-6 py-2 text-sm font-semibold ${styles.button}`}
                             >
                                 ログイン
                             </Link>
                             <Link
-                                href={`/${creator.handle}/signup`}
+                                href={path("/signup")}
                                 className={`rounded-full border border-white/20 px-6 py-2 text-sm font-semibold ${styles.text} hover:bg-white/5`}
                             >
                                 新規登録
@@ -270,7 +272,7 @@ export function ContentPage({ creator, plans, posts }: ContentPageProps) {
                             {filteredPosts.map((post) => (
                                 <Link
                                     key={post.id}
-                                    href={`/${creator.handle}/content/${post.id}`}
+                                    href={path(`/content/${post.id}`)}
                                     className={`group rounded-2xl border overflow-hidden ${styles.card} ${styles.cardHover} transition`}
                                 >
                                     {post.thumbnailUrl ? (

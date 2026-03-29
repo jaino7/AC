@@ -11,6 +11,7 @@ import { fanSignup } from "@/lib/api";
 import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 export const CreatorProSignupForm = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<FanSignupInput>({
@@ -23,13 +24,15 @@ export const CreatorProSignupForm = () => {
     const [message, setMessage] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const creatorHandle = getCreatorHandleFromPath(pathname);
+    const { path } = useHandlePath(creatorHandle || "");
 
     const mutation = useMutation({
         mutationFn: async (values: FanSignupInput) => {
             const creatorHandle = getCreatorHandleFromPath(pathname);
             if (!creatorHandle) throw new Error("クリエイターが特定できませんでした");
             await fanSignup({ ...values, creatorHandle });
-            const redirectUrl = `/${creatorHandle}/content`;
+            const redirectUrl = path("/content");
             const result = await signIn("credentials", { email: values.email, password: values.password, redirect: false, callbackUrl: redirectUrl });
             if (!result || result.error) throw new Error("登録は成功しましたが、ログインに失敗しました。");
             return { ...result, redirectUrl };
@@ -46,7 +49,7 @@ export const CreatorProSignupForm = () => {
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <button type="button" onClick={() => {
                 const creatorHandle = getCreatorHandleFromPath(pathname);
-                const cbUrl = creatorHandle ? `/${creatorHandle}/content` : "/";
+                const cbUrl = creatorHandle ? path("/content") : "/";
                 const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || "";
                 const mainHost = mainDomain.split(":")[0];
                 const isCustomDomain = typeof window !== "undefined"
@@ -133,7 +136,7 @@ export const CreatorProSignupForm = () => {
             </button>
 
             <p className="text-center text-sm text-white/60">
-                すでにアカウントをお持ちですか？ <Link href="/creator-pro/login" className="text-cyan-400 underline">ログイン</Link>
+                すでにアカウントをお持ちですか？ <Link href={path("/login")} className="text-cyan-400 underline">ログイン</Link>
             </p>
         </form>
     );

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 function ConfirmForm() {
     const searchParams = useSearchParams();
@@ -10,6 +11,7 @@ function ConfirmForm() {
     const params = useParams();
     const handle = params.handle as string;
     const token = searchParams.get("token") || "";
+    const { path } = useHandlePath(handle);
 
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,7 +49,7 @@ function ConfirmForm() {
             }
 
             setSuccess(true);
-            setTimeout(() => router.push(`/${handle}/login`), 3000);
+            setTimeout(() => router.push(path("/login")), 3000);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "エラーが発生しました");
         } finally {
@@ -61,7 +63,7 @@ function ConfirmForm() {
                 <div className="text-4xl">✅</div>
                 <h1 className="text-2xl font-semibold">パスワードを変更しました</h1>
                 <p className="text-sm text-neutral-600">3秒後にログイン画面へ移動します。</p>
-                <Link href={`/${handle}/login`} className="block text-sm text-black underline underline-offset-4">
+                <Link href={path("/login")} className="block text-sm text-black underline underline-offset-4">
                     今すぐログイン画面へ
                 </Link>
             </div>
@@ -149,7 +151,7 @@ function ConfirmForm() {
             </form>
 
             <p className="mt-6 text-center text-sm text-neutral-500">
-                <Link href={`/${handle}/login`} className="text-black underline underline-offset-4">
+                <Link href={path("/login")} className="text-black underline underline-offset-4">
                     ログイン画面に戻る
                 </Link>
             </p>

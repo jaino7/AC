@@ -9,6 +9,7 @@ import { signIn } from "next-auth/react";
 import { FanSignupInput, fanSignupSchema } from "@/lib/validators/fan-auth";
 import { fanSignup } from "@/lib/api";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 // テーマに応じたスタイルマッピング
 const themeStyles: Record<string, {
@@ -103,6 +104,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
     const [message, setMessage] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const { isCustomDomain, path } = useHandlePath(creatorHandle);
 
     const {
         register,
@@ -129,7 +131,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
                 email: values.email,
                 password: values.password,
                 redirect: false,
-                callbackUrl: `/${creatorHandle}/content`
+                callbackUrl: path("/content")
             });
 
             if (!result || result.error) {
@@ -141,7 +143,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
         onSuccess: (result) => {
             setMessage("アカウントが作成されました！");
             router.refresh(); // セッション更新後にサーバーコンポーネントを最新化
-            router.push(`/${creatorHandle}/content`);
+            router.push(path("/content"));
         }
     });
 
@@ -184,7 +186,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
                             && window.location.hostname !== mainHost
                             && window.location.hostname !== "localhost"
                             && window.location.hostname !== "127.0.0.1";
-                        const cbUrl = `/${creatorHandle}/content`;
+                        const cbUrl = path("/content");
 
                         if (isCustomDomain) {
                             const protocol = window.location.protocol;
@@ -336,7 +338,7 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
 
                     <p className={`text-center text-sm ${styles.text}`}>
                         すでにアカウントをお持ちですか？{" "}
-                        <Link href={`/${creatorHandle}/login`} className={styles.link}>
+                        <Link href={path("/login")} className={styles.link}>
                             ログイン
                         </Link>
                     </p>

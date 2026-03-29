@@ -6,6 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
 import { ImageLightbox } from "@/components/common/ImageLightbox";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 interface Media {
     id: string;
@@ -44,6 +45,7 @@ export default function ContentDetailPage() {
     const params = useParams();
     const handle = params.handle as string;
     const id = params.id as string;
+    const { path } = useHandlePath(handle);
     const [selectedSampleIndex, setSelectedSampleIndex] = useState(0);
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [isSubscribing, setIsSubscribing] = useState(false);
@@ -247,7 +249,7 @@ export default function ContentDetailPage() {
             <header className="border-b border-neutral-200 px-6 py-4">
                 <div className="mx-auto max-w-5xl">
                     <Link
-                        href={`/${handle}/content`}
+                        href={path("/content")}
                         className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
                     >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -400,7 +402,7 @@ export default function ContentDetailPage() {
                                 </p>
                                 {!isLoggedIn ? (
                                     <a
-                                        href={`/${creator.handle}/login`}
+                                        href={path("/login")}
                                         className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-3 font-semibold text-white hover:from-amber-600 hover:to-orange-600 transition"
                                     >
                                         ログインして本編を見る

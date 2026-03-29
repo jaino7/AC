@@ -14,6 +14,7 @@ import { fanSignup } from "@/lib/api";
 import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 export const NeonProSignupForm = () => {
     const {
@@ -38,8 +39,8 @@ export const NeonProSignupForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // URLからクリエイターハンドルを取得（コンポーネント全体で使用）
     const creatorHandle = getCreatorHandleFromPath(pathname);
+    const { path } = useHandlePath(creatorHandle || "");
 
     const mutation = useMutation({
         mutationFn: async (values: FanSignupInput) => {
@@ -54,7 +55,7 @@ export const NeonProSignupForm = () => {
                 email: values.email,
                 password: values.password,
                 redirect: false,
-                callbackUrl: `/${creatorHandle}/content`
+                callbackUrl: path("/content")
             });
 
             if (!result || result.error) {
@@ -65,7 +66,7 @@ export const NeonProSignupForm = () => {
         },
         onSuccess: (result) => {
             setMessage("アカウントが作成されました！");
-            router.push(result?.url ?? `/${creatorHandle}/content`);
+            router.push(result?.url ?? path("/content"));
         }
     });
 
@@ -89,7 +90,7 @@ export const NeonProSignupForm = () => {
                         && window.location.hostname !== mainHost
                         && window.location.hostname !== "localhost"
                         && window.location.hostname !== "127.0.0.1";
-                    const cbUrl = `/${creatorHandle}/content`;
+                    const cbUrl = path("/content");
 
                     if (isCustomDomain) {
                         const protocol = window.location.protocol;
@@ -259,7 +260,7 @@ export const NeonProSignupForm = () => {
 
             <p className="text-center text-sm text-white/60">
                 すでにアカウントをお持ちですか？{" "}
-                <Link href="/neon-pro/login" className="text-cyan-400 underline">
+                <Link href={path("/login")} className="text-cyan-400 underline">
                     ログイン
                 </Link>
             </p>

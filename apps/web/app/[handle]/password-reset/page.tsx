@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 export default function FanPasswordResetPage() {
     const params = useParams();
@@ -12,6 +13,7 @@ export default function FanPasswordResetPage() {
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState("");
+    const { path } = useHandlePath(handle);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,7 +51,7 @@ export default function FanPasswordResetPage() {
                             登録済みのメールアドレスの場合、パスワード再設定用のリンクをお送りしました。メールをご確認ください。
                         </p>
                         <p className="text-xs text-neutral-400">リンクの有効期限は24時間です。</p>
-                        <Link href={`/${handle}/login`} className="block text-sm text-black underline underline-offset-4 mt-4">
+                        <Link href={path("/login")} className="block text-sm text-black underline underline-offset-4 mt-4">
                             ログイン画面に戻る
                         </Link>
                     </div>
@@ -99,7 +101,7 @@ export default function FanPasswordResetPage() {
                     </form>
 
                     <p className="mt-6 text-center text-sm text-neutral-500">
-                        <Link href={`/${handle}/login`} className="text-black underline underline-offset-4">
+                        <Link href={path("/login")} className="text-black underline underline-offset-4">
                             ログイン画面に戻る
                         </Link>
                     </p>

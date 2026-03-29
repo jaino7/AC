@@ -11,6 +11,7 @@ import { fanSignup } from "@/lib/api";
 import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 export const VelvetProSignupForm = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<FanSignupInput>({
@@ -24,18 +25,18 @@ export const VelvetProSignupForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // URLからクリエイターハンドルを取得
     const creatorHandle = getCreatorHandleFromPath(pathname);
+    const { path } = useHandlePath(creatorHandle || "");
 
     const mutation = useMutation({
         mutationFn: async (values: FanSignupInput) => {
             if (!creatorHandle) throw new Error("クリエイターが特定できませんでした");
             await fanSignup({ ...values, creatorHandle });
-            const result = await signIn("credentials", { email: values.email, password: values.password, redirect: false, callbackUrl: `/${creatorHandle}/content` });
+            const result = await signIn("credentials", { email: values.email, password: values.password, redirect: false, callbackUrl: path("/content") });
             if (!result || result.error) throw new Error("登録は成功しましたが、ログインに失敗しました。");
             return result;
         },
-        onSuccess: (result) => { setMessage("アカウントが作成されました！"); router.push(result?.url ?? `/${creatorHandle}/content`); }
+        onSuccess: (result) => { setMessage("アカウントが作成されました！"); router.push(result?.url ?? path("/content")); }
     });
 
     const onSubmit = async (values: FanSignupInput) => {
@@ -52,7 +53,7 @@ export const VelvetProSignupForm = () => {
                         && window.location.hostname !== mainHost
                         && window.location.hostname !== "localhost"
                         && window.location.hostname !== "127.0.0.1";
-                    const cbUrl = `/${creatorHandle}/content`;
+                    const cbUrl = path("/content");
 
                     if (isCustomDomain) {
                         const protocol = window.location.protocol;
@@ -133,7 +134,7 @@ export const VelvetProSignupForm = () => {
             </button>
 
             <p className="text-center text-sm text-white/60">
-                すでにアカウントをお持ちですか？ <Link href="/velvet-pro/login" className="text-yellow-400 underline">ログイン</Link>
+                すでにアカウントをお持ちですか？ <Link href={path("/login")} className="text-yellow-400 underline">ログイン</Link>
             </p>
         </form>
     );

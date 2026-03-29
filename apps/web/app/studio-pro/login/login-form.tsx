@@ -12,6 +12,7 @@ import {
 } from "@/lib/validators/creator-login";
 import { clsx } from "clsx";
 import Link from "next/link";
+import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 interface StudioProLoginFormProps {
     handle?: string;
@@ -35,9 +36,10 @@ export const StudioProLoginForm = ({ handle: propHandle }: StudioProLoginFormPro
     const handle = propHandle || searchParams.get("handle");
     const [message, setMessage] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const { path } = useHandlePath(handle || "");
 
     // ログイン後のリダイレクト先
-    const callbackUrl = handle ? `/${handle}/content` : "/creators/dashboard";
+    const callbackUrl = handle ? path("/content") : "/creators/dashboard";
 
     const mutation = useMutation({
         mutationFn: async (values: CreatorLoginInput) => {
@@ -154,7 +156,7 @@ export const StudioProLoginForm = ({ handle: propHandle }: StudioProLoginFormPro
 
             {handle && (
                 <div className="text-right text-xs text-[#1f66ff]">
-                    <Link href={`/${handle}/password-reset`}>パスワードを忘れた方</Link>
+                    <Link href={path("/password-reset")}>パスワードを忘れた方</Link>
                 </div>
             )}
 
