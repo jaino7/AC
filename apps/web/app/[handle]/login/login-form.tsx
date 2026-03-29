@@ -176,7 +176,24 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
                 {/* Google認証ボタン */}
                 <button
                     type="button"
-                    onClick={() => signIn("google", { callbackUrl: `/${creatorHandle}/content` })}
+                    onClick={() => {
+                        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || "";
+                        const mainHost = mainDomain.split(":")[0];
+                        const isCustomDomain = typeof window !== "undefined"
+                            && window.location.hostname !== mainHost
+                            && window.location.hostname !== "localhost"
+                            && window.location.hostname !== "127.0.0.1";
+
+                        if (isCustomDomain) {
+                            // カスタムドメイン: メインドメイン経由でOAuth実行
+                            const protocol = window.location.protocol;
+                            const domain = window.location.host;
+                            const path = `/${creatorHandle}/content`;
+                            window.location.href = `${protocol}//${mainDomain}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(path)}`;
+                        } else {
+                            signIn("google", { callbackUrl: `/${creatorHandle}/content` });
+                        }
+                    }}
                     className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 py-3 text-sm font-semibold ${styles.text} transition hover:bg-white/5`}
                 >
                     <img src="/web_neutral_rd_na@3x.png" alt="Google" className="h-5 w-5" />

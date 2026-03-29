@@ -177,7 +177,23 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
                 {/* Google認証ボタン */}
                 <button
                     type="button"
-                    onClick={() => signIn("google", { callbackUrl: `/${creatorHandle}/content` })}
+                    onClick={() => {
+                        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || "";
+                        const mainHost = mainDomain.split(":")[0];
+                        const isCustomDomain = typeof window !== "undefined"
+                            && window.location.hostname !== mainHost
+                            && window.location.hostname !== "localhost"
+                            && window.location.hostname !== "127.0.0.1";
+                        const cbUrl = `/${creatorHandle}/content`;
+
+                        if (isCustomDomain) {
+                            const protocol = window.location.protocol;
+                            const domain = window.location.host;
+                            window.location.href = `${protocol}//${mainDomain}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(cbUrl)}`;
+                        } else {
+                            signIn("google", { callbackUrl: cbUrl });
+                        }
+                    }}
                     className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 py-3 text-sm font-semibold ${styles.text} transition hover:bg-white/5`}
                 >
                     <img src="/web_neutral_rd_na@3x.png" alt="Google" className="h-5 w-5" />
