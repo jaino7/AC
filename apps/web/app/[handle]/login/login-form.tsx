@@ -191,7 +191,7 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
                             const protocol = window.location.protocol;
                             const domain = window.location.host;
                             const contentPath = path("/content");
-                            window.location.href = `${protocol}//${mainDomain}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(contentPath)}`;
+                            window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(contentPath)}`;
                         } else {
                             signIn("google", { callbackUrl: path("/content") });
                         }

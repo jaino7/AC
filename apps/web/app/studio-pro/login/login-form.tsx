@@ -91,7 +91,7 @@ export const StudioProLoginForm = ({ handle: propHandle }: StudioProLoginFormPro
                     if (isCustomDomain) {
                         const protocol = window.location.protocol;
                         const domain = window.location.host;
-                        window.location.href = `${protocol}//${mainDomain}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(callbackUrl)}`;
+                        window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(callbackUrl)}`;
                     } else {
                         signIn("google", { callbackUrl });
                     }
