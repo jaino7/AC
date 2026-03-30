@@ -53,10 +53,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 import { unstable_noStore as noStore } from "next/cache";
+import { headers } from "next/headers";
 
 export default async function HandleLayout({ children, params }: HandleLayoutProps) {
     noStore(); // データのキャッシュを無効化
     const session = await getServerSession(authOptions);
+    const headersList = headers();
+    const host = headersList.get("host");
+    const customDomainHeader = headersList.get("x-custom-domain");
+    // x-pathnameから実際のパスを取得。無い場合は /handle をデフォルトにする
+    const pathname = headersList.get("x-pathname") ?? `/${params.handle}`;
     // デバッグログ削除
 
     // クリエイターを取得
@@ -68,7 +74,12 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
             displayName: true,
             theme: true,
             logoUrl: true,
-            faviconUrl: true
+            faviconUrl: true,
+            domains: {
+                where: { status: "ACTIVE" },
+                select: { domain: true },
+                take: 1
+            }
         }
     });
 
@@ -76,6 +87,30 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
     if (!creator) {
         notFound();
     }
+
+    // --- カスタムドメインへのリダイレクト判定 ---
+    if (creator.domains && creator.domains.length > 0) {
+        const customDomain = creator.domains[0].domain;
+        
+        // アクセス元のホスト名がカスタムドメインと異なり、かつカスタムドメイン経由のプロキシ（x-custom-domain）でもない場合
+        // （つまりメインドメインからのアクセスである場合）
+        if (host !== customDomain && customDomainHeader !== customDomain) {
+            // パスから /handle の部分を取り除く（/handle/content -> / など）
+            let newPath = pathname;
+            if (newPath.startsWith(`/${params.handle}`)) {
+                newPath = newPath.replace(`/${params.handle}`, "");
+            }
+            // /content はルートへのリダイレクトとする
+            if (newPath === "/content" || newPath === "") {
+                newPath = "/";
+            }
+            
+            // FIXME: local testing environment variables could be used for protocol
+            const protocol = host?.includes("localhost") || host?.includes("127.0.0.1") ? "http" : "https";
+            redirect(`${protocol}://${customDomain}${newPath}`);
+        }
+    }
+    // ---------------------------------------------
 
     // Check if fan account is locked / create FanProfile for new OAuth users
     if (session?.user) {

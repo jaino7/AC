@@ -217,6 +217,13 @@ export default withAuth(
                     return NextResponse.next();
                 }
 
+                // カスタムドメインから直接 /content へのアクセスはルートへリダイレクト
+                if (path === "/content" || path === "/content/") {
+                    const redirectUrl = req.nextUrl.clone();
+                    redirectUrl.pathname = '/';
+                    return NextResponse.redirect(redirectUrl);
+                }
+
                 // ルートパスの場合はクリエイターのトップページへ
                 if (path === "/" || path === "") {
                     url.pathname = `/${handle}/content`;
@@ -285,7 +292,9 @@ export default withAuth(
 
         // 通常のフロー（認証チェック）
         // Note: Fan lock check is done in /[handle]/layout.tsx
-        return NextResponse.next();
+        const res = NextResponse.next();
+        res.headers.set('x-pathname', path);
+        return res;
     },
     {
         // NEXTAUTH_SECRETを明示指定してセッションCookieを正しく読む
