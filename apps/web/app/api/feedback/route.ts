@@ -178,23 +178,29 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const feedback = await prisma.feedback.create({
-            data: {
-                userId: user.id,
-                category,
-                body,
-                imageUrls,
-            },
-        });
-
-        // Discord通知（失敗してもレスポンスには影響させない）
-        await sendDiscordNotification({
+        // Discord通知（DB保存とは独立して送信）
+        sendDiscordNotification({
             userName: user.name || "不明",
             userEmail: user.email || "不明",
             category,
             body,
             imageUrls,
-        });
+        }).catch((err) => console.error("Discord notification failed:", err));
+
+        // DB保存
+        let feedback = null;
+        try {
+            feedback = await prisma.feedback.create({
+                data: {
+                    userId: user.id,
+                    category,
+                    body,
+                    imageUrls,
+                },
+            });
+        } catch (dbError) {
+            console.error("Feedback DB save failed (Discord notification still sent):", dbError);
+        }
 
         return NextResponse.json({ success: true, feedback });
     } catch (error) {
