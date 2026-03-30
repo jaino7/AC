@@ -163,6 +163,7 @@ model User {
   fanProfile          FanProfile[] // 1ユーザーが複数クリエイターに登録可能
   emailLogs           EmailLog[]
   passwordResetTokens PasswordResetToken[]
+  feedbacks           Feedback[]
 }
 
 // ファンプロフィール（ファン専用情報）
@@ -1053,4 +1054,21 @@ model CronLog {
   @@index([taskName])
   @@index([executedAt])
   @@index([status])
+}
+
+// クリエイターからのフィードバック
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category  String   // BUG, IMPROVEMENT, FEATURE_REQUEST
+  body      String   @db.Text
+  imageUrls String[] // スクリーンショットのURL配列
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
 }

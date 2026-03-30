@@ -11,7 +11,8 @@ import {
     DollarSignIcon,
     SettingsIcon,
     CreditCardIcon,
-    PaletteIcon
+    PaletteIcon,
+    FeedbackIcon
 } from "./icons";
 
 const getNavigation = (handle: string) => [
@@ -21,7 +22,8 @@ const getNavigation = (handle: string) => [
     { name: "プラン設定", href: `/creators/${handle}/c-plans`, icon: CreditCardIcon },
     { name: "収益", href: `/creators/${handle}/earnings`, icon: DollarSignIcon },
     { name: "テーマ", href: `/creators/${handle}/settings/theme`, icon: PaletteIcon },
-    { name: "設定", href: `/creators/${handle}/settings`, icon: SettingsIcon }
+    { name: "設定", href: `/creators/${handle}/settings`, icon: SettingsIcon },
+    { name: "フィードバック", href: `/creators/${handle}/feedback`, icon: FeedbackIcon }
 ];
 
 export function CreatorSidebar() {
