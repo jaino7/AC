@@ -40,8 +40,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token signature" }, { status: 400 });
     }
 
+    // リダイレクト先の決定（Nginx経由で req.url が localhost になるのを防ぐため、Hostヘッダーを使用）
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || req.nextUrl.host;
+    const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol;
+    const baseUrl = `${proto.replace(':', '')}://${host}`;
+    
     // セッション Cookie をカスタムドメインに設定してリダイレクト
-    const response = NextResponse.redirect(new URL(redirect, req.url));
+    const response = NextResponse.redirect(new URL(redirect, baseUrl));
     response.cookies.set("next-auth.session-token", sessionToken, {
       httpOnly: true,
       sameSite: "lax",
