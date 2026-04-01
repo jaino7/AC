@@ -27,6 +27,7 @@ export async function POST(
                 id: true,
                 displayName: true,
                 inquiryEnabled: true,
+                notifyInquiry: true,
                 inquiryFormFields: {
                     orderBy: { order: "asc" },
                     select: { id: true, label: true, type: true, required: true, options: true, order: true }
@@ -99,8 +100,8 @@ export async function POST(
             },
         }).catch(err => console.error("Failed to create inquiry notification:", err));
 
-        // クリエイターにメール通知（非同期）
-        if (creator.user.email) {
+        // クリエイターにメール通知（notifyInquiry が有効な場合のみ）
+        if (creator.notifyInquiry && creator.user.email) {
             const customFields = creator.inquiryFormFields
                 .filter(f => fields?.[f.id])
                 .map(f => ({ label: f.label, value: fields![f.id] }));

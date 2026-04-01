@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
+import { sendEmailSafe } from "@/lib/email/client";
+import { PurchaseNotificationEmail } from "@/lib/email/templates/creator/PurchaseNotificationEmail";
+import React from "react";
 
 // 月末補正付きの次回請求日（1ヶ月後）計算関数
 function calculateNextBillingDate(fromDate: Date): Date {
@@ -108,6 +111,8 @@ export async function POST(request: NextRequest) {
                         id: true,
                         handle: true,
                         displayName: true,
+                        notifyPurchase: true,
+                        user: { select: { id: true, email: true } },
                     },
                 },
             },
@@ -241,6 +246,41 @@ export async function POST(request: NextRequest) {
 
             return { subscription, newBalance: updatedFanProfile.credits };
         });
+
+        // クリエイターにダッシュボード通知を作成（非同期）
+        prisma.notification.create({
+            data: {
+                creatorId: plan.creatorId,
+                type: "PURCHASE",
+                title: "プランが購入されました",
+                message: `「${plan.name}」プランに新しいメンバーが参加しました（¥${plan.price.toLocaleString()}）`,
+                metadata: {
+                    planId: plan.id,
+                    planName: plan.name,
+                    amount: plan.price,
+                    subscriptionId: result.subscription.id,
+                },
+            },
+        }).catch(err => console.error("Failed to create plan purchase notification:", err));
+
+        // クリエイターにメール通知（notifyPurchase が有効な場合）
+        if (plan.creator.notifyPurchase && plan.creator.user.email) {
+            const siteUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+            sendEmailSafe({
+                to: plan.creator.user.email,
+                subject: `【購入通知】プラン「${plan.name}」に新しいメンバーが参加しました`,
+                react: React.createElement(PurchaseNotificationEmail, {
+                    creatorName: plan.creator.displayName,
+                    purchaseType: "plan",
+                    itemName: plan.name,
+                    amount: plan.price,
+                    dashboardUrl: `${siteUrl}/creators/dashboard`,
+                }),
+                emailType: "CREATOR_CONTENT_PURCHASED",
+                recipientId: plan.creator.user.id,
+                metadata: { planId: plan.id, subscriptionId: result.subscription.id },
+            }).catch(err => console.error("Plan purchase email send failed:", err));
+        }
 
         return NextResponse.json({
             success: true,

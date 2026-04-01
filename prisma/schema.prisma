@@ -268,6 +268,11 @@ model CreatorProfile {
   // お問い合わせ設定
   inquiryEnabled Boolean @default(true)
 
+  // メール通知設定
+  notifyPurchase     Boolean @default(true)
+  notifyInquiry      Boolean @default(true)
+  notifyAnnouncement Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -758,6 +763,7 @@ enum EmailType {
   CREATOR_ANNOUNCEMENT
   CREATOR_PASSWORD_RESET
   CREATOR_INQUIRY
+  CREATOR_CONTENT_PURCHASED
 
   // Fan emails
   FAN_EMAIL_VERIFICATION

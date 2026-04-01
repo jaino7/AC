@@ -86,7 +86,9 @@ export default function SettingsContent() {
     const [discordUrl, setDiscordUrl] = useState("");
     const [otherUrl, setOtherUrl] = useState("");
     const [otherUrlName, setOtherUrlName] = useState("");
-    const [maintenanceNotification, setMaintenanceNotification] = useState(true);
+    const [notifyPurchase, setNotifyPurchase] = useState(true);
+    const [notifyInquiry, setNotifyInquiry] = useState(true);
+    const [notifyAnnouncement, setNotifyAnnouncement] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -149,6 +151,9 @@ export default function SettingsContent() {
                     setDiscordUrl(data.profile.discordUrl || "");
                     setOtherUrl(data.profile.otherUrl || "");
                     setOtherUrlName(data.profile.otherUrlName || "");
+                    setNotifyPurchase(data.profile.notifyPurchase ?? true);
+                    setNotifyInquiry(data.profile.notifyInquiry ?? true);
+                    setNotifyAnnouncement(data.profile.notifyAnnouncement ?? true);
 
                     // Set creator profile for domain access check
                     setCreatorProfile({
@@ -1239,27 +1244,78 @@ export default function SettingsContent() {
 
                         {activeTab === "notifications" && (
                             <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                                <h2 className="mb-6 text-xl font-semibold">メール受信を設定</h2>
+                                <h2 className="mb-2 text-xl font-semibold">メール受信を設定</h2>
+                                <p className="mb-6 text-sm text-neutral-500">各イベントが発生したときにメールで通知を受け取るか設定できます。</p>
 
                                 <div className="space-y-4">
                                     <div className="flex items-start gap-3">
                                         <input
                                             type="checkbox"
-                                            id="maintenance"
-                                            checked={maintenanceNotification}
-                                            onChange={(e) => setMaintenanceNotification(e.target.checked)}
+                                            id="notifyPurchase"
+                                            checked={notifyPurchase}
+                                            onChange={(e) => {
+                                                setNotifyPurchase(e.target.checked);
+                                                fetch("/api/creators/profile", {
+                                                    method: "PUT",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ notifyPurchase: e.target.checked }),
+                                                }).catch(console.error);
+                                            }}
                                             className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
-                                        <label htmlFor="maintenance" className="text-sm text-neutral-700">
-                                            機能更新・メンテナンス
-                                        </label>
+                                        <div>
+                                            <label htmlFor="notifyPurchase" className="text-sm font-medium text-neutral-800">
+                                                新規購入
+                                            </label>
+                                            <p className="text-xs text-neutral-500">単体コンテンツの購入・プランへの参加があったとき</p>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="mt-6 flex justify-end">
-                                    <button className="rounded-2xl bg-blue-600 px-8 py-3 font-semibold text-white transition-colors hover:bg-blue-700">
-                                        変更する
-                                    </button>
+                                    <div className="flex items-start gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="notifyInquiry"
+                                            checked={notifyInquiry}
+                                            onChange={(e) => {
+                                                setNotifyInquiry(e.target.checked);
+                                                fetch("/api/creators/profile", {
+                                                    method: "PUT",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ notifyInquiry: e.target.checked }),
+                                                }).catch(console.error);
+                                            }}
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div>
+                                            <label htmlFor="notifyInquiry" className="text-sm font-medium text-neutral-800">
+                                                お問い合わせ
+                                            </label>
+                                            <p className="text-xs text-neutral-500">ファンからお問い合わせが届いたとき</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="notifyAnnouncement"
+                                            checked={notifyAnnouncement}
+                                            onChange={(e) => {
+                                                setNotifyAnnouncement(e.target.checked);
+                                                fetch("/api/creators/profile", {
+                                                    method: "PUT",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ notifyAnnouncement: e.target.checked }),
+                                                }).catch(console.error);
+                                            }}
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div>
+                                            <label htmlFor="notifyAnnouncement" className="text-sm font-medium text-neutral-800">
+                                                機能更新・メンテナンス
+                                            </label>
+                                            <p className="text-xs text-neutral-500">CocoBaからの機能アップデートやメンテナンス情報</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
                         )}

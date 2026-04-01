@@ -62,6 +62,9 @@ export async function GET(request: NextRequest) {
                             discordUrl: true,
                             otherUrl: true,
                             otherUrlName: true,
+                            notifyPurchase: true,
+                            notifyInquiry: true,
+                            notifyAnnouncement: true,
                             creatorSubscription: {
                                 select: {
                                     status: true,
@@ -132,7 +135,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl, showNameInHeader } = body;
+        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl, showNameInHeader, notifyPurchase, notifyInquiry, notifyAnnouncement } = body;
 
         console.log("Updating profile for:", user.creatorProfile.id, "with data:", {
             displayName,
@@ -173,6 +176,9 @@ export async function PUT(request: NextRequest) {
                         showNameInHeader,
                     },
                 }),
+                ...(notifyPurchase !== undefined && { notifyPurchase }),
+                ...(notifyInquiry !== undefined && { notifyInquiry }),
+                ...(notifyAnnouncement !== undefined && { notifyAnnouncement }),
             },
             select: {
                 id: true,

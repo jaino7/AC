@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
+import { sendEmailSafe } from "@/lib/email/client";
+import { PurchaseNotificationEmail } from "@/lib/email/templates/creator/PurchaseNotificationEmail";
+import React from "react";
 
 // POST - Purchase content with credits
 export async function POST(request: NextRequest) {
@@ -39,6 +42,13 @@ export async function POST(request: NextRequest) {
                 price: true,
                 isLocked: true,
                 creatorId: true,
+                creator: {
+                    select: {
+                        displayName: true,
+                        notifyPurchase: true,
+                        user: { select: { id: true, email: true } },
+                    },
+                },
             },
         });
 
@@ -225,6 +235,25 @@ export async function POST(request: NextRequest) {
                 },
             },
         }).catch(err => console.error("Failed to create purchase notification:", err));
+
+        // クリエイターにメール通知（notifyPurchase が有効な場合）
+        if (content.creator.notifyPurchase && content.creator.user.email) {
+            const siteUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+            sendEmailSafe({
+                to: content.creator.user.email,
+                subject: `【購入通知】コンテンツ「${content.title}」が購入されました`,
+                react: React.createElement(PurchaseNotificationEmail, {
+                    creatorName: content.creator.displayName,
+                    purchaseType: "content",
+                    itemName: content.title,
+                    amount: content.price!,
+                    dashboardUrl: `${siteUrl}/creators/dashboard`,
+                }),
+                emailType: "CREATOR_CONTENT_PURCHASED",
+                recipientId: content.creator.user.id,
+                metadata: { contentId: content.id, amount: content.price },
+            }).catch(err => console.error("Purchase email send failed:", err));
+        }
 
         return NextResponse.json({
             success: true,
