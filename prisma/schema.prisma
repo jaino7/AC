@@ -164,6 +164,7 @@ model User {
   emailLogs           EmailLog[]
   passwordResetTokens PasswordResetToken[]
   feedbacks           Feedback[]
+  inquiries           Inquiry[]
 }
 
 // ファンプロフィール（ファン専用情報）
@@ -264,6 +265,9 @@ model CreatorProfile {
   // ストレージプラン
   storagePlan String @default("FREE") // FREE, BASIC, PRO, UNLIMITED
 
+  // お問い合わせ設定
+  inquiryEnabled Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -289,6 +293,10 @@ model CreatorProfile {
   earnings             CreatorEarning[]
   payouts              CreatorPayout[]
   planTransferClaims   CreatorPlanTransferClaim[]
+
+  // お問い合わせ
+  inquiries         Inquiry[]
+  inquiryFormFields InquiryFormField[]
 }
 
 model SubscriptionPlan {
@@ -748,6 +756,7 @@ enum EmailType {
   CREATOR_WITHDRAWAL_COMPLETED
   CREATOR_ANNOUNCEMENT
   CREATOR_PASSWORD_RESET
+  CREATOR_INQUIRY
 
   // Fan emails
   FAN_EMAIL_VERIFICATION
@@ -1071,4 +1080,54 @@ model Feedback {
   @@index([userId])
   @@index([category])
   @@index([createdAt])
+}
+
+// ファンからクリエイターへのお問い合わせ
+enum InquiryStatus {
+  UNREAD  // 未読
+  READ    // 既読
+  CLOSED  // 対応済み
+}
+
+model Inquiry {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // 送信者情報
+  fanName   String
+  fanEmail  String
+  userId    String?        // ログイン済みファンのUserID
+  user      User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // 問い合わせ内容
+  message   String   @db.Text
+  fields    Json?    // カスタムフィールドの回答 { "fieldId": "value" }
+
+  status    InquiryStatus @default(UNREAD)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId, status])
+  @@index([creatorId, createdAt])
+  @@index([userId])
+}
+
+// クリエイターが設定するお問い合わせフォームのカスタムフィールド
+model InquiryFormField {
+  id        String         @id @default(cuid())
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  label    String   // フィールドラベル
+  type     String   // text, textarea, select, checkbox
+  required Boolean  @default(false)
+  options  String[] // select の場合の選択肢
+  order    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
 }

@@ -12,7 +12,8 @@ import {
     SettingsIcon,
     CreditCardIcon,
     PaletteIcon,
-    FeedbackIcon
+    FeedbackIcon,
+    InboxIcon,
 } from "./icons";
 
 const getNavigation = (handle: string) => [
@@ -22,6 +23,7 @@ const getNavigation = (handle: string) => [
     { name: "プラン設定", href: `/creators/${handle}/c-plans`, icon: CreditCardIcon },
     { name: "収益", href: `/creators/${handle}/earnings`, icon: DollarSignIcon },
     { name: "テーマ", href: `/creators/${handle}/settings/theme`, icon: PaletteIcon },
+    { name: "お問い合わせ", href: `/creators/${handle}/inquiries`, icon: InboxIcon },
     { name: "設定", href: `/creators/${handle}/settings`, icon: SettingsIcon },
     { name: "フィードバック", href: `/creators/${handle}/feedback`, icon: FeedbackIcon }
 ];

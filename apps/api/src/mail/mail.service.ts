@@ -7,6 +7,7 @@ import PurchaseSuccessEmail from './templates/purchase-success.template';
 import AnnouncementEmail from './templates/announcement.template';
 import PasswordResetEmail from './templates/password-reset.template';
 import PaymentInstructionEmail from './templates/payment-instruction.template';
+import InquiryEmail from './templates/inquiry.template';
 
 @Injectable()
 export class MailService {
@@ -188,6 +189,31 @@ export class MailService {
       subject,
       html,
       emailType: 'CREATOR_ANNOUNCEMENT',
+      recipientId,
+      metadata: data,
+    });
+  }
+
+  async sendInquiryEmail(
+    to: string,
+    data: {
+      creatorName: string;
+      fanName: string;
+      fanEmail: string;
+      message: string;
+      customFields?: { label: string; value: string }[];
+      dashboardUrl: string;
+    },
+    recipientId: string,
+  ) {
+    const subject = `【お問い合わせ】${data.fanName}さんからメッセージが届きました`;
+    const html = await render(InquiryEmail(data));
+
+    return this.mailProvider.sendEmail({
+      to,
+      subject,
+      html,
+      emailType: 'CREATOR_INQUIRY',
       recipientId,
       metadata: data,
     });

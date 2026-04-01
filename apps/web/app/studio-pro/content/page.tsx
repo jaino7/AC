@@ -103,7 +103,8 @@ function StudioProContentPageContent() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [newReleases, setNewReleases] = useState<ContentCard[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "plans" | "single" | "saved">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "plans" | "single" | "saved" | "contact">("all");
+  const [inquiryEnabled, setInquiryEnabled] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -211,6 +212,17 @@ function StudioProContentPageContent() {
           });
 
           setNewReleases(cards);
+        }
+
+        // Fetch inquiry settings
+        if (handle) {
+          try {
+            const inqRes = await fetch(`/api/${handle}/inquiries`);
+            if (inqRes.ok) {
+              const inqData = await inqRes.json();
+              setInquiryEnabled(inqData.inquiryEnabled ?? true);
+            }
+          } catch { /* ignore */ }
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -555,6 +567,14 @@ function StudioProContentPageContent() {
               <a href="/privacy" target="_blank" className="hover:text-blue-400 hover:underline whitespace-nowrap">
                 プライバシーポリシー
               </a>
+              {inquiryEnabled && handle && (
+                <>
+                  <span className="whitespace-nowrap">•</span>
+                  <a href={`/${handle}/contact`} className="hover:text-blue-400 hover:underline whitespace-nowrap">
+                    お問い合わせ
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </footer>

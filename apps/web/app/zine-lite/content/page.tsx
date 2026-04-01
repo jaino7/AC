@@ -51,7 +51,7 @@ type Plan = {
   price: number;
 };
 
-type TabType = "all" | "plans" | "single" | "saved";
+type TabType = "all" | "plans" | "single" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -83,6 +83,7 @@ function ZineLiteContentPageContent() {
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [savedCards, setSavedCards] = useState<ContentCard[]>([]);
+  const [inquiryEnabled, setInquiryEnabled] = useState(true);
   const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
@@ -181,6 +182,17 @@ function ZineLiteContentPageContent() {
           });
 
           setContentCards(cards);
+        }
+
+        // Fetch inquiry settings
+        if (handle) {
+          try {
+            const inqRes = await fetch(`/api/${handle}/inquiries`);
+            if (inqRes.ok) {
+              const inqData = await inqRes.json();
+              setInquiryEnabled(inqData.inquiryEnabled ?? true);
+            }
+          } catch { /* ignore */ }
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -566,6 +578,11 @@ function ZineLiteContentPageContent() {
             <a href="/privacy" target="_blank" className="hover:text-green-600 hover:underline whitespace-nowrap">
               プライバシーポリシー
             </a>
+            {inquiryEnabled && handle && (
+              <a href={`/${handle}/contact`} className="hover:text-green-600 hover:underline whitespace-nowrap">
+                お問い合わせ
+              </a>
+            )}
           </div>
         </div>
       </footer>

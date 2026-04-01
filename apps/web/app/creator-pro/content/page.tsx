@@ -118,6 +118,7 @@ function CreatorProContentPageContent() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [inquiryEnabled, setInquiryEnabled] = useState(true);
 
   // クレジット情報を取得
   const { data: creditsData } = useCredits(handle || undefined);
@@ -198,6 +199,17 @@ function CreatorProContentPageContent() {
           }));
 
           setPosts(transformedPosts);
+        }
+
+        // Fetch inquiry settings
+        if (handle) {
+          try {
+            const inqRes = await fetch(`/api/${handle}/inquiries`);
+            if (inqRes.ok) {
+              const inqData = await inqRes.json();
+              setInquiryEnabled(inqData.inquiryEnabled ?? true);
+            }
+          } catch { /* ignore */ }
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -667,7 +679,7 @@ function CreatorProContentPageContent() {
           </div>
 
           {/* Footer */}
-          <footer className="mt-auto border-t border-gray-800 bg-[#010409] py-4 pt-8 md:pt-4 w-full">
+          <footer className="mt-auto border-t border-gray-800 bg-[#010409] pt-8 pb-20 md:pt-4 md:pb-4 w-full">
             <div className="mx-auto max-w-5xl px-4 sm:px-0">
               <div className="flex flex-wrap items-center justify-start gap-4 sm:gap-6 text-xs text-gray-500">
                 <a href="/terms/fans" target="_blank" className="hover:text-blue-500 hover:underline whitespace-nowrap">
@@ -679,6 +691,11 @@ function CreatorProContentPageContent() {
                 <a href="/privacy" target="_blank" className="hover:text-blue-500 hover:underline whitespace-nowrap">
                   プライバシーポリシー
                 </a>
+                {inquiryEnabled && handle && (
+                  <a href={`/${handle}/contact`} className="hover:text-blue-500 hover:underline whitespace-nowrap">
+                    お問い合わせ
+                  </a>
+                )}
               </div>
             </div>
           </footer>

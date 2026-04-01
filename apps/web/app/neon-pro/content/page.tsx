@@ -57,7 +57,7 @@ type Plan = {
   description?: string;
 };
 
-type TabType = "all" | "plans" | "single" | "saved";
+type TabType = "all" | "plans" | "single" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -93,6 +93,7 @@ function NeonProContentPageContent() {
   const [subscribedPlanIds, setSubscribedPlanIds] = useState<Set<string>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
+  const [inquiryEnabled, setInquiryEnabled] = useState(true);
 
   const { data: creditsData } = useCredits(handle || undefined);
   const invalidateCredits = useInvalidateCredits();
@@ -187,6 +188,17 @@ function NeonProContentPageContent() {
           }));
 
           setPosts(transformedPosts);
+        }
+
+        // Fetch inquiry settings
+        if (handle) {
+          try {
+            const inqRes = await fetch(`/api/${handle}/inquiries`);
+            if (inqRes.ok) {
+              const inqData = await inqRes.json();
+              setInquiryEnabled(inqData.inquiryEnabled ?? true);
+            }
+          } catch { /* ignore */ }
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -685,7 +697,7 @@ function NeonProContentPageContent() {
         </div> {/* Content Wrapper End */}
 
         {/* Footer */}
-        <footer className="border-t border-cyan-900/30 bg-[#0a0e12] px-6 py-3 text-left">
+        <footer className="border-t border-cyan-900/30 bg-[#0a0e12] px-6 pt-3 pb-20 lg:pb-3 text-left">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-start gap-4 text-[10px] text-gray-500">
               <a href="/terms/fans" target="_blank" className="hover:text-cyan-400 hover:underline whitespace-nowrap">
@@ -699,6 +711,14 @@ function NeonProContentPageContent() {
               <a href="/privacy" target="_blank" className="hover:text-cyan-400 hover:underline whitespace-nowrap">
                 プライバシーポリシー
               </a>
+              {inquiryEnabled && handle && (
+                <>
+                  <span className="whitespace-nowrap">•</span>
+                  <a href={`/${handle}/contact`} className="hover:text-cyan-400 hover:underline whitespace-nowrap">
+                    お問い合わせ
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </footer>

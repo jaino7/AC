@@ -57,7 +57,7 @@ type CreatorProfile = {
   themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
-type TabType = "all" | "plans" | "single" | "saved";
+type TabType = "all" | "plans" | "single" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -88,6 +88,7 @@ function VelvetProContentPageContent() {
   const [loading, setLoading] = useState(true);
   const [savedCards, setSavedCards] = useState<ContentCard[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
+  const [inquiryEnabled, setInquiryEnabled] = useState(true);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedCard, setSelectedCard] = useState<ContentCard | null>(null);
@@ -196,6 +197,17 @@ function VelvetProContentPageContent() {
           });
 
           setContentCards(cards);
+        }
+
+        // Fetch inquiry settings
+        if (handle) {
+          try {
+            const inqRes = await fetch(`/api/${handle}/inquiries`);
+            if (inqRes.ok) {
+              const inqData = await inqRes.json();
+              setInquiryEnabled(inqData.inquiryEnabled ?? true);
+            }
+          } catch { /* ignore */ }
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -627,6 +639,11 @@ function VelvetProContentPageContent() {
             <a href="/privacy" target="_blank" className="hover:text-yellow-500 whitespace-nowrap">
               プライバシーポリシー
             </a>
+            {inquiryEnabled && handle && (
+              <a href={`/${handle}/contact`} className="hover:text-yellow-500 whitespace-nowrap">
+                お問い合わせ
+              </a>
+            )}
           </div>
         </div>
       </footer>
