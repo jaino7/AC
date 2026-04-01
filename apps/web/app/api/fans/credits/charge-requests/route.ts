@@ -72,10 +72,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (!fanProfile) {
-            return NextResponse.json(
-                { error: "ファンプロフィールが見つかりません" },
-                { status: 404 }
-            );
+            return NextResponse.json({ chargeRequests: [] });
         }
 
         return NextResponse.json({

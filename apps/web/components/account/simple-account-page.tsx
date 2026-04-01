@@ -95,6 +95,14 @@ export function SimpleAccountPage({
         }
     }, [currentPage, handle, status]);
 
+    // 認証済みの場合、FanProfile を自動作成（Google OAuthユーザー対応）
+    useEffect(() => {
+        if (status === "authenticated" && handle) {
+            fetch(`/api/fans/ensure-profile?handle=${handle}`, { method: "POST" })
+                .catch((err) => console.error("ensure-profile failed:", err));
+        }
+    }, [status, handle]);
+
     // セッションからユーザー情報を取得
     const userEmail = session?.user?.email || "";
     const userName = session?.user?.name || displayName;

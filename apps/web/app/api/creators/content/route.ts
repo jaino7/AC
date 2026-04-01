@@ -85,6 +85,7 @@ export async function POST(req: Request) {
                 visibility: visibility || "PUBLIC",
                 isLocked: isLocked || false,
                 requiredPlanId: requiredPlanId || null,
+                price: singleSalePrice ? Math.round(singleSalePrice) : null,
                 isAdultContent: isAdultContent || false
             }
         });

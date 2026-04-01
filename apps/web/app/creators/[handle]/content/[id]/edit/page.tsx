@@ -278,7 +278,6 @@ export default function EditContentPage() {
     };
 
     const removeSample = (index: number) => {
-        setSampleFiles((prev) => prev.filter((_, i) => i !== index));
         setSampleUrls((prev) => prev.filter((_, i) => i !== index));
         setSampleDurations((prev) => prev.filter((_, i) => i !== index));
     };
@@ -325,7 +324,6 @@ export default function EditContentPage() {
     };
 
     const removeFile = (index: number) => {
-        setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
         setUploadedFileUrls((prev) => prev.filter((_, i) => i !== index));
         setUploadedDurations((prev) => prev.filter((_, i) => i !== index));
     };
@@ -563,28 +561,36 @@ export default function EditContentPage() {
                                     className="hidden"
                                 />
                             </label>
-                            {(sampleFiles.length > 0 || sampleUrls.length > 0) && (
+                            {sampleUrls.length > 0 && (
                                 <div className="mt-4 space-y-2">
                                     <p className="text-sm font-semibold text-neutral-700">
                                         サンプル: {sampleUrls.length}ファイル
                                     </p>
-                                    {sampleFiles.map((file, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm"
-                                        >
-                                            <span className="flex-1 truncate">{file.name}</span>
-                                            <span className="text-xs text-neutral-500">
-                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                            </span>
-                                            <button
-                                                onClick={() => removeSample(index)}
-                                                className="text-red-500 hover:text-red-700"
+                                    {sampleUrls.map((url, index) => {
+                                        const isVideo = /\.(mp4|mov|webm|mkv)$/i.test(url);
+                                        const filename = url.split("/").pop() || url;
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm"
                                             >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
+                                                {isVideo ? (
+                                                    <div className="h-10 w-10 flex-shrink-0 rounded bg-green-200 flex items-center justify-center text-xs text-green-700">
+                                                        動画
+                                                    </div>
+                                                ) : (
+                                                    <img src={url} alt="" className="h-10 w-10 flex-shrink-0 rounded object-cover" />
+                                                )}
+                                                <span className="flex-1 truncate text-xs text-neutral-600">{filename}</span>
+                                                <button
+                                                    onClick={() => removeSample(index)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -615,28 +621,36 @@ export default function EditContentPage() {
                                     className="hidden"
                                 />
                             </label>
-                            {(uploadedFiles.length > 0 || uploadedFileUrls.length > 0) && (
+                            {uploadedFileUrls.length > 0 && (
                                 <div className="mt-4 space-y-2">
                                     <p className="text-sm font-semibold text-neutral-700">
                                         コンテンツ: {uploadedFileUrls.length}ファイル
                                     </p>
-                                    {uploadedFiles.map((file, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm"
-                                        >
-                                            <span className="flex-1 truncate">{file.name}</span>
-                                            <span className="text-xs text-neutral-500">
-                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                            </span>
-                                            <button
-                                                onClick={() => removeFile(index)}
-                                                className="text-red-500 hover:text-red-700"
+                                    {uploadedFileUrls.map((url, index) => {
+                                        const isVideo = /\.(mp4|mov|webm|mkv)$/i.test(url);
+                                        const filename = url.split("/").pop() || url;
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
                                             >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
+                                                {isVideo ? (
+                                                    <div className="h-10 w-10 flex-shrink-0 rounded bg-amber-200 flex items-center justify-center text-xs text-amber-700">
+                                                        動画
+                                                    </div>
+                                                ) : (
+                                                    <img src={url} alt="" className="h-10 w-10 flex-shrink-0 rounded object-cover" />
+                                                )}
+                                                <span className="flex-1 truncate text-xs text-neutral-600">{filename}</span>
+                                                <button
+                                                    onClick={() => removeFile(index)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

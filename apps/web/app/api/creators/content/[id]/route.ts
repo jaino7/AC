@@ -120,7 +120,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { visibility, title, content, thumbnailUrl, sampleMediaUrls, mediaUrls, folderId, tagIds, isLocked, requiredPlanId, singleSalePrice } = await request.json();
+        const { visibility, title, content, thumbnailUrl, sampleMedia, mainMedia, folderId, tagIds, isLocked, requiredPlanId, singleSalePrice } = await request.json();
 
         // Get user
         const user = await prisma.user.findUnique({
@@ -177,33 +177,35 @@ export async function PATCH(
             data: updateData,
         });
 
-        // 既存のメディアを削除
-        if (sampleMediaUrls !== undefined || mediaUrls !== undefined) {
+        // 既存のメディアを削除して再作成（送信された場合のみ）
+        if (sampleMedia !== undefined || mainMedia !== undefined) {
             await prisma.media.deleteMany({
                 where: { postId: params.id },
             });
         }
 
         // サンプルメディアを保存
-        if (sampleMediaUrls && Array.isArray(sampleMediaUrls) && sampleMediaUrls.length > 0) {
+        if (sampleMedia && Array.isArray(sampleMedia) && sampleMedia.length > 0) {
             await prisma.media.createMany({
-                data: sampleMediaUrls.map((url: string) => ({
+                data: sampleMedia.map((media: { url: string; duration: number | null }) => ({
                     postId: params.id,
-                    url,
-                    type: url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    url: media.url,
+                    type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
                     isSample: true,
+                    duration: media.duration ?? null,
                 })),
             });
         }
 
         // 限定コンテンツメディアを保存
-        if (mediaUrls && Array.isArray(mediaUrls) && mediaUrls.length > 0) {
+        if (mainMedia && Array.isArray(mainMedia) && mainMedia.length > 0) {
             await prisma.media.createMany({
-                data: mediaUrls.map((url: string) => ({
+                data: mainMedia.map((media: { url: string; duration: number | null }) => ({
                     postId: params.id,
-                    url,
-                    type: url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    url: media.url,
+                    type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
                     isSample: false,
+                    duration: media.duration ?? null,
                 })),
             });
         }

@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
                 );
             }
 
-            // Find fan profile for this creator
+            // Find or auto-create fan profile for this creator
             fanProfile = await prisma.fanProfile.findUnique({
                 where: {
                     userId_creatorId: {
@@ -58,10 +58,16 @@ export async function GET(request: NextRequest) {
             });
 
             if (!fanProfile) {
-                return NextResponse.json(
-                    { error: "ファンプロフィールが見つかりません" },
-                    { status: 404 }
-                );
+                // Google OAuth などで FanProfile が未作成の場合は自動作成
+                fanProfile = await prisma.fanProfile.create({
+                    data: {
+                        userId: user.id,
+                        creatorId: creator.id,
+                        displayName: user.name || user.email!.split("@")[0],
+                        credits: 0,
+                    },
+                    select: { id: true, creatorId: true, tier: true },
+                });
             }
         } else {
             // Legacy: Use first fan profile (for backward compatibility)

@@ -92,10 +92,14 @@ export async function GET(request: NextRequest) {
         }
 
         if (!fanProfile) {
-            return NextResponse.json(
-                { error: "ファンプロフィールが見つかりません" },
-                { status: 404 }
-            );
+            // FanProfileはチャージ時に作成されるため、未チャージのファンは0クレジットを返す
+            return NextResponse.json({
+                credits: 0,
+                tier: 0,
+                trustScore: 0,
+                isLocked: false,
+                history: [],
+            });
         }
 
         return NextResponse.json({

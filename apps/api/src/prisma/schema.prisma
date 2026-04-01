@@ -596,6 +596,7 @@ model PageView {
 // 通知システム
 enum NotificationType {
   PURCHASE // プラン購入通知
+  INQUIRY // お問い合わせ通知
   ANNOUNCEMENT // 新機能お知らせ
   PAYMENT_REMINDER // お支払日のご案内
   SUBSCRIBER // 新規サブスクライバー

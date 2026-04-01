@@ -210,6 +210,22 @@ export async function POST(request: NextRequest) {
             };
         });
 
+        // クリエイターに購入通知を作成（失敗しても購入自体は成功とする）
+        prisma.notification.create({
+            data: {
+                creatorId: content.creatorId,
+                type: "PURCHASE",
+                title: "コンテンツが購入されました",
+                message: `「${content.title}」が購入されました（¥${content.price!.toLocaleString()}）`,
+                metadata: {
+                    contentId: content.id,
+                    contentTitle: content.title,
+                    amount: content.price,
+                    fanEmail: session.user.email,
+                },
+            },
+        }).catch(err => console.error("Failed to create purchase notification:", err));
+
         return NextResponse.json({
             success: true,
             purchase: result.purchase,

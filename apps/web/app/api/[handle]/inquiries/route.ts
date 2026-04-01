@@ -84,6 +84,21 @@ export async function POST(
             }
         });
 
+        // クリエイターにダッシュボード通知を作成（非同期）
+        prisma.notification.create({
+            data: {
+                creatorId: creator.id,
+                type: "INQUIRY",
+                title: "新しいお問い合わせが届きました",
+                message: `${fanName}さんからお問い合わせが届きました`,
+                metadata: {
+                    inquiryId: inquiry.id,
+                    fanName,
+                    fanEmail,
+                },
+            },
+        }).catch(err => console.error("Failed to create inquiry notification:", err));
+
         // クリエイターにメール通知（非同期）
         if (creator.user.email) {
             const customFields = creator.inquiryFormFields

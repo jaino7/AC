@@ -57,8 +57,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
 
     const fetchNotifications = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-            const response = await fetch(`${apiUrl}/creators/notifications?limit=5`);
+            const response = await fetch("/api/creators/notifications?limit=5");
             if (response.ok) {
                 const data = await response.json();
                 setNotifications(data);
@@ -82,8 +81,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
 
     const markAsRead = async (notificationId: string) => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-            await fetch(`${apiUrl}/creators/notifications/${notificationId}/read`, {
+            await fetch(`/api/creators/notifications/${notificationId}/read`, {
                 method: "PUT"
             });
             await fetchNotifications();
