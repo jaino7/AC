@@ -50,8 +50,8 @@ const plans: Plan[] = [
     id: "business",
     name: "Business",
     price: { monthly: 19800, yearly: 198000 },
-    description: "大規模な収益化に対応",
-    features: ["1TB ストレージ", "販売手数料 2.8%", "優先サポート"],
+    description: "本気で稼ぐクリエイターのための最上位プラン",
+    features: ["1TB ストレージ", "業界最低水準 販売手数料 2.8%", "独自ドメイン & フルカスタマイズ", "最優先サポート対応"],
     feeRate: "2.8%",
     cta: "Businessを選択",
   },
@@ -410,7 +410,8 @@ export default function LandingPage() {
               あなたの成長に合わせて選べる3つのプラン。すべてのプランに基本機能が含まれています。
             </p>
             <p className="text-center text-white/40 text-sm mb-12">
-              お支払い方法は銀行振込のみとなります
+              お支払い方法は銀行振込のみとなります。<br />
+              これにより、アダルトコンテンツの収益化が可能となり、クレジットカード決済では実現できない低手数料（2.8%〜）を実現しています。
             </p>
           </AnimatedSection>
 
