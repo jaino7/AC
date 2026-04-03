@@ -411,7 +411,7 @@ export default function LandingPage() {
             </p>
             <p className="text-center text-white/40 text-sm mb-12">
               お支払い方法は銀行振込のみとなります。<br />
-              これにより、アダルトコンテンツの収益化が可能となり、クレジットカード決済では実現できない低手数料（2.8%〜）を実現しています。
+              これにより、クレジットカード決済では実現できない低手数料（2.8%〜）を実現しています。
             </p>
           </AnimatedSection>
 
