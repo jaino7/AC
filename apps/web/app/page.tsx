@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check } from "lucide-react";
+import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, ChevronDown } from "lucide-react";
 
 // --- Data ---
 
@@ -65,6 +65,43 @@ const comparisonFeatures = [
   { name: "独自ドメイン", free: "×", lite: "○", business: "○" },
   { name: "カスタム設定", free: "標準のみ", lite: "追加テーマ", business: "カスタマイズOK" },
   { name: "サポート対応", free: "通常", lite: "優先", business: "最優先" },
+];
+
+type FaqItem = { q: string; a: string };
+type FaqSection = { title: string; items: FaqItem[] };
+
+const faqSections: FaqSection[] = [
+  {
+    title: "決済・お支払い",
+    items: [
+      { q: "ファンはどうやって支払いをするのですか？", a: "ファンは銀行振込でクレジット（残高）をチャージし、そのクレジットでサブスクリプションや単品コンテンツを購入します。一度チャージすれば都度振込の手間なく使えます。" },
+      { q: "なぜクレジットカード決済に対応していないのですか？", a: "一般的なクレジットカード決済プロバイダーはアダルトコンテンツを取り扱えないか、高い手数料が発生します。銀行振込専用にすることで、アダルトコンテンツに対応しながら業界最安水準の手数料（2.8%〜）を実現しています。" },
+      { q: "売上はいつ振り込まれますか？", a: "月次精算で、登録いただいた銀行口座へ自動振込します。残高が振込手数料を下回る場合は翌月に繰り越しとなります。" },
+      { q: "プランの月額費用はどう支払うのですか？", a: "プランの月額費用も銀行振込でのお支払いとなります。" },
+    ],
+  },
+  {
+    title: "手数料・プラン",
+    items: [
+      { q: "手数料はどのように計算されますか？", a: "売上金額にプランの手数料率を掛けた金額がプラットフォーム手数料として差し引かれます。例えばLITEプラン（5%）で¥10,000の売上があった場合、手数料¥500を引いた¥9,500がクリエイターの受取額です。" },
+      { q: "どのプランが自分に合っていますか？", a: "月売上が¥10万円以下ならFREE、¥10万〜76万円ならLITE、¥76万円超ならBUSINESSがお得になります。まずはFREEで始めて、売上に応じてアップグレードするのがおすすめです。" },
+      { q: "途中でプランを変更できますか？", a: "はい、いつでもプランの変更が可能です。" },
+    ],
+  },
+  {
+    title: "本人確認・登録",
+    items: [
+      { q: "本人確認は必須ですか？", a: "アダルトコンテンツを投稿するクリエイターには本人確認（KYC）が必要です。運転免許証・パスポート・マイナンバーカードのいずれかで確認できます。" },
+      { q: "登録から収益化まで何日かかりますか？", a: "アカウント登録自体はすぐに完了します。本人確認の審査が完了次第、コンテンツの販売を開始できます。" },
+    ],
+  },
+  {
+    title: "サイト・カスタマイズ",
+    items: [
+      { q: "独自ドメインは必須ですか？", a: "必須ではありません。CocoBaのサブドメイン（yourname.getcocoba.com）でも運営できます。独自ドメインはLITE以上のプランでご利用いただけます。" },
+      { q: "デザインはどこまでカスタマイズできますか？", a: "6種類のテーマテンプレートから選択でき、アバター・ヘッダー・ロゴ・カラーなどを管理画面から設定できます。カスタマイズ機能は今後さらに拡充予定です。" },
+    ],
+  },
 ];
 
 const themes = [
@@ -175,6 +212,51 @@ function Particles() {
           className="particle"
           style={style}
         />
+      ))}
+    </div>
+  );
+}
+
+function FaqAccordion({ sections }: { sections: FaqSection[] }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const toggle = (key: string) => setOpenKey((prev) => (prev === key ? null : key));
+
+  return (
+    <div className="space-y-8">
+      {sections.map((section) => (
+        <div key={section.title}>
+          <p className="text-sm font-semibold uppercase tracking-widest text-white/30 mb-4 pb-3 border-b border-white/5">
+            {section.title}
+          </p>
+          <div className="space-y-3">
+            {section.items.map((item, i) => {
+              const key = `${section.title}-${i}`;
+              const isOpen = openKey === key;
+              return (
+                <div
+                  key={key}
+                  className={`rounded-xl border transition-all duration-200 overflow-hidden ${isOpen ? "border-white/20 bg-white/[0.08]" : "border-white/10 bg-white/5"}`}
+                >
+                  <button
+                    className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+                    onClick={() => toggle(key)}
+                  >
+                    <span className="text-lg font-medium text-white">{item.q}</span>
+                    <ChevronDown
+                      className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      style={{ color: isOpen ? "#C5A059" : "rgba(255,255,255,0.4)" }}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-6 pb-5 text-base text-white/55 leading-relaxed border-t border-white/10 pt-4">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -409,10 +491,6 @@ export default function LandingPage() {
             <p className="text-center text-white/50 mb-4 max-w-2xl mx-auto">
               あなたの成長に合わせて選べる3つのプラン。すべてのプランに基本機能が含まれています。
             </p>
-            <p className="text-center text-white/40 text-sm mb-12">
-              お支払い方法は銀行振込のみとなります。<br />
-              これにより、クレジットカード決済では実現できない低手数料（2.8%〜）を実現しています。
-            </p>
           </AnimatedSection>
 
           {/* Billing toggle */}
@@ -631,7 +709,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== Section 5: Closing CTA ===== */}
+      {/* ===== Section 5: FAQ ===== */}
+      <section id="faq" className="relative py-16 sm:py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
+              よくある質問
+            </h2>
+            <p className="text-center text-white/50 mb-16">
+              ご不明な点はお気軽にお問い合わせください。
+            </p>
+          </AnimatedSection>
+          <AnimatedSection>
+            <div className="space-y-10">
+              {faqSections.map((section) => (
+                <FaqAccordion key={section.title} sections={[section]} />
+              ))}
+
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ===== Section 6: Closing CTA ===== */}
       <section className="relative py-24 sm:py-32 px-4 overflow-hidden">
         {/* Background glow */}
         <div
@@ -655,9 +755,6 @@ export default function LandingPage() {
               無料で始める
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <p className="text-white/40 text-xs mt-6">
-              アダルトコンテンツの作成は本人確認が必要です
-            </p>
           </AnimatedSection>
         </div>
       </section>
