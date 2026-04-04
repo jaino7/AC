@@ -38,6 +38,16 @@ export async function POST(
             );
         }
 
+        const body = await request.json().catch(() => ({}));
+        const { legalName, dateOfBirth } = body;
+
+        if (!legalName || !dateOfBirth) {
+            return NextResponse.json(
+                { error: "氏名と生年月日は必須です" },
+                { status: 400 }
+            );
+        }
+
         // ステータスをAPPROVEDに更新
         const updatedVerification = await prisma.identityVerification.update({
             where: { id },
@@ -47,6 +57,8 @@ export async function POST(
                 reviewedAt: new Date(),
                 verifiedAt: new Date(),
                 rejectReason: null,
+                legalName,
+                dateOfBirth: new Date(dateOfBirth),
             },
         });
 

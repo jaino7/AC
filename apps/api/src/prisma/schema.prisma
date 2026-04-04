@@ -642,7 +642,12 @@ model IdentityVerification {
   // 審査情報
   reviewedBy   String? // 審査した管理者のID
   reviewedAt   DateTime?
+  verifiedAt   DateTime?
   rejectReason String?   @db.Text
+
+  // 本人情報（画像削除後も永続保持）
+  legalName   String?
+  dateOfBirth DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

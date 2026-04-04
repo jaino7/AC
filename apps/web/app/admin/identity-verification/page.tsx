@@ -31,6 +31,8 @@ export default function IdentityVerificationAdminPage() {
     const [rejectionReason, setRejectionReason] = useState<RejectionReason>("blurry");
     const [customReason, setCustomReason] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [legalName, setLegalName] = useState("");
+    const [dateOfBirth, setDateOfBirth] = useState("");
 
     const rejectionReasons = [
         { id: "blurry" as RejectionReason, label: "画像がぼやけている" },
@@ -117,18 +119,26 @@ export default function IdentityVerificationAdminPage() {
     };
 
     const handleApprove = async (verificationId: string) => {
+        if (!legalName.trim() || !dateOfBirth) {
+            alert("氏名と生年月日を入力してください");
+            return;
+        }
         if (!confirm("この申請を承認しますか？")) return;
 
         setIsProcessing(true);
         try {
             const response = await fetch(`/api/admin/identity-verification/${verificationId}/approve`, {
-                method: "POST"
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ legalName: legalName.trim(), dateOfBirth }),
             });
 
             if (!response.ok) throw new Error("Approval failed");
 
             alert("承認しました。クリエイターにメールを送信しました。");
             setShowImageModal(false);
+            setLegalName("");
+            setDateOfBirth("");
             loadVerifications();
         } catch (error) {
             console.error(error);
@@ -316,10 +326,34 @@ export default function IdentityVerificationAdminPage() {
                                 )}
                             </div>
 
+                            {/* 本人情報入力（承認時に必須） */}
+                            <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 space-y-4">
+                                <p className="text-sm font-semibold text-blue-900">書類から確認した本人情報を入力してください（承認に必須）</p>
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-gray-700">氏名（本名）</label>
+                                    <input
+                                        type="text"
+                                        value={legalName}
+                                        onChange={(e) => setLegalName(e.target.value)}
+                                        placeholder="例: 山田 太郎"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-gray-700">生年月日</label>
+                                    <input
+                                        type="date"
+                                        value={dateOfBirth}
+                                        onChange={(e) => setDateOfBirth(e.target.value)}
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="flex gap-4">
                                 <Button
                                     onClick={() => handleApprove(selectedVerification.id)}
-                                    disabled={isProcessing}
+                                    disabled={isProcessing || !legalName.trim() || !dateOfBirth}
                                     className="flex-1 bg-green-600 hover:bg-green-700"
                                 >
                                     {isProcessing ? "処理中..." : "承認"}
