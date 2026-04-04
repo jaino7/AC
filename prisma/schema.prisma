@@ -744,6 +744,10 @@ model IdentityVerification {
   verifiedAt      DateTime? // 本人確認が承認された日時
   documentPurgedAt DateTime? // 書類画像を削除した日時
 
+  // 本人情報（画像削除後も永続保持）
+  legalName   String?
+  dateOfBirth DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
