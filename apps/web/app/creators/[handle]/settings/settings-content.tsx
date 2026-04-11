@@ -521,6 +521,7 @@ export default function SettingsContent() {
             if (response.ok) {
                 const data = await response.json();
                 setAvatarUrl(data.avatarUrl);
+                window.dispatchEvent(new Event("avatar-updated"));
                 setMessage("プロフィール画像を更新しました。");
             } else {
                 const error = await response.json();

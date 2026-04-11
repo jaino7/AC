@@ -43,6 +43,12 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
         fetchProfile();
     }, [session]);
 
+    // アバター更新イベントを受け取る
+    useEffect(() => {
+        window.addEventListener("avatar-updated", fetchProfile);
+        return () => window.removeEventListener("avatar-updated", fetchProfile);
+    }, []);
+
     const fetchProfile = async () => {
         try {
             const response = await fetch("/api/creators/profile");
