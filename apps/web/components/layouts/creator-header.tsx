@@ -167,16 +167,18 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
                             設定
                         </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        <Link href={creatorHandle ? `/creators/${creatorHandle}/inquiries` : "/creators/inquiries"} className="block w-full">
-                            お問い合わせ
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        <Link href={creatorHandle ? `/creators/${creatorHandle}/feedback` : "/creators/feedback"} className="block w-full">
-                            フィードバック
-                        </Link>
-                    </DropdownMenuItem>
+                    <div className="lg:hidden">
+                        <DropdownMenuItem>
+                            <Link href={creatorHandle ? `/creators/${creatorHandle}/inquiries` : "/creators/inquiries"} className="block w-full">
+                                お問い合わせ
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                            <Link href={creatorHandle ? `/creators/${creatorHandle}/feedback` : "/creators/feedback"} className="block w-full">
+                                フィードバック
+                            </Link>
+                        </DropdownMenuItem>
+                    </div>
                     <DropdownMenuItem>
                         <button onClick={handlePreview} className="w-full text-left">
                             サイトをプレビュー
