@@ -263,7 +263,8 @@ model CreatorProfile {
   otherUrlName String? // その他のURLの表示名
 
   // ストレージプラン
-  storagePlan String @default("FREE") // FREE, BASIC, PRO, UNLIMITED
+  storagePlan      String @default("FREE") // FREE, BASIC, PRO, UNLIMITED
+  storageUsedBytes BigInt @default(0)      // 使用中のストレージ（バイト単位）
 
   // お問い合わせ設定
   inquiryEnabled Boolean @default(true)
