@@ -33,6 +33,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notificationCount, setNotificationCount] = useState(0);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
     // URLから handleを取得
     const creatorHandle = pathname?.split('/')[2] || null;
@@ -41,17 +42,18 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     useEffect(() => {
         fetchNotifications();
         fetchProfile();
-    }, [session]);
+    }, [session, profileRefreshKey]);
 
     // アバター更新イベントを受け取る
     useEffect(() => {
-        window.addEventListener("avatar-updated", fetchProfile);
-        return () => window.removeEventListener("avatar-updated", fetchProfile);
+        const handleAvatarUpdated = () => setProfileRefreshKey(k => k + 1);
+        window.addEventListener("avatar-updated", handleAvatarUpdated);
+        return () => window.removeEventListener("avatar-updated", handleAvatarUpdated);
     }, []);
 
     const fetchProfile = async () => {
         try {
-            const response = await fetch(`/api/creators/profile?t=${Date.now()}`);
+            const response = await fetch(`/api/creators/profile?t=${Date.now()}`, { cache: "no-store" });
             if (response.ok) {
                 const data = await response.json();
                 setAvatarUrl(data.profile.avatarUrl || null);
