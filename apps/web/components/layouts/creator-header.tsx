@@ -51,7 +51,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
 
     const fetchProfile = async () => {
         try {
-            const response = await fetch("/api/creators/profile");
+            const response = await fetch(`/api/creators/profile?t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
                 setAvatarUrl(data.profile.avatarUrl || null);
