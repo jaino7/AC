@@ -11,6 +11,10 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Avatar({ src, alt, fallback, className, ...props }: AvatarProps) {
     const [imageError, setImageError] = React.useState(false);
 
+    React.useEffect(() => {
+        setImageError(false);
+    }, [src]);
+
     return (
         <div
             className={cn(
