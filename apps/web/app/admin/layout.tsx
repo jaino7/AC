@@ -104,6 +104,12 @@ export default async function AdminLayout({
               クリエイター
             </a>
             <a
+              href={`${adminBasePath}/payouts`}
+              className="border-b-2 border-transparent px-1 py-4 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
+            >
+              振込管理
+            </a>
+            <a
               href={`${adminBasePath}/announcements`}
               className="border-b-2 border-transparent px-1 py-4 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
             >

@@ -76,6 +76,12 @@ export async function PUT(
             );
         }
 
+        // 新規登録かどうかをupsert前に確認
+        const existing = await prisma.bankAccount.findUnique({
+            where: { creatorId: creator.id },
+        });
+        const isNewRegistration = !existing;
+
         // Upsert bank account
         const bankAccount = await prisma.bankAccount.upsert({
             where: { creatorId: creator.id },
@@ -98,11 +104,6 @@ export async function PUT(
                 accountNumber: accountNumber,
                 accountHolder: accountHolder,
             },
-        });
-
-        // 新規登録の場合のみメール送信
-        const isNewRegistration = !await prisma.bankAccount.findUnique({
-            where: { creatorId: creator.id }
         });
 
         if (isNewRegistration) {

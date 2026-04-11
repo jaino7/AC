@@ -206,11 +206,11 @@ function PlanEditModal({
     });
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 py-10">
-            <div className="relative w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-6 md:py-10">
+            <div className="relative w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl md:p-8">
                 <button
                     onClick={onClose}
-                    className="absolute right-6 top-6 rounded-lg border border-black/10 p-2 text-black/60 transition-colors hover:bg-black/5 hover:text-black"
+                    className="absolute right-4 top-4 rounded-lg border border-black/10 p-2 text-black/60 transition-colors hover:bg-black/5 hover:text-black md:right-6 md:top-6"
                 >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -538,7 +538,7 @@ export default function PlansSettingsPage() {
         <main className="min-h-screen bg-white px-0 py-6 md:px-6 md:py-10 text-black lg:px-12">
             <div className="mx-auto max-w-5xl space-y-8">
                 {/* ページヘッダー */}
-                <header className="flex items-start justify-between px-4 md:px-0">
+                <header className="flex flex-col gap-3 px-4 md:flex-row md:items-start md:justify-between md:px-0">
                     <div>
                         <h1 className="text-3xl font-bold">プラン設定</h1>
                         <p className="mt-1 text-sm text-black/60">
@@ -548,7 +548,7 @@ export default function PlansSettingsPage() {
                     {!hasPlan && (
                         <button
                             onClick={handleCreatePlan}
-                            className="flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-medium text-white transition-colors hover:bg-black/80"
+                            className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-black px-5 py-3 font-medium text-white transition-colors hover:bg-black/80 md:self-start"
                         >
                             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <line x1="12" y1="5" x2="12" y2="19" />

@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { PlusIcon, BellIcon, MenuIcon } from "./icons";
+import { PlusIcon, BellIcon } from "./icons";
 import { useState, useEffect } from "react";
 
 interface CreatorHeaderProps {
@@ -74,8 +74,6 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     };
 
     const handlePreview = () => {
-        // TODO: クリエイターのハンドルを取得してプレビューページに遷移
-        // 現在はプレースホルダー
         window.open("/creators/preview", "_blank");
     };
 
@@ -91,16 +89,10 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     };
 
     return (
-        <header className="fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-4">
-            {/* 左側: メニューボタン + ロゴ */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={onMenuClick}
-                    className="rounded-lg p-2 hover:bg-neutral-100 lg:hidden"
-                    aria-label="メニューを開く"
-                >
-                    <MenuIcon className="h-6 w-6" />
-                </button>
+        // モバイル: 固定なし（スクロールで流れる）/ デスクトップ: 固定
+        <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-4 lg:fixed lg:left-0 lg:right-0 lg:top-0 lg:z-50">
+            {/* 左側: ロゴ */}
+            <div className="flex items-center">
                 <Link href={creatorHandle ? `/creators/${creatorHandle}/dashboard` : "/creators/dashboard"} className="flex items-center">
                     <img src="/logo.png" alt="Creator Logo" className="h-8 w-auto" />
                 </Link>
@@ -173,6 +165,16 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
                     <DropdownMenuItem>
                         <Link href={creatorHandle ? `/creators/${creatorHandle}/settings` : "/creators/settings"} className="block w-full">
                             設定
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Link href={creatorHandle ? `/creators/${creatorHandle}/inquiries` : "/creators/inquiries"} className="block w-full">
+                            お問い合わせ
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Link href={creatorHandle ? `/creators/${creatorHandle}/feedback` : "/creators/feedback"} className="block w-full">
+                            フィードバック
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
