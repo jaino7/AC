@@ -90,7 +90,7 @@ export default function SettingsContent() {
     const [notifyInquiry, setNotifyInquiry] = useState(true);
     const [notifyAnnouncement, setNotifyAnnouncement] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [isUploadingHeader, setIsUploadingHeader] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -466,41 +466,7 @@ export default function SettingsContent() {
         );
     };
 
-    const handleSaveProfile = async () => {
-        setMessage(null);
-        setIsSaving(true);
-        try {
-            const response = await fetch("/api/creators/profile", {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    displayName,
-                    bio,
-                    twitterUrl,
-                    instagramUrl,
-                    tiktokUrl,
-                    discordUrl,
-                    otherUrl,
-                    otherUrlName,
-                    headerUrl
-                }),
-            });
 
-            if (response.ok) {
-                setMessage("プロフィールを更新しました。");
-            } else {
-                const error = await response.json();
-                setMessage(error.error || "更新に失敗しました。");
-            }
-        } catch (error) {
-            console.error("Failed to update profile:", error);
-            setMessage("更新に失敗しました。");
-        } finally {
-            setIsSaving(false);
-        }
-    };
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -892,16 +858,6 @@ export default function SettingsContent() {
                                         </p>
                                     )}
 
-                                    <div className="mt-6 flex justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={handleSaveProfile}
-                                            disabled={isSaving || isLoading}
-                                            className="rounded-2xl bg-blue-600 px-8 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                                        >
-                                            {isSaving ? "保存中..." : "変更する"}
-                                        </button>
-                                    </div>
                                 </section>
                             </>
                         )}
