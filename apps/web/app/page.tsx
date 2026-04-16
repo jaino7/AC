@@ -8,9 +8,9 @@ import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, Chevron
 // --- Data ---
 
 const catchphrases = [
-  "あなたのコンテンツに、\n真の価値を。",
-  "業界最安水準の手数料で、\n手残りを最大化。",
-  "あなたのブランドを、\nあなたの手で。",
+  <>あなたの<br className="sm:hidden" />コンテンツに、<br />真の価値を。</>,
+  <>業界最安水準の<br className="sm:hidden" />手数料で、<br className="sm:hidden" />手残りを最大化。</>,
+  <>あなたのブランドを、<br className="sm:hidden" />あなたの手で。</>,
 ];
 
 type BillingCycle = "monthly" | "yearly";
@@ -370,7 +370,6 @@ export default function LandingPage() {
                 background: "linear-gradient(135deg, #FFFFFF 30%, #C5A059 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
-                whiteSpace: "pre-line",
               }}
             >
               {catchphrases[currentPhrase]}
@@ -379,8 +378,8 @@ export default function LandingPage() {
 
           <p className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
             業界最安水準 <span className="text-white font-semibold">2.8%</span> の手数料。
-            <br className="hidden sm:block" />
-            独自ドメイン・完全自立型で、あなたのブランドを守りながら収益を最大化。
+            <br />
+            独自ドメイン・完全自立型で、<br />あなたのブランドを守りながら<br className="sm:hidden" />収益を最大化。
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -409,13 +408,13 @@ export default function LandingPage() {
       <section className="relative py-12 sm:py-32 px-4">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white" style={{ lineHeight: 1.4 }}>
               もう、プラットフォームの都合に
-              <br className="hidden sm:block" />
+              <br />
               振り回されない。
             </h2>
             <p className="text-center text-white/50 mb-16 max-w-2xl mx-auto">
-              CocoBaは、クリエイターが本当に必要とする自由と安全を提供します。
+              CocoBaは、クリエイターが本当に必要とする<br className="sm:hidden" />自由と安全を提供します。
             </p>
           </AnimatedSection>
 
@@ -486,10 +485,10 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
-              シンプルで透明な料金体系
+              シンプルで透明な<br className="sm:hidden" />料金体系
             </h2>
             <p className="text-center text-white/50 mb-4 max-w-2xl mx-auto">
-              あなたの成長に合わせて選べる3つのプラン。すべてのプランに基本機能が含まれています。
+              あなたの成長に合わせて選べる3つのプラン。<br className="sm:hidden" />すべてのプランに基本機能が含まれています。
             </p>
           </AnimatedSection>
 
@@ -546,7 +545,7 @@ export default function LandingPage() {
                       </>
                     )}
 
-                    <div className="text-center mb-6">
+                    <div className="text-center mb-3 sm:mb-6">
                       <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
                       <p className="text-sm text-white/50 mt-1">{plan.description}</p>
                     </div>
@@ -638,7 +637,7 @@ export default function LandingPage() {
               あなたの価値を、正しく表現するための武器。
             </h2>
             <p className="text-center text-white/50 mb-16 max-w-2xl mx-auto">
-              独自ドメインと洗練されたテーマで、プロフェッショナルなブランドを構築。
+              独自ドメインと洗練されたテーマで、<br className="sm:hidden" />プロフェッショナルなブランドを構築。
             </p>
           </AnimatedSection>
 
@@ -656,7 +655,7 @@ export default function LandingPage() {
                 </div>
                 <div className="text-center md:text-left">
                   <h3 className="text-2xl font-bold text-white mb-3">
-                    独自ドメインで、あなただけの世界を。
+                    独自ドメインで、<br className="sm:hidden" />あなただけの世界を。
                   </h3>
                   <p className="text-white/50 leading-relaxed max-w-xl">
                     <span className="font-semibold text-white/70">yourbrand.com</span> であなたのページを公開。
@@ -741,10 +740,10 @@ export default function LandingPage() {
 
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-16 leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-8 sm:mb-16 leading-tight">
               さあ、真の自由と、
               <br />
-              最大の手残りを手に入れよう。
+              最大の手残りを<br className="sm:hidden" />手に入れよう。
             </h2>
 
             <Link
