@@ -121,6 +121,7 @@ export default function ContentPage() {
   // 一括選択・削除
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Fetch posts with filters
@@ -230,6 +231,7 @@ export default function ContentPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       setOpenMenuId(null);
+      setPostToDelete(null);
     },
   });
 
@@ -452,7 +454,8 @@ export default function ContentPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteSingleMutation.mutate(post.id);
+                            setPostToDelete(post.id);
+                            setOpenMenuId(null);
                           }}
                           className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-xl"
                         >
@@ -504,7 +507,34 @@ export default function ContentPage() {
       </div>
 
 
-      {/* Delete Confirmation Modal */}
+      {/* Single Delete Confirmation Modal */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-3xl bg-white p-8 shadow-2xl w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">投稿を削除</h2>
+            <p className="mb-6 text-neutral-600">
+              この投稿を削除しますか？この操作は取り消せません。
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setPostToDelete(null)}
+                className="rounded-2xl border border-black/10 px-6 py-3 font-semibold"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => deleteSingleMutation.mutate(postToDelete)}
+                disabled={deleteSingleMutation.isPending}
+                className="rounded-2xl border border-red-600 bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteSingleMutation.isPending ? "削除中..." : "削除"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="rounded-3xl bg-white p-8 shadow-2xl w-full max-w-md">

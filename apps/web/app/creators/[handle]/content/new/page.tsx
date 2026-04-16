@@ -399,7 +399,7 @@ export default function NewContentPage() {
             setIsSubmitted(true);
             setSuccessMessage("投稿を作成しました");
             setTimeout(() => {
-                router.back();
+                router.push(`/creators/${handle}/content`);
             }, 1500);
         },
         onError: (error: Error) => {
@@ -508,7 +508,7 @@ export default function NewContentPage() {
                             disabled={createContentMutation.isPending}
                             className="rounded-2xl border border-black bg-black px-6 py-3 font-semibold text-white transition-all hover:bg-black/80 disabled:opacity-50"
                         >
-                            {createContentMutation.isPending ? "送信中..." : "公開"}
+                            {createContentMutation.isPending ? "送信中..." : "保存"}
                         </button>
                     </div>
                 </header>
