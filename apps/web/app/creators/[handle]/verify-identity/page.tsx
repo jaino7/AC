@@ -105,6 +105,9 @@ export default function VerifyIdentityPage() {
             });
 
             if (!response.ok) {
+                if (response.status === 413) {
+                    throw new Error("ファイルサイズが大きすぎます。画像を圧縮するか、より小さいファイルを使用してください。");
+                }
                 throw new Error("アップロードに失敗しました");
             }
 
