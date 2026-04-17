@@ -67,7 +67,24 @@
       "Bash(python generate_doc.py)",
       "Bash(docker restart:*)",
       "Bash(python3:*)",
-      "Bash(find \"/c/dev/ACD/Creator/apps/web/app/[handle]\" -type f 2>/dev/null | sort\nfind \"/c/dev/ACD/Creator/apps/web/app/creator-pro/login\" -type f 2>/dev/null)"
+      "Bash(find \"/c/dev/ACD/Creator/apps/web/app/[handle]\" -type f 2>/dev/null | sort\nfind \"/c/dev/ACD/Creator/apps/web/app/creator-pro/login\" -type f 2>/dev/null)",
+      "Bash(git status:*)",
+      "Bash(npx next:*)",
+      "Bash(git diff:*)",
+      "Bash(find /c/dev/ACD/Creator -maxdepth 3 -type f \\\\\\(-name *.env* -o -name *.config* -o -name README* \\\\\\))",
+      "Bash(find /c/dev/ACD/Creator -type f \\\\\\(-name *.conf -o -name nginx.conf -o -name caddy.conf -o -name Caddyfile \\\\\\))",
+      "Bash(git mv:*)",
+      "Bash(diff:*)",
+      "Bash(git checkout:*)",
+      "Bash(for theme:*)",
+      "Bash(find C:devACDCreator -type f \\\\\\(-name .env* -o -name *.env \\\\\\))",
+      "Bash(head -200 /c/dev/ACD/Creator/apps/web/app/[handle]/content/[id]/page.tsx)",
+      "Bash(/tmp/fan_pages.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(nslookup getcocoba.com)",
+      "Bash(nslookup test.getcocoba.com)",
+      "Bash(do echo:*)",
+      "Bash(git check-ignore *)"
     ]
   }
 }
