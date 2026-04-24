@@ -85,7 +85,7 @@ export async function PUT(req: Request) {
 
         console.log("Cache invalidated");
 
-        return NextResponse.json(updated);
+        return NextResponse.json({ theme: updated.theme });
     } catch (error) {
         console.error("Failed to update theme:", error);
         return new NextResponse("Internal Server Error", { status: 500 });

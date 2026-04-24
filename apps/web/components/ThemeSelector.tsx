@@ -21,6 +21,8 @@ interface ThemeSelectorProps {
 export function ThemeSelector({ currentTheme, creatorPlanType = "FREE" }: ThemeSelectorProps) {
     const [activeTheme, setActiveTheme] = useState(currentTheme);
     const [previewTheme, setPreviewTheme] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const router = useRouter();
 
     const isFreePlan = creatorPlanType === "FREE";
@@ -44,8 +46,12 @@ export function ThemeSelector({ currentTheme, creatorPlanType = "FREE" }: ThemeS
         onSuccess: (themeId) => {
             setActiveTheme(themeId);
             setPreviewTheme(null);
-            // ページ全体をリロードしてキャッシュをクリア
-            window.location.reload();
+            setErrorMessage(null);
+            setSuccessMessage(`「${THEMES.find(t => t.id === themeId)?.name}」を適用しました`);
+            router.refresh();
+        },
+        onError: (error: Error) => {
+            setErrorMessage(error.message || "テーマの更新に失敗しました");
         },
     });
 
@@ -69,6 +75,22 @@ export function ThemeSelector({ currentTheme, creatorPlanType = "FREE" }: ThemeS
 
     return (
         <div className="space-y-6">
+            {/* エラーメッセージ */}
+            {errorMessage && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start justify-between">
+                    <p className="text-sm text-red-800">{errorMessage}</p>
+                    <button onClick={() => setErrorMessage(null)} className="ml-4 text-red-500 hover:text-red-700 text-xs">✕</button>
+                </div>
+            )}
+
+            {/* 成功メッセージ */}
+            {successMessage && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start justify-between">
+                    <p className="text-sm text-green-800">{successMessage}</p>
+                    <button onClick={() => setSuccessMessage(null)} className="ml-4 text-green-500 hover:text-green-700 text-xs">✕</button>
+                </div>
+            )}
+
             {/* 無料プラン向けの案内 */}
             {isFreePlan && (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
