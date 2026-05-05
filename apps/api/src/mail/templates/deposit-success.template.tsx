@@ -47,8 +47,16 @@ export default function DepositSuccessEmail({
             </Text>
 
             <Section style={amountBox}>
-              <Text style={amountLabel}>入金額</Text>
-              <Text style={amountValue}>{formatCurrency(amount)}</Text>
+              <table role="presentation" cellPadding="0" cellSpacing="0" style={metricTable}>
+                <tbody>
+                  <tr>
+                    <td style={metricCell}>
+                      <Text style={amountLabel}>入金額</Text>
+                      <Text style={amountValue}>{formatCurrency(amount)}</Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </Section>
 
             <Section style={infoBox}>
@@ -61,8 +69,16 @@ export default function DepositSuccessEmail({
             </Section>
 
             <Section style={balanceBox}>
-              <Text style={balanceLabel}>現在の残高</Text>
-              <Text style={balanceValue}>{formatCurrency(balance)}</Text>
+              <table role="presentation" cellPadding="0" cellSpacing="0" style={metricTable}>
+                <tbody>
+                  <tr>
+                    <td style={metricCell}>
+                      <Text style={balanceLabel}>現在の残高</Text>
+                      <Text style={balanceValue}>{formatCurrency(balance)}</Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </Section>
 
             <Text style={paragraph}>
@@ -104,10 +120,12 @@ const container = {
   margin: '0 auto',
   padding: '20px 0',
   maxWidth: '600px',
+  width: '100%',
+  boxSizing: 'border-box' as const,
 };
 
 const header = {
-  padding: '20px 40px',
+  padding: '20px',
 };
 
 const logo = {
@@ -118,7 +136,7 @@ const logo = {
 };
 
 const content = {
-  padding: '0 40px 40px',
+  padding: '0 20px 32px',
 };
 
 const heading = {
@@ -137,15 +155,30 @@ const paragraph = {
 
 const amountBox = {
   backgroundColor: '#e8f5e9',
-  padding: '24px',
+  boxSizing: 'border-box' as const,
+  padding: '20px',
   borderRadius: '8px',
   textAlign: 'center' as const,
   margin: '24px 0',
 };
 
+const metricTable = {
+  width: '100%',
+  borderCollapse: 'collapse' as const,
+  tableLayout: 'fixed' as const,
+};
+
+const metricCell = {
+  padding: '0',
+  textAlign: 'center' as const,
+  verticalAlign: 'middle' as const,
+};
+
 const amountLabel = {
   fontSize: '14px',
   color: '#2e7d32',
+  display: 'block',
+  lineHeight: '20px',
   margin: '0 0 8px',
 };
 
@@ -153,11 +186,14 @@ const amountValue = {
   fontSize: '32px',
   fontWeight: 'bold',
   color: '#1b5e20',
+  display: 'block',
+  lineHeight: '38px',
   margin: 0,
 };
 
 const infoBox = {
   backgroundColor: '#f9f9f9',
+  boxSizing: 'border-box' as const,
   padding: '20px',
   borderRadius: '8px',
   margin: '24px 0',
@@ -171,6 +207,7 @@ const infoRow = {
 
 const balanceBox = {
   backgroundColor: '#e3f2fd',
+  boxSizing: 'border-box' as const,
   padding: '20px',
   borderRadius: '8px',
   textAlign: 'center' as const,
@@ -180,6 +217,8 @@ const balanceBox = {
 const balanceLabel = {
   fontSize: '14px',
   color: '#1565c0',
+  display: 'block',
+  lineHeight: '20px',
   margin: '0 0 8px',
 };
 
@@ -187,6 +226,8 @@ const balanceValue = {
   fontSize: '24px',
   fontWeight: 'bold',
   color: '#0d47a1',
+  display: 'block',
+  lineHeight: '30px',
   margin: 0,
 };
 
@@ -198,7 +239,7 @@ const buttonContainer = {
 const button = {
   backgroundColor: '#223C7D',
   color: '#ffffff',
-  padding: '12px 32px',
+  padding: '12px 20px',
   borderRadius: '6px',
   textDecoration: 'none',
   display: 'inline-block',
@@ -208,11 +249,11 @@ const button = {
 
 const divider = {
   borderColor: '#e5e5e5',
-  margin: '20px 40px',
+  margin: '20px',
 };
 
 const footer = {
-  padding: '0 40px 20px',
+  padding: '0 20px 20px',
 };
 
 const footerText = {
