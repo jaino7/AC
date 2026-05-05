@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 type DocumentType = "drivers_license" | "passport" | "mynumber_card";
+const MAX_IDENTITY_FILE_SIZE_MB = 20;
+const MAX_IDENTITY_FILE_SIZE_BYTES = MAX_IDENTITY_FILE_SIZE_MB * 1024 * 1024;
 
 export default function VerifyIdentityPage() {
     const { data: session, status } = useSession();
@@ -33,9 +35,9 @@ export default function VerifyIdentityPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // ファイルサイズチェック（10MB）
-        if (file.size > 10 * 1024 * 1024) {
-            alert("ファイルサイズは10MB以下にしてください");
+        // ファイルサイズチェック
+        if (file.size > MAX_IDENTITY_FILE_SIZE_BYTES) {
+            alert(`ファイルサイズは${MAX_IDENTITY_FILE_SIZE_MB}MB以下にしてください`);
             return;
         }
 
@@ -220,7 +222,7 @@ export default function VerifyIdentityPage() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                             </svg>
                                             <p className="mt-2 text-sm text-gray-600">クリックしてファイルを選択</p>
-                                            <p className="text-xs text-gray-500">JPG, PNG, PDF（最大10MB）</p>
+                                            <p className="text-xs text-gray-500">JPG, PNG, PDF（最大{MAX_IDENTITY_FILE_SIZE_MB}MB）</p>
                                         </>
                                     )}
                                 </label>
@@ -258,7 +260,7 @@ export default function VerifyIdentityPage() {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                 </svg>
                                                 <p className="mt-2 text-sm text-gray-600">クリックしてファイルを選択</p>
-                                                <p className="text-xs text-gray-500">JPG, PNG, PDF（最大10MB）</p>
+                                                <p className="text-xs text-gray-500">JPG, PNG, PDF（最大{MAX_IDENTITY_FILE_SIZE_MB}MB）</p>
                                             </>
                                         )}
                                     </label>

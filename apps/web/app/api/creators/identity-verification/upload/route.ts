@@ -6,6 +6,8 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "@/lib/r2";
 import { sendIdentityVerificationNotification } from "@/lib/discord";
 
+const MAX_IDENTITY_FILE_SIZE_MB = 20;
+const MAX_IDENTITY_FILE_SIZE_BYTES = MAX_IDENTITY_FILE_SIZE_MB * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
     try {
@@ -55,11 +57,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ファイルサイズチェック（10MB）
-        const maxSize = 10 * 1024 * 1024;
-        if (frontImage.size > maxSize || (backImage && backImage.size > maxSize)) {
+        // ファイルサイズチェック
+        if (
+            frontImage.size > MAX_IDENTITY_FILE_SIZE_BYTES ||
+            (backImage && backImage.size > MAX_IDENTITY_FILE_SIZE_BYTES)
+        ) {
             return NextResponse.json(
-                { error: "ファイルサイズは10MB以下にしてください" },
+                { error: `ファイルサイズは${MAX_IDENTITY_FILE_SIZE_MB}MB以下にしてください` },
                 { status: 400 }
             );
         }
