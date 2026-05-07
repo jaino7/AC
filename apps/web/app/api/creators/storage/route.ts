@@ -10,6 +10,13 @@ const STORAGE_LIMITS: Record<string, number> = {
   BUSINESS: 1 * 1024 * 1024 * 1024 * 1024, // 1 TB
 };
 
+function parseByteTotal(total: unknown): number {
+  if (typeof total === "bigint") return Number(total);
+  if (typeof total === "number") return total;
+  if (typeof total === "string") return Number(total);
+  return 0;
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -48,14 +55,14 @@ export async function GET() {
       : "FREE";
 
     // Mediaのサイズ合計を取得
-    const sizeResult = await prisma.$queryRaw<Array<{ total: number }>>`
-            SELECT COALESCE(SUM(m."size"), 0)::int as total
+    const sizeResult = await prisma.$queryRaw<Array<{ total: bigint | number | string }>>`
+            SELECT COALESCE(SUM(m."size"), 0)::bigint as total
             FROM "Media" m
             INNER JOIN "Post" p ON m."postId" = p."id"
             WHERE p."creatorId" = ${creatorProfile.id}
         `;
 
-    const usedBytes = sizeResult[0]?.total || 0;
+    const usedBytes = parseByteTotal(sizeResult[0]?.total);
     const limitBytes = STORAGE_LIMITS[planType] || STORAGE_LIMITS.FREE;
 
     return NextResponse.json({

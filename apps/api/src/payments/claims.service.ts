@@ -13,6 +13,59 @@ export class ClaimsService {
     private mailService: MailService,
   ) { }
 
+  private async reverseImmediateCreditsWithoutNegative(
+    fanId: string,
+    requestedAmount: number,
+    claimId: string,
+    description: string,
+  ) {
+    if (requestedAmount <= 0) {
+      return null;
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ previousCredits: number; credits: number }>>`
+        WITH current AS (
+          SELECT "credits" AS "previousCredits"
+          FROM "FanProfile"
+          WHERE "id" = ${fanId}
+          FOR UPDATE
+        ),
+        updated AS (
+          UPDATE "FanProfile"
+          SET "credits" = GREATEST("credits" - ${requestedAmount}, 0)
+          WHERE "id" = ${fanId}
+          RETURNING "credits"
+        )
+        SELECT current."previousCredits", updated."credits"
+        FROM current, updated
+      `;
+
+      const result = rows[0];
+      if (!result) {
+        throw new NotFoundException('Fan profile not found');
+      }
+
+      const reversedAmount = Math.max(result.previousCredits - result.credits, 0);
+      if (reversedAmount > 0) {
+        await tx.creditHistory.create({
+          data: {
+            fanId,
+            type: 'REFUND',
+            amount: -reversedAmount,
+            balance: result.credits,
+            description: `${description} - Claim ID: ${claimId}`,
+          },
+        });
+      }
+
+      return {
+        credits: result.credits,
+        reversedAmount,
+      };
+    });
+  }
+
   /**
    * Create a new claim for a charge request
    */
@@ -448,24 +501,12 @@ export class ClaimsService {
 
     // Reverse immediate credits if granted
     if (claim.immediateCredit > 0) {
-      const fan = await this.prisma.fanProfile.update({
-        where: { id: claim.fanId },
-        data: {
-          credits: {
-            decrement: claim.immediateCredit,
-          },
-        },
-      });
-
-      await this.prisma.creditHistory.create({
-        data: {
-          fanId: claim.fanId,
-          type: 'REFUND',
-          amount: -claim.immediateCredit,
-          balance: fan.credits,
-          description: `不正検知によるクレジット取り消し - Claim ID: ${claim.id}`,
-        },
-      });
+      await this.reverseImmediateCreditsWithoutNegative(
+        claim.fanId,
+        claim.immediateCredit,
+        claim.id,
+        '不正検知による即時付与クレジット取消',
+      );
     }
 
     // Mark claim as rejected
@@ -648,24 +689,12 @@ export class ClaimsService {
 
     // Reverse immediate credits if granted
     if (claim.immediateCredit > 0) {
-      const fan = await this.prisma.fanProfile.update({
-        where: { id: claim.fanId },
-        data: {
-          credits: {
-            decrement: claim.immediateCredit,
-          },
-        },
-      });
-
-      await this.prisma.creditHistory.create({
-        data: {
-          fanId: claim.fanId,
-          type: 'REFUND',
-          amount: -claim.immediateCredit,
-          balance: fan.credits,
-          description: `管理者による却下 - Claim ID: ${claim.id}`,
-        },
-      });
+      await this.reverseImmediateCreditsWithoutNegative(
+        claim.fanId,
+        claim.immediateCredit,
+        claim.id,
+        '管理者による即時付与クレジット取消',
+      );
     }
 
     // Update claim
@@ -702,24 +731,12 @@ export class ClaimsService {
     for (const claim of expiredClaims) {
       // Reverse immediate credits if granted
       if (claim.immediateCredit > 0) {
-        const fan = await this.prisma.fanProfile.update({
-          where: { id: claim.fanId },
-          data: {
-            credits: {
-              decrement: claim.immediateCredit,
-            },
-          },
-        });
-
-        await this.prisma.creditHistory.create({
-          data: {
-            fanId: claim.fanId,
-            type: 'REFUND',
-            amount: -claim.immediateCredit,
-            balance: fan.credits,
-            description: `期限切れによるクレジット取り消し - Claim ID: ${claim.id}`,
-          },
-        });
+        await this.reverseImmediateCreditsWithoutNegative(
+          claim.fanId,
+          claim.immediateCredit,
+          claim.id,
+          '期限切れによる即時付与クレジット取消',
+        );
       }
 
       // Mark as expired

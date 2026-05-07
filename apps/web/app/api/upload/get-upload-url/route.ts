@@ -12,6 +12,13 @@ const STORAGE_LIMITS: Record<string, number> = {
     BUSINESS: 1 * 1024 * 1024 * 1024 * 1024, // 1 TB
 };
 
+function parseByteTotal(total: unknown): number {
+    if (typeof total === "bigint") return Number(total);
+    if (typeof total === "number") return total;
+    if (typeof total === "string") return Number(total);
+    return 0;
+}
+
 export async function POST(request: Request) {
     // 認証チェック（セッションの存在確認のみ）
     const session = await getServerSession(authOptions);
@@ -25,6 +32,14 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { filename, contentType, fileSize } = body;
+        const uploadSize = Number(fileSize);
+
+        if (!Number.isSafeInteger(uploadSize) || uploadSize <= 0) {
+            return NextResponse.json(
+                { error: "fileSize is required and must be a positive integer." },
+                { status: 400 }
+            );
+        }
 
         // ストレージ容量チェック
         const user = await prisma.user.findUnique({
@@ -37,20 +52,25 @@ export async function POST(request: Request) {
             });
 
             if (creatorProfile) {
-                const sizeResult = await prisma.$queryRaw<Array<{ total: number }>>`
-                    SELECT COALESCE(SUM(m."size"), 0)::int as total
+                const sizeResult = await prisma.$queryRaw<Array<{ total: bigint | number | string }>>`
+                    SELECT COALESCE(SUM(m."size"), 0)::bigint as total
                     FROM "Media" m
                     INNER JOIN "Post" p ON m."postId" = p."id"
                     WHERE p."creatorId" = ${creatorProfile.id}
                 `;
-                const planResult = await prisma.$queryRaw<Array<{ storagePlan: string }>>`
-                    SELECT "storagePlan" FROM "CreatorProfile" WHERE "id" = ${creatorProfile.id}
+                const planResult = await prisma.$queryRaw<Array<{ type: string; status: string }>>`
+                    SELECT cp."type", cs."status"
+                    FROM "CreatorSubscription" cs
+                    INNER JOIN "CreatorPlan" cp ON cs."planId" = cp."id"
+                    WHERE cs."creatorId" = ${creatorProfile.id}
+                    LIMIT 1
                 `;
 
-                const usedBytes = sizeResult[0]?.total || 0;
-                const plan = planResult[0]?.storagePlan || "FREE";
+                const usedBytes = parseByteTotal(sizeResult[0]?.total);
+                const plan = (planResult.length > 0 && planResult[0].status === "ACTIVE")
+                    ? planResult[0].type
+                    : "FREE";
                 const limitBytes = STORAGE_LIMITS[plan] || STORAGE_LIMITS.FREE;
-                const uploadSize = fileSize || 0;
 
                 if (usedBytes + uploadSize > limitBytes) {
                     return NextResponse.json(

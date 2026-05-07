@@ -91,10 +91,10 @@ export default function InquiriesContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#1a1a1a] text-white p-6">
+        <div className="min-h-screen bg-[#1a1a1a] p-4 text-white sm:p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                     <h1 className="text-2xl font-bold">お問い合わせ</h1>
                     {data && data.unreadCount > 0 && (
                         <p className="text-sm text-white/60 mt-1">
@@ -104,18 +104,18 @@ export default function InquiriesContent() {
                 </div>
                 <Link
                     href={`/creators/${handle}/inquiries/settings`}
-                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
+                    className="min-h-10 rounded-lg bg-white/10 px-4 py-2 text-center text-sm font-medium transition-colors hover:bg-white/20"
                 >
                     フォーム設定
                 </Link>
             </div>
 
             {/* Filter tabs / モバイル詳細時は戻るボタン */}
-            <div className="flex gap-2 mb-4">
+            <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
                 {showDetail && (
                     <button
                         onClick={() => setShowDetail(false)}
-                        className="md:hidden px-3 py-1.5 rounded-lg text-sm font-medium bg-white/10 text-white/70 hover:bg-white/15 transition-colors"
+                        className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/15 md:hidden"
                     >
                         ← 一覧
                     </button>
@@ -129,7 +129,7 @@ export default function InquiriesContent() {
                     <button
                         key={tab.key}
                         onClick={() => { setFilter(tab.key); setPage(1); setSelected(null); }}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                             filter === tab.key
                                 ? "bg-white text-[#1a1a1a]"
                                 : "bg-white/10 text-white/70 hover:bg-white/15"
@@ -140,9 +140,9 @@ export default function InquiriesContent() {
                 ))}
             </div>
 
-            <div className="flex gap-4 h-[calc(100vh-200px)]">
+            <div className="flex h-[calc(100vh-190px)] min-w-0 gap-4 sm:h-[calc(100vh-200px)]">
                 {/* List */}
-                <div className={`${showDetail ? "hidden md:block" : "block"} w-full md:w-80 flex-shrink-0 overflow-y-auto space-y-2`}>
+                <div className={`${showDetail ? "hidden md:block" : "block"} w-full flex-shrink-0 space-y-2 overflow-y-auto md:w-80`}>
                     {loading ? (
                         <div className="text-white/40 text-sm p-4">読み込み中...</div>
                     ) : data?.inquiries.length === 0 ? (
@@ -152,14 +152,14 @@ export default function InquiriesContent() {
                             <button
                                 key={inq.id}
                                 onClick={() => handleSelect(inq)}
-                                className={`w-full text-left rounded-xl p-4 transition-colors ${
+                                className={`w-full min-w-0 rounded-xl p-4 text-left transition-colors ${
                                     selected?.id === inq.id
                                         ? "bg-white/20"
                                         : "bg-white/5 hover:bg-white/10"
                                 }`}
                             >
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                    <span className="font-medium text-sm truncate">{inq.fanName}</span>
+                                <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
+                                    <span className="min-w-0 truncate text-sm font-medium">{inq.fanName}</span>
                                     <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${statusColors[inq.status]}`}>
                                         {statusLabels[inq.status]}
                                     </span>
@@ -198,15 +198,15 @@ export default function InquiriesContent() {
                 </div>
 
                 {/* Detail */}
-                <div className={`${showDetail ? "block" : "hidden md:block"} flex-1 overflow-y-auto`}>
+                <div className={`${showDetail ? "block" : "hidden md:block"} min-w-0 flex-1 overflow-y-auto`}>
                     {selected ? (
-                        <div className="bg-white/5 rounded-2xl p-6 h-full">
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
+                        <div className="h-full rounded-2xl bg-white/5 p-4 sm:p-6">
+                            <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
                                     <h2 className="text-lg font-bold">{selected.fanName}</h2>
                                     <a
                                         href={`mailto:${selected.fanEmail}`}
-                                        className="text-sm text-blue-400 hover:underline"
+                                        className="break-all text-sm text-blue-400 hover:underline"
                                     >
                                         {selected.fanEmail}
                                     </a>
@@ -214,14 +214,14 @@ export default function InquiriesContent() {
                                         {new Date(selected.createdAt).toLocaleString("ja-JP")}
                                     </p>
                                 </div>
-                                <span className={`text-xs px-2.5 py-1 rounded-full ${statusColors[selected.status]}`}>
+                                <span className={`w-fit shrink-0 rounded-full px-2.5 py-1 text-xs ${statusColors[selected.status]}`}>
                                     {statusLabels[selected.status]}
                                 </span>
                             </div>
 
                             <div className="bg-white/5 rounded-xl p-4 mb-4">
                                 <p className="text-sm text-white/50 mb-2 uppercase tracking-wide text-xs font-semibold">メッセージ</p>
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+                                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{selected.message}</p>
                             </div>
 
                             {selected.fields && Object.keys(selected.fields).length > 0 && (

@@ -66,9 +66,9 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-slate-50 px-6 py-12">
+            <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 sm:py-10 lg:py-12">
                 <div className="mx-auto w-full max-w-7xl">
-                    <h1 className="mb-8 text-3xl font-semibold text-black">ダッシュボード</h1>
+                    <h1 className="mb-6 text-2xl font-semibold text-black sm:mb-8 sm:text-3xl">ダッシュボード</h1>
                     <div className="flex items-center justify-center py-20">
                         <div className="text-center">
                             <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-black border-r-transparent"></div>
@@ -82,9 +82,9 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
 
     if (error || !earningsData) {
         return (
-            <div className="min-h-screen bg-slate-50 px-6 py-12">
+            <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 sm:py-10 lg:py-12">
                 <div className="mx-auto w-full max-w-7xl">
-                    <h1 className="mb-8 text-3xl font-semibold text-black">ダッシュボード</h1>
+                    <h1 className="mb-6 text-2xl font-semibold text-black sm:mb-8 sm:text-3xl">ダッシュボード</h1>
                     <div className="flex items-center justify-center py-20">
                         <p className="text-neutral-600">{error || "データが見つかりません"}</p>
                     </div>
@@ -96,16 +96,16 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
     const { currentMonth, lastMonth, recentActivities } = earningsData;
 
     return (
-        <main className="min-h-screen bg-slate-50 px-6 py-12">
+        <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 sm:py-10 lg:py-12">
             <div className="mx-auto w-full max-w-7xl">
                 {/* ページタイトル */}
-                <h1 className="mb-8 text-3xl font-semibold text-black">ダッシュボード</h1>
+                <h1 className="mb-6 text-2xl font-semibold text-black sm:mb-8 sm:text-3xl">ダッシュボード</h1>
 
                 {/* 2対1グリッドレイアウト */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* 左側：売上カード（2カラム分） */}
                     <div className="lg:col-span-2">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
                             {/* ラベル */}
                             <div className="mb-6">
                                 <p className="text-base font-medium text-neutral-600">
@@ -118,7 +118,7 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
 
                             {/* 金額 - 力強く表示 */}
                             <div className="mb-8">
-                                <p className="text-5xl font-bold tracking-tight text-black">
+                                <p className="break-words text-4xl font-bold tracking-tight text-black sm:text-5xl">
                                     ¥{currentMonth.earnings.toLocaleString()}
                                 </p>
                             </div>
@@ -128,7 +128,7 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
                                 <p className="text-sm text-neutral-500">
                                     次回お支払い予定
                                 </p>
-                                <p className="mt-2 text-xl font-semibold text-neutral-700">
+                                <p className="mt-2 break-words text-lg font-semibold text-neutral-700 sm:text-xl">
                                     先月分の収益（¥{lastMonth.earnings.toLocaleString()}）
                                 </p>
                                 <p className="mt-1 text-xs text-neutral-400">
@@ -163,7 +163,7 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
 
                     {/* 右側：直近のアクティビティ（1カラム分） */}
                     <div className="lg:col-span-1">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="mb-4 text-base font-semibold text-black">
                                 直近のアクティビティ
                             </h2>
@@ -174,8 +174,8 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
                                         key={activity.id}
                                         className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0"
                                     >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
+                                        <div className="flex min-w-0 items-start justify-between gap-3">
+                                            <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-medium text-neutral-700">
                                                     {activity.type}
                                                 </p>
@@ -183,7 +183,7 @@ export default function DashboardClient({ creatorId }: DashboardClientProps) {
                                                     {activity.timeAgo}
                                                 </p>
                                             </div>
-                                            <div className="ml-4">
+                                            <div className="shrink-0">
                                                 <p className="text-sm font-semibold text-black">
                                                     ¥{activity.amount.toLocaleString()}
                                                 </p>

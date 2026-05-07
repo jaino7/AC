@@ -13,6 +13,12 @@ interface Plan {
     price: number;
 }
 
+type UploadedMedia = {
+    url: string;
+    duration: number | null;
+    size: number;
+};
+
 interface Post {
     id: string;
     title: string;
@@ -23,7 +29,7 @@ interface Post {
     isLocked: boolean;
     requiredPlanId: string | null;
     price: number | null;
-    media: { id: string; url: string; type: string; isSample: boolean; duration: number | null }[];
+    media: { id: string; url: string; type: string; isSample: boolean; duration: number | null; size: number }[];
 }
 
 export default function EditContentPage() {
@@ -43,6 +49,7 @@ export default function EditContentPage() {
     // サンプルメディア用state
     const [sampleFiles, setSampleFiles] = useState<File[]>([]);
     const [sampleUrls, setSampleUrls] = useState<string[]>([]);
+    const [sampleSizes, setSampleSizes] = useState<number[]>([]);
     const [sampleDurations, setSampleDurations] = useState<(number | null)[]>([]); // 動画の長さ（秒）
     const [uploadingSamples, setUploadingSamples] = useState(false);
     const [isDraggingSample, setIsDraggingSample] = useState(false);
@@ -50,6 +57,7 @@ export default function EditContentPage() {
     // 限定コンテンツ用state
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
+    const [uploadedFileSizes, setUploadedFileSizes] = useState<number[]>([]);
     const [uploadedDurations, setUploadedDurations] = useState<(number | null)[]>([]); // 動画の長さ（秒）
     const [uploadingFiles, setUploadingFiles] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
@@ -92,9 +100,11 @@ export default function EditContentPage() {
 
                 setSampleUrls(samples.map(m => m.url));
                 setSampleDurations(samples.map(m => m.duration || null));
+                setSampleSizes(samples.map(m => m.size || 0));
 
                 setUploadedFileUrls(mainContent.map(m => m.url));
                 setUploadedDurations(mainContent.map(m => m.duration || null));
+                setUploadedFileSizes(mainContent.map(m => m.size || 0));
             }
 
             if (post.isLocked && post.requiredPlanId) {
@@ -139,6 +149,7 @@ export default function EditContentPage() {
             body: JSON.stringify({
                 filename: file.name,
                 contentType: file.type,
+                fileSize: file.size,
             }),
         });
 
@@ -259,6 +270,7 @@ export default function EditContentPage() {
 
             setSampleUrls((prev) => [...prev, ...urls]);
             setSampleDurations((prev) => [...prev, ...durations]);
+            setSampleSizes((prev) => [...prev, ...files.map((file) => file.size)]);
             setSuccessMessage(`${files.length}件のサンプルをアップロードしました`);
         } catch (error: any) {
             setErrorMessage(error.message || "サンプルのアップロードに失敗しました");
@@ -280,6 +292,7 @@ export default function EditContentPage() {
     const removeSample = (index: number) => {
         setSampleUrls((prev) => prev.filter((_, i) => i !== index));
         setSampleDurations((prev) => prev.filter((_, i) => i !== index));
+        setSampleSizes((prev) => prev.filter((_, i) => i !== index));
     };
 
     // 限定コンテンツアップロード処理
@@ -299,6 +312,7 @@ export default function EditContentPage() {
 
             setUploadedFileUrls((prev) => [...prev, ...urls]);
             setUploadedDurations((prev) => [...prev, ...durations]);
+            setUploadedFileSizes((prev) => [...prev, ...files.map((file) => file.size)]);
             setSuccessMessage(`${files.length}件のファイルをアップロードしました`);
         } catch (error: any) {
             setErrorMessage(error.message || "ファイルのアップロードに失敗しました");
@@ -326,6 +340,7 @@ export default function EditContentPage() {
     const removeFile = (index: number) => {
         setUploadedFileUrls((prev) => prev.filter((_, i) => i !== index));
         setUploadedDurations((prev) => prev.filter((_, i) => i !== index));
+        setUploadedFileSizes((prev) => prev.filter((_, i) => i !== index));
     };
 
     const updateContentMutation = useMutation({
@@ -334,8 +349,8 @@ export default function EditContentPage() {
             content: string;
             visibility: string;
             thumbnailUrl?: string;
-            sampleMedia?: { url: string; duration: number | null }[];
-            mainMedia?: { url: string; duration: number | null }[];
+            sampleMedia?: UploadedMedia[];
+            mainMedia?: UploadedMedia[];
             isLocked: boolean;
             requiredPlanId?: string;
             singleSalePrice?: number;
@@ -386,10 +401,10 @@ export default function EditContentPage() {
             visibility,
             thumbnailUrl: thumbnailUrl || undefined,
             sampleMedia: sampleUrls.length > 0
-                ? sampleUrls.map((url, i) => ({ url, duration: sampleDurations[i] }))
+                ? sampleUrls.map((url, i) => ({ url, duration: sampleDurations[i], size: sampleSizes[i] || 0 }))
                 : undefined,
             mainMedia: uploadedFileUrls.length > 0
-                ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i] }))
+                ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i], size: uploadedFileSizes[i] || 0 }))
                 : undefined,
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
@@ -412,10 +427,10 @@ export default function EditContentPage() {
             visibility: "DRAFT",
             thumbnailUrl: thumbnailUrl || undefined,
             sampleMedia: sampleUrls.length > 0
-                ? sampleUrls.map((url, i) => ({ url, duration: sampleDurations[i] }))
+                ? sampleUrls.map((url, i) => ({ url, duration: sampleDurations[i], size: sampleSizes[i] || 0 }))
                 : undefined,
             mainMedia: uploadedFileUrls.length > 0
-                ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i] }))
+                ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i], size: uploadedFileSizes[i] || 0 }))
                 : undefined,
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
@@ -432,7 +447,7 @@ export default function EditContentPage() {
 
     if (loadingPost) {
         return (
-            <main className="min-h-screen bg-white px-6 py-10 text-black lg:px-12">
+            <main className="min-h-screen bg-white px-4 py-6 text-black sm:px-6 sm:py-8 lg:px-12 lg:py-10">
                 <div className="mx-auto max-w-7xl">
                     <div className="text-center py-12 text-neutral-500">読み込み中...</div>
                 </div>
@@ -441,25 +456,25 @@ export default function EditContentPage() {
     }
 
     return (
-        <main className="min-h-screen bg-white px-6 py-10 text-black lg:px-12">
+        <main className="min-h-screen bg-white px-4 py-6 text-black sm:px-6 sm:py-8 lg:px-12 lg:py-10">
             <div className="mx-auto max-w-7xl">
-                <header className="mb-8 flex items-center justify-between">
-                    <div>
+                <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                         <p className="text-sm text-neutral-500">コンテンツを編集</p>
                         <h1 className="text-3xl font-semibold">投稿を編集</h1>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="grid grid-cols-2 gap-3 sm:flex sm:shrink-0">
                         <button
                             onClick={handleSaveDraft}
                             disabled={updateContentMutation.isPending}
-                            className="rounded-2xl border border-black/10 bg-white px-6 py-3 font-semibold text-black transition-all hover:border-black/40 disabled:opacity-50"
+                            className="min-h-11 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black transition-all hover:border-black/40 disabled:opacity-50 sm:px-6 sm:text-base"
                         >
                             下書き保存
                         </button>
                         <button
                             onClick={handleUpdate}
                             disabled={updateContentMutation.isPending}
-                            className="rounded-2xl border border-black bg-black px-6 py-3 font-semibold text-white transition-all hover:bg-black/80 disabled:opacity-50"
+                            className="min-h-11 rounded-2xl border border-black bg-black px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-black/80 disabled:opacity-50 sm:px-6 sm:text-base"
                         >
                             {updateContentMutation.isPending ? "更新中..." : "更新"}
                         </button>
@@ -478,9 +493,9 @@ export default function EditContentPage() {
                     </div>
                 )}
 
-                <div className="grid gap-8 lg:grid-cols-[1fr,340px]">
+                <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr),340px]">
                     {/* メインコンテンツエリア */}
-                    <section className="space-y-6">
+                    <section className="min-w-0 space-y-6">
                         {/* タイトル入力 */}
                         <div className="space-y-2">
                             <label htmlFor="title" className="text-sm font-semibold text-neutral-700">
@@ -503,7 +518,7 @@ export default function EditContentPage() {
                             </label>
                             {thumbnailUrl ? (
                                 <div className="relative rounded-2xl border border-black/10 overflow-hidden">
-                                    <img src={thumbnailUrl} alt="サムネイル" className="w-full h-48 object-cover" />
+                                    <img src={thumbnailUrl} alt="サムネイル" className="h-40 w-full object-cover sm:h-48" />
                                     <button
                                         onClick={() => { setThumbnailFile(null); setThumbnailUrl(""); }}
                                         className="absolute top-2 right-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white hover:bg-black/80"
@@ -516,7 +531,7 @@ export default function EditContentPage() {
                                     htmlFor="thumbnail-upload"
                                     {...createDragHandlers(setIsDraggingThumbnail)}
                                     onDrop={handleThumbnailDrop}
-                                    className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 transition-colors ${isDraggingThumbnail
+                                    className={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition-colors sm:px-6 sm:py-8 ${isDraggingThumbnail
                                         ? "border-blue-500 bg-blue-50"
                                         : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
                                         }`}
@@ -544,7 +559,7 @@ export default function EditContentPage() {
                                 htmlFor="sample-upload"
                                 {...createDragHandlers(setIsDraggingSample)}
                                 onDrop={handleSampleDrop}
-                                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 transition-colors ${isDraggingSample
+                                className={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition-colors sm:px-6 sm:py-8 ${isDraggingSample
                                     ? "border-green-500 bg-green-50"
                                     : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
                                     }`}
@@ -572,7 +587,7 @@ export default function EditContentPage() {
                                         return (
                                             <div
                                                 key={index}
-                                                className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm"
+                                                className="flex min-w-0 items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm"
                                             >
                                                 {isVideo ? (
                                                     <div className="h-10 w-10 flex-shrink-0 rounded bg-green-200 flex items-center justify-center text-xs text-green-700">
@@ -584,7 +599,7 @@ export default function EditContentPage() {
                                                 <span className="flex-1 truncate text-xs text-neutral-600">{filename}</span>
                                                 <button
                                                     onClick={() => removeSample(index)}
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="shrink-0 rounded-full px-2 py-1 text-red-500 hover:bg-red-100 hover:text-red-700"
                                                 >
                                                     ✕
                                                 </button>
@@ -604,7 +619,7 @@ export default function EditContentPage() {
                                 htmlFor="file-upload"
                                 {...createDragHandlers(setIsDragging)}
                                 onDrop={handleDrop}
-                                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 transition-colors ${isDragging
+                                className={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition-colors sm:px-6 sm:py-8 ${isDragging
                                     ? "border-amber-500 bg-amber-50"
                                     : "border-black/20 bg-neutral-50 hover:border-black/40 hover:bg-neutral-100"
                                     }`}
@@ -632,7 +647,7 @@ export default function EditContentPage() {
                                         return (
                                             <div
                                                 key={index}
-                                                className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
+                                                className="flex min-w-0 items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
                                             >
                                                 {isVideo ? (
                                                     <div className="h-10 w-10 flex-shrink-0 rounded bg-amber-200 flex items-center justify-center text-xs text-amber-700">
@@ -644,7 +659,7 @@ export default function EditContentPage() {
                                                 <span className="flex-1 truncate text-xs text-neutral-600">{filename}</span>
                                                 <button
                                                     onClick={() => removeFile(index)}
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="shrink-0 rounded-full px-2 py-1 text-red-500 hover:bg-red-100 hover:text-red-700"
                                                 >
                                                     ✕
                                                 </button>
@@ -672,49 +687,49 @@ export default function EditContentPage() {
                     </section>
 
                     {/* 右サイドバー（設定パネル） */}
-                    <aside className="space-y-6">
+                    <aside className="min-w-0 space-y-6">
                         {/* 公開設定 */}
-                        <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                            <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-neutral-500">
+                        <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:rounded-3xl sm:p-6">
+                            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500 sm:text-sm sm:tracking-[0.3em]">
                                 公開設定
                             </h3>
                             <div className="space-y-3">
-                                <label className="flex cursor-pointer items-center gap-3">
+                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
                                     <input
                                         type="radio"
                                         name="publish-mode"
                                         value="publish"
                                         checked={publishMode === "publish"}
                                         onChange={(e) => setPublishMode(e.target.value as PublishMode)}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">すぐに公開</span>
                                 </label>
-                                <label className="flex cursor-pointer items-center gap-3">
+                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
                                     <input
                                         type="radio"
                                         name="publish-mode"
                                         value="draft"
                                         checked={publishMode === "draft"}
                                         onChange={(e) => setPublishMode(e.target.value as PublishMode)}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">下書きとして保存</span>
                                 </label>
-                                <label className="flex cursor-pointer items-center gap-3">
+                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
                                     <input
                                         type="radio"
                                         name="publish-mode"
                                         value="scheduled"
                                         checked={publishMode === "scheduled"}
                                         onChange={(e) => setPublishMode(e.target.value as PublishMode)}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">予約投稿</span>
                                 </label>
 
                                 {publishMode === "scheduled" && (
-                                    <div className="ml-7 space-y-3 border-l-2 border-black/10 pl-4">
+                                    <div className="space-y-3 border-l-2 border-black/10 pl-4 sm:ml-7">
                                         <div>
                                             <label className="mb-1 block text-xs font-semibold text-neutral-600">
                                                 公開日
@@ -743,47 +758,47 @@ export default function EditContentPage() {
                         </div>
 
                         {/* アクセス権限 */}
-                        <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                            <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-neutral-500">
+                        <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:rounded-3xl sm:p-6">
+                            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500 sm:text-sm sm:tracking-[0.3em]">
                                 アクセス権限
                             </h3>
                             <div className="space-y-3">
-                                <label className="flex cursor-pointer items-center gap-3">
+                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
                                     <input
                                         type="radio"
                                         name="access"
                                         value="everyone"
                                         checked={accessPermission === "everyone"}
                                         onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">全員（無料）</span>
                                 </label>
-                                <label className="flex cursor-pointer items-center gap-3">
+                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
                                     <input
                                         type="radio"
                                         name="access"
                                         value="plans"
                                         checked={accessPermission === "plans"}
                                         onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">プラン限定</span>
                                 </label>
-                                <label className="flex cursor-pointer items-center gap-3">
+                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
                                     <input
                                         type="radio"
                                         name="access"
                                         value="single_sale"
                                         checked={accessPermission === "single_sale"}
                                         onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
-                                        className="h-4 w-4"
+                                        className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">単体販売</span>
                                 </label>
 
                                 {accessPermission === "plans" && (
-                                    <div className="ml-7 space-y-2 border-l-2 border-black/10 pl-4">
+                                    <div className="space-y-2 border-l-2 border-black/10 pl-4 sm:ml-7">
                                         <select
                                             value={selectedPlanId}
                                             onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -808,7 +823,7 @@ export default function EditContentPage() {
                                 )}
 
                                 {accessPermission === "single_sale" && (
-                                    <div className="ml-7 space-y-2 border-l-2 border-black/10 pl-4">
+                                    <div className="space-y-2 border-l-2 border-black/10 pl-4 sm:ml-7">
                                         <label className="block">
                                             <span className="mb-1 block text-xs font-semibold text-neutral-600">
                                                 販売価格

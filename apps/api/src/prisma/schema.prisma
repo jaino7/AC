@@ -426,7 +426,7 @@ model Media {
   type     String // IMAGE, VIDEO
   isSample Boolean @default(false) // サンプルメディア（誰でも閲覧可能）
   duration Int? // 動画の長さ（秒数、動画のみ）
-  fileSize BigInt? // ファイルサイズ（バイト単位）
+  size     BigInt @default(0) // ファイルサイズ（バイト単位）
 
   createdAt DateTime @default(now())
 }

@@ -113,21 +113,21 @@ export default function EditBankAccountPage() {
     ];
 
     return (
-        <main className="min-h-screen bg-white px-6 py-10 text-black lg:px-12">
+        <main className="min-h-screen bg-white px-4 py-6 text-black sm:px-6 sm:py-10 lg:px-12">
             <div className="mx-auto max-w-2xl">
                 {/* Header */}
                 <header className="mb-8">
-                    <h1 className="text-3xl font-semibold">振込口座の編集</h1>
+                    <h1 className="text-2xl font-semibold sm:text-3xl">振込口座の編集</h1>
                 </header>
 
                 {/* Progress Bar */}
                 <div className="mb-10">
-                    <div className="flex items-center justify-between">
+                    <div className="flex min-w-0 items-start justify-between overflow-x-auto pb-2">
                         {steps.map((s, index) => (
-                            <div key={s.number} className="flex items-center">
+                            <div key={s.number} className="flex shrink-0 items-center">
                                 <div className="flex flex-col items-center">
                                     <div
-                                        className={`flex h-10 w-10 items-center justify-center rounded-full ${step >= s.number
+                                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm sm:h-10 sm:w-10 sm:text-base ${step >= s.number
                                             ? "bg-blue-600 text-white"
                                             : "bg-neutral-200 text-neutral-500"
                                             }`}
@@ -135,7 +135,7 @@ export default function EditBankAccountPage() {
                                         {s.number}
                                     </div>
                                     <p
-                                        className={`mt-2 text-xs ${step >= s.number ? "text-blue-600 font-semibold" : "text-neutral-500"
+                                        className={`mt-2 max-w-16 text-center text-[10px] leading-tight sm:max-w-none sm:text-xs ${step >= s.number ? "text-blue-600 font-semibold" : "text-neutral-500"
                                             }`}
                                     >
                                         {s.label}
@@ -143,7 +143,7 @@ export default function EditBankAccountPage() {
                                 </div>
                                 {index < steps.length - 1 && (
                                     <div
-                                        className={`mx-2 h-0.5 w-12 ${step > s.number ? "bg-blue-600" : "bg-neutral-200"
+                                        className={`mx-2 h-0.5 w-6 sm:w-12 ${step > s.number ? "bg-blue-600" : "bg-neutral-200"
                                             }`}
                                     />
                                 )}
@@ -153,7 +153,7 @@ export default function EditBankAccountPage() {
                 </div>
 
                 {/* Form Card */}
-                <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:rounded-3xl sm:p-8">
                     {/* Step 1: Bank Selection */}
                     {step === 1 && (
                         <div>
@@ -247,7 +247,7 @@ export default function EditBankAccountPage() {
                             <div className="space-y-3">
                                 <button
                                     onClick={() => setAccountType("SAVINGS")}
-                                    className={`w-full rounded-2xl border p-6 text-left transition-colors ${accountType === "SAVINGS"
+                                    className={`w-full rounded-2xl border p-4 text-left transition-colors sm:p-6 ${accountType === "SAVINGS"
                                         ? "border-blue-500 bg-blue-50"
                                         : "border-black/10 hover:bg-neutral-50"
                                         }`}
@@ -256,7 +256,7 @@ export default function EditBankAccountPage() {
                                 </button>
                                 <button
                                     onClick={() => setAccountType("CHECKING")}
-                                    className={`w-full rounded-2xl border p-6 text-left transition-colors ${accountType === "CHECKING"
+                                    className={`w-full rounded-2xl border p-4 text-left transition-colors sm:p-6 ${accountType === "CHECKING"
                                         ? "border-blue-500 bg-blue-50"
                                         : "border-black/10 hover:bg-neutral-50"
                                         }`}
@@ -322,28 +322,28 @@ export default function EditBankAccountPage() {
                             )}
 
                             {/* Confirmation */}
-                            <div className="mt-8 rounded-2xl bg-neutral-50 p-6">
+                            <div className="mt-8 rounded-2xl bg-neutral-50 p-4 sm:p-6">
                                 <h3 className="mb-4 font-semibold">入力内容の確認</h3>
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                                         <span className="text-neutral-600">金融機関:</span>
                                         <span className="font-semibold">{bankName}</span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                                         <span className="text-neutral-600">支店:</span>
                                         <span className="font-semibold">{branchName}</span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                                         <span className="text-neutral-600">口座種別:</span>
                                         <span className="font-semibold">
                                             {accountType === "SAVINGS" ? "普通" : "当座"}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                                         <span className="text-neutral-600">口座番号:</span>
                                         <span className="font-semibold">{accountNumber}</span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                                         <span className="text-neutral-600">口座名義:</span>
                                         <span className="font-semibold">{accountHolder}</span>
                                     </div>
@@ -353,18 +353,18 @@ export default function EditBankAccountPage() {
                     )}
 
                     {/* Navigation Buttons */}
-                    <div className="mt-8 flex gap-3">
+                    <div className="mt-8 grid grid-cols-2 gap-3">
                         {step > 1 && (
                             <button
                                 onClick={handleBack}
-                                className="flex-1 rounded-2xl border border-black/10 px-6 py-3 font-semibold transition-colors hover:border-black/40"
+                                className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold transition-colors hover:border-black/40 sm:px-6 sm:text-base"
                             >
                                 戻る
                             </button>
                         )}
                         <button
                             onClick={handleNext}
-                            className="flex-1 rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+                            className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 sm:px-6 sm:text-base"
                         >
                             {step === 5 ? "保存する" : "次へ"}
                         </button>

@@ -86,19 +86,19 @@ export default function EarningsPage() {
             <div className="mx-auto max-w-5xl">
                 {/* Header */}
                 <header className="mb-8 px-4 md:px-0">
-                    <h1 className="text-3xl font-semibold">収益と支払い</h1>
+                    <h1 className="text-2xl font-semibold sm:text-3xl">収益と支払い</h1>
                 </header>
 
                 <div className="space-y-6 md:space-y-8">
                     {/* ウォレットカード */}
-                    <div className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                    <div className="rounded-none border-y border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:p-6 md:rounded-3xl md:border md:p-8">
                         <h2 className="mb-6 text-lg font-semibold">お支払い額</h2>
                         <div className="space-y-4">
                             <div>
                                 {isLoading ? (
                                     <div className="h-12 w-48 animate-pulse rounded bg-neutral-100"></div>
                                 ) : (
-                                    <p className="text-5xl font-bold">
+                                    <p className="break-words text-4xl font-bold sm:text-5xl">
                                         ¥{earningsData?.lastMonth?.earnings?.toLocaleString() || 0}
                                     </p>
                                 )}
@@ -111,8 +111,8 @@ export default function EarningsPage() {
                     </div>
 
                     {/* 振込口座カード */}
-                    <div className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-                        <div className="mb-6 flex items-center justify-between">
+                    <div className="rounded-none border-y border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:p-6 md:rounded-3xl md:border md:p-8">
+                        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <h2 className="text-lg font-semibold">振込口座</h2>
                             <Link href={`/creators/${handle}/earnings/edit-bank-account`}>
                                 <button className="rounded-2xl border border-black/10 px-4 py-2 text-sm font-semibold transition-colors hover:border-black/40">
@@ -126,12 +126,12 @@ export default function EarningsPage() {
                                 <p className="text-neutral-500">読み込み中...</p>
                             </div>
                         ) : bankAccount ? (
-                            <div className="flex items-center gap-4 rounded-2xl bg-neutral-50 p-4">
+                            <div className="flex min-w-0 items-center gap-4 rounded-2xl bg-neutral-50 p-4">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-2xl">
                                     🏦
                                 </div>
-                                <div>
-                                    <p className="font-semibold">{bankAccount.bankName}</p>
+                                <div className="min-w-0">
+                                    <p className="break-words font-semibold">{bankAccount.bankName}</p>
                                     <p className="text-sm text-neutral-600">
                                         {formatAccountNumber(bankAccount.accountNumber)}
                                     </p>
@@ -148,7 +148,7 @@ export default function EarningsPage() {
                     </div>
 
                     {/* 支払い履歴カード */}
-                    <div className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                    <div className="rounded-none border-y border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:p-6 md:rounded-3xl md:border md:p-8">
                         <h2 className="mb-6 text-lg font-semibold">支払い履歴</h2>
                         <div className="overflow-x-auto">
                             <table className="w-full">

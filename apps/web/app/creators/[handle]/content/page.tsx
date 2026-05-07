@@ -236,8 +236,8 @@ export default function ContentPage() {
   });
 
   return (
-    <main className="min-h-screen bg-white px-0 py-6 text-black lg:px-12 lg:py-10">
-      <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
+    <main className="min-h-screen bg-white px-0 py-6 text-black sm:px-4 lg:px-12 lg:py-10">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[260px,minmax(0,1fr)] lg:gap-8">
         <aside className="h-fit rounded-2xl border border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] lg:rounded-3xl lg:p-6">
           <div className="lg:hidden">
             <button
@@ -295,33 +295,33 @@ export default function ContentPage() {
           </nav>
         </aside>
 
-        <section className="space-y-8">
+        <section className="min-w-0 space-y-8 px-4 sm:px-0">
           <header className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-semibold">投稿一覧</h1>
+                <h1 className="text-2xl font-semibold sm:text-3xl">投稿一覧</h1>
               </div>
-              <div className="flex gap-3">
+              <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
                 {selectedPostIds.length > 0 && (
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="rounded-2xl border border-red-600 bg-red-600 px-4 py-3 text-white hover:bg-red-700 transition-colors font-semibold"
+                    className="min-h-11 rounded-2xl border border-red-600 bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-700 sm:text-base"
                   >
                     🗑 {selectedPostIds.length}件を削除
                   </button>
                 )}
                 <Link
                   href="content/new"
-                  className="rounded-2xl border border-black bg-black px-4 py-3 text-white hover:bg-black/80 transition-colors"
+                  className="min-h-11 rounded-2xl border border-black bg-black px-4 py-3 text-center text-sm text-white transition-colors hover:bg-black/80 sm:text-base"
                 >
                   ＋ 新規投稿
                 </Link>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
               {posts.length > 0 && (
-                <label className="flex items-center gap-2 rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold cursor-pointer hover:border-black/40">
+                <label className="flex min-h-11 items-center gap-2 rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold cursor-pointer hover:border-black/40">
                   <input
                     type="checkbox"
                     checked={selectedPostIds.length === posts.length && posts.length > 0}
@@ -331,17 +331,17 @@ export default function ContentPage() {
                   すべて選択
                 </label>
               )}
-              <div className="flex flex-1 items-center gap-3 rounded-2xl border border-black/10 px-4 py-3">
+              <div className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-2xl border border-black/10 px-4 py-3">
                 <span className="text-neutral-400">🔍</span>
                 <input
                   type="text"
                   placeholder="タイトルで検索..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 border-none bg-transparent text-sm focus:outline-none"
+                  className="min-w-0 flex-1 border-none bg-transparent text-sm focus:outline-none"
                 />
               </div>
-              <button className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold">
+              <button className="min-h-11 rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold">
                 新着順
               </button>
             </div>
@@ -394,11 +394,11 @@ export default function ContentPage() {
               投稿がありません。
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="rounded-3xl border border-black/10 bg-white p-4 shadow-[0_25px_60px_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_30px_70px_rgba(0,0,0,0.1)] relative"
+                  className="relative rounded-2xl border border-black/10 bg-white p-4 shadow-[0_25px_60px_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_30px_70px_rgba(0,0,0,0.1)] sm:rounded-3xl"
                 >
                   <input
                     type="checkbox"
@@ -485,7 +485,7 @@ export default function ContentPage() {
                           {new Date(post.createdAt).toLocaleDateString("ja-JP")}
                         </span>
                       </div>
-                      <h2 className="text-lg font-semibold">{post.title}</h2>
+                      <h2 className="break-words text-base font-semibold sm:text-lg">{post.title}</h2>
                       <p className="text-sm text-neutral-600 line-clamp-2">
                         {post.content || "説明なし"}
                       </p>
@@ -509,23 +509,23 @@ export default function ContentPage() {
 
       {/* Single Delete Confirmation Modal */}
       {postToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-3xl bg-white p-8 shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-8">
             <h2 className="text-2xl font-bold mb-4">投稿を削除</h2>
             <p className="mb-6 text-neutral-600">
               この投稿を削除しますか？この操作は取り消せません。
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
               <button
                 onClick={() => setPostToDelete(null)}
-                className="rounded-2xl border border-black/10 px-6 py-3 font-semibold"
+                className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold sm:px-6 sm:text-base"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteSingleMutation.mutate(postToDelete)}
                 disabled={deleteSingleMutation.isPending}
-                className="rounded-2xl border border-red-600 bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                className="rounded-2xl border border-red-600 bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 sm:px-6 sm:text-base"
               >
                 {deleteSingleMutation.isPending ? "削除中..." : "削除"}
               </button>
@@ -536,23 +536,23 @@ export default function ContentPage() {
 
       {/* Bulk Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-3xl bg-white p-8 shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-8">
             <h2 className="text-2xl font-bold mb-4">投稿を削除</h2>
             <p className="mb-6 text-neutral-600">
               選択した{selectedPostIds.length}件の投稿を削除しますか？この操作は取り消せません。
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="rounded-2xl border border-black/10 px-6 py-3 font-semibold"
+                className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold sm:px-6 sm:text-base"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleBulkDelete}
                 disabled={bulkDeleteMutation.isPending}
-                className="rounded-2xl border border-red-600 bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                className="rounded-2xl border border-red-600 bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 sm:px-6 sm:text-base"
               >
                 {bulkDeleteMutation.isPending ? "削除中..." : "削除"}
               </button>

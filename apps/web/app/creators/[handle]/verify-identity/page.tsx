@@ -143,10 +143,10 @@ export default function VerifyIdentityPage() {
     }
 
     return (
-        <main className="min-h-screen bg-neutral-50 px-6 py-10">
+        <main className="min-h-screen bg-neutral-50 px-4 py-6 sm:px-6 sm:py-10">
             <div className="mx-auto max-w-3xl">
                 <header className="mb-8">
-                    <h1 className="text-3xl font-semibold text-gray-900">本人確認</h1>
+                    <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">本人確認</h1>
                     <p className="mt-2 text-sm text-gray-600">
                         クリエイターとして活動するために、本人確認書類の提出が必要です。
                     </p>
@@ -154,13 +154,13 @@ export default function VerifyIdentityPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* 書類タイプ選択 */}
-                    <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm">
+                    <section className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
                         <h2 className="mb-4 text-xl font-semibold text-gray-900">書類タイプを選択</h2>
                         <div className="space-y-3">
                             {documentTypes.map((type) => (
                                 <label
                                     key={type.id}
-                                    className="flex cursor-pointer items-center gap-3 rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50"
+                                    className="flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50"
                                 >
                                     <input
                                         type="radio"
@@ -168,7 +168,7 @@ export default function VerifyIdentityPage() {
                                         value={type.id}
                                         checked={documentType === type.id}
                                         onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-                                        className="h-4 w-4 text-blue-600"
+                                        className="h-4 w-4 shrink-0 text-blue-600"
                                     />
                                     <span className="text-sm font-medium text-gray-900">{type.label}</span>
                                 </label>
@@ -194,7 +194,7 @@ export default function VerifyIdentityPage() {
                     </section>
 
                     {/* ファイルアップロード */}
-                    <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm">
+                    <section className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
                         <h2 className="mb-4 text-xl font-semibold text-gray-900">書類画像のアップロード</h2>
 
                         {/* 表面 */}
@@ -212,10 +212,10 @@ export default function VerifyIdentityPage() {
                                 />
                                 <label
                                     htmlFor="front-upload"
-                                    className="flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-blue-500 hover:bg-blue-50"
+                                    className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center transition hover:border-blue-500 hover:bg-blue-50 sm:min-h-[200px]"
                                 >
                                     {frontPreview ? (
-                                        <img src={frontPreview} alt="表面プレビュー" className="max-h-[180px] rounded-lg" />
+                                        <img src={frontPreview} alt="表面プレビュー" className="max-h-36 max-w-full rounded-lg object-contain sm:max-h-[180px]" />
                                     ) : (
                                         <>
                                             <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +228,7 @@ export default function VerifyIdentityPage() {
                                 </label>
                                 {frontImage && (
                                     <p className="mt-2 text-sm text-gray-600">
-                                        選択中: {frontImage.name} ({(frontImage.size / 1024 / 1024).toFixed(2)} MB)
+                                        <span className="break-all">選択中: {frontImage.name}</span> ({(frontImage.size / 1024 / 1024).toFixed(2)} MB)
                                     </p>
                                 )}
                             </div>
@@ -250,10 +250,10 @@ export default function VerifyIdentityPage() {
                                     />
                                     <label
                                         htmlFor="back-upload"
-                                        className="flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-blue-500 hover:bg-blue-50"
+                                        className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center transition hover:border-blue-500 hover:bg-blue-50 sm:min-h-[200px]"
                                     >
                                         {backPreview ? (
-                                            <img src={backPreview} alt="裏面プレビュー" className="max-h-[180px] rounded-lg" />
+                                            <img src={backPreview} alt="裏面プレビュー" className="max-h-36 max-w-full rounded-lg object-contain sm:max-h-[180px]" />
                                         ) : (
                                             <>
                                                 <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,7 +266,7 @@ export default function VerifyIdentityPage() {
                                     </label>
                                     {backImage && (
                                         <p className="mt-2 text-sm text-gray-600">
-                                            選択中: {backImage.name} ({(backImage.size / 1024 / 1024).toFixed(2)} MB)
+                                            <span className="break-all">選択中: {backImage.name}</span> ({(backImage.size / 1024 / 1024).toFixed(2)} MB)
                                         </p>
                                     )}
                                 </div>
@@ -275,7 +275,7 @@ export default function VerifyIdentityPage() {
                     </section>
 
                     {/* チェックリスト */}
-                    <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm">
+                    <section className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
                         <h2 className="mb-4 text-xl font-semibold text-gray-900">撮影チェックリスト</h2>
                         <p className="mb-4 text-sm text-gray-600">
                             アップロードする前に、以下の項目を確認してください。
@@ -286,7 +286,7 @@ export default function VerifyIdentityPage() {
                                     type="checkbox"
                                     checked={checkList.fullVisible}
                                     onChange={(e) => setCheckList({ ...checkList, fullVisible: e.target.checked })}
-                                    className="mt-1 h-4 w-4 rounded text-blue-600"
+                                    className="mt-1 h-4 w-4 shrink-0 rounded text-blue-600"
                                 />
                                 <span className="text-sm text-gray-900">書類の全体が写っているか（四隅まで含む）</span>
                             </label>
@@ -295,7 +295,7 @@ export default function VerifyIdentityPage() {
                                     type="checkbox"
                                     checked={checkList.readable}
                                     onChange={(e) => setCheckList({ ...checkList, readable: e.target.checked })}
-                                    className="mt-1 h-4 w-4 rounded text-blue-600"
+                                    className="mt-1 h-4 w-4 shrink-0 rounded text-blue-600"
                                 />
                                 <span className="text-sm text-gray-900">文字がはっきり読み取れるか（ブレやピンボケがない）</span>
                             </label>
@@ -304,7 +304,7 @@ export default function VerifyIdentityPage() {
                                     type="checkbox"
                                     checked={checkList.noReflection}
                                     onChange={(e) => setCheckList({ ...checkList, noReflection: e.target.checked })}
-                                    className="mt-1 h-4 w-4 rounded text-blue-600"
+                                    className="mt-1 h-4 w-4 shrink-0 rounded text-blue-600"
                                 />
                                 <span className="text-sm text-gray-900">光の反射がないか（フラッシュによる白飛びなど）</span>
                             </label>
@@ -312,9 +312,9 @@ export default function VerifyIdentityPage() {
                     </section>
 
                     {/* 個人情報の取り扱い */}
-                    <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm">
+                    <section className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
                         <h2 className="mb-4 text-xl font-semibold text-gray-900">個人情報の取り扱いについて</h2>
-                        <div className="rounded-2xl bg-gray-50 p-6 text-sm text-gray-700 space-y-3">
+                        <div className="space-y-3 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700 sm:p-6">
                             <p><strong>1. 利用目的</strong><br />
                             提出いただいた本人確認書類は、クリエイターとしての本人確認（身元の確認）のみに使用します。</p>
                             <p><strong>2. 保管・削除</strong><br />
@@ -329,7 +329,7 @@ export default function VerifyIdentityPage() {
                                 type="checkbox"
                                 checked={agreedToPrivacy}
                                 onChange={(e) => setAgreedToPrivacy(e.target.checked)}
-                                className="mt-1 h-4 w-4 rounded text-blue-600"
+                                className="mt-1 h-4 w-4 shrink-0 rounded text-blue-600"
                             />
                             <span className="text-sm text-gray-900">
                                 上記の個人情報の取り扱いに同意します

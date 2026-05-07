@@ -126,9 +126,9 @@ export default function InquirySettingsContent() {
     }
 
     return (
-        <div className="min-h-screen bg-[#1a1a1a] text-white p-6 max-w-2xl">
+        <div className="min-h-screen max-w-2xl bg-[#1a1a1a] p-4 text-white sm:p-6">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
                 <Link
                     href={`/creators/${handle}/inquiries`}
                     className="text-white/50 hover:text-white text-sm transition-colors"
@@ -140,9 +140,9 @@ export default function InquirySettingsContent() {
             </div>
 
             {/* Enable toggle */}
-            <div className="bg-white/5 rounded-2xl p-5 mb-4">
-                <div className="flex items-center justify-between">
-                    <div>
+            <div className="mb-4 rounded-2xl bg-white/5 p-4 sm:p-5">
+                <div className="flex min-w-0 items-start justify-between gap-4">
+                    <div className="min-w-0">
                         <p className="font-medium">お問い合わせフォームを有効にする</p>
                         <p className="text-sm text-white/50 mt-0.5">
                             無効にするとファンページにフォームが表示されなくなります
@@ -150,7 +150,7 @@ export default function InquirySettingsContent() {
                     </div>
                     <button
                         onClick={() => setInquiryEnabled(v => !v)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                             inquiryEnabled ? "bg-blue-500" : "bg-white/20"
                         }`}
                     >
@@ -164,7 +164,7 @@ export default function InquirySettingsContent() {
             </div>
 
             {/* Default fields notice */}
-            <div className="bg-white/5 rounded-2xl p-5 mb-4">
+            <div className="mb-4 rounded-2xl bg-white/5 p-4 sm:p-5">
                 <p className="text-sm font-medium mb-2">デフォルト項目（常に表示）</p>
                 <div className="space-y-2">
                     {[
@@ -172,9 +172,9 @@ export default function InquirySettingsContent() {
                         { label: "メールアドレス", note: "必須" },
                         { label: "メッセージ", note: "必須" },
                     ].map(f => (
-                        <div key={f.label} className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg">
-                            <span className="text-sm">{f.label}</span>
-                            <span className="text-xs text-white/40">{f.note}</span>
+                        <div key={f.label} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2">
+                            <span className="min-w-0 truncate text-sm">{f.label}</span>
+                            <span className="shrink-0 text-xs text-white/40">{f.note}</span>
                         </div>
                     ))}
                 </div>
@@ -182,11 +182,11 @@ export default function InquirySettingsContent() {
 
             {/* Custom fields */}
             <div className="mb-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="font-medium text-sm">追加項目</p>
                     <button
                         onClick={addField}
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm transition-colors"
+                        className="min-h-10 rounded-lg bg-white/10 px-3 py-1.5 text-sm transition-colors hover:bg-white/20"
                     >
                         + 項目を追加
                     </button>
@@ -199,7 +199,7 @@ export default function InquirySettingsContent() {
                 ) : (
                     <div className="space-y-3">
                         {fields.map((field, index) => (
-                            <div key={index} className="bg-white/5 rounded-xl p-4">
+                            <div key={index} className="rounded-xl bg-white/5 p-4">
                                 {/* Field header */}
                                 <div className="flex items-center gap-2 mb-3">
                                     <div className="flex flex-col gap-0.5">
@@ -299,7 +299,7 @@ export default function InquirySettingsContent() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="px-6 py-2.5 rounded-xl bg-white text-[#1a1a1a] font-semibold text-sm hover:bg-white/90 disabled:opacity-50 transition-colors"
+                    className="min-h-11 rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-white/90 disabled:opacity-50"
                 >
                     {saving ? "保存中..." : "保存する"}
                 </button>

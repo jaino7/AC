@@ -21,12 +21,12 @@ async function main() {
         },
       },
       select: {
-        fileSize: true,
+        size: true,
       },
     });
 
     const creatorTotalBytes = media.reduce((sum, m) => {
-      return sum + (m.fileSize || BigInt(0));
+      return sum + (m.size || BigInt(0));
     }, BigInt(0));
 
     await prisma.creatorProfile.update({

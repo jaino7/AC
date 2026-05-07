@@ -3,6 +3,58 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+type MediaInput = {
+    url: string;
+    duration: number | null;
+    size?: number;
+};
+
+const STORAGE_LIMITS: Record<string, bigint> = {
+    FREE: BigInt(15 * 1024 * 1024 * 1024),
+    LITE: BigInt(200 * 1024 * 1024 * 1024),
+    BUSINESS: BigInt(1024 * 1024 * 1024 * 1024),
+};
+
+function normalizeMediaSize(size: unknown): bigint {
+    const value = Number(size);
+    return Number.isSafeInteger(value) && value > 0 ? BigInt(value) : BigInt(0);
+}
+
+function parseByteTotal(total: unknown): bigint {
+    if (typeof total === "bigint") return total;
+    if (typeof total === "number") return BigInt(total);
+    if (typeof total === "string") return BigInt(total || "0");
+    return BigInt(0);
+}
+
+function sumMediaSizes(media: unknown): bigint {
+    if (!Array.isArray(media)) return BigInt(0);
+    return media.reduce((total, item) => total + normalizeMediaSize((item as MediaInput).size), BigInt(0));
+}
+
+async function checkStorageLimit(creatorId: string, incomingBytes: bigint) {
+    const planResult = await prisma.$queryRaw<Array<{ type: string; status: string }>>`
+        SELECT cp."type", cs."status"
+        FROM "CreatorSubscription" cs
+        INNER JOIN "CreatorPlan" cp ON cs."planId" = cp."id"
+        WHERE cs."creatorId" = ${creatorId}
+        LIMIT 1
+    `;
+    const planType = (planResult.length > 0 && planResult[0].status === "ACTIVE")
+        ? planResult[0].type
+        : "FREE";
+    const limitBytes = STORAGE_LIMITS[planType] || STORAGE_LIMITS.FREE;
+    const sizeResult = await prisma.$queryRaw<Array<{ total: bigint | number | string }>>`
+        SELECT COALESCE(SUM(m."size"), 0)::bigint as total
+        FROM "Media" m
+        INNER JOIN "Post" p ON m."postId" = p."id"
+        WHERE p."creatorId" = ${creatorId}
+    `;
+    const usedBytes = parseByteTotal(sizeResult[0]?.total);
+
+    return usedBytes + incomingBytes <= limitBytes;
+}
+
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
 
@@ -73,6 +125,14 @@ export async function POST(req: Request) {
             }
         }
 
+        const incomingBytes = sumMediaSizes(sampleMedia) + sumMediaSizes(mainMedia);
+        if (!(await checkStorageLimit(creatorProfile.id, incomingBytes))) {
+            return NextResponse.json(
+                { error: "ストレージ容量の上限に達しました。プランをアップグレードしてください。" },
+                { status: 403 }
+            );
+        }
+
         // 投稿を作成
         const post = await prisma.post.create({
             data: {
@@ -104,10 +164,11 @@ export async function POST(req: Request) {
         // サンプルメディアを保存
         if (sampleMedia && Array.isArray(sampleMedia) && sampleMedia.length > 0) {
             await prisma.media.createMany({
-                data: sampleMedia.map((media: { url: string; duration: number | null }) => ({
+                data: sampleMedia.map((media: MediaInput) => ({
                     postId: post.id,
                     url: media.url,
                     type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    size: normalizeMediaSize(media.size),
                     isSample: true,
                     duration: media.duration
                 }))
@@ -117,10 +178,11 @@ export async function POST(req: Request) {
         // 限定コンテンツメディアを保存
         if (mainMedia && Array.isArray(mainMedia) && mainMedia.length > 0) {
             await prisma.media.createMany({
-                data: mainMedia.map((media: { url: string; duration: number | null }) => ({
+                data: mainMedia.map((media: MediaInput) => ({
                     postId: post.id,
                     url: media.url,
                     type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    size: normalizeMediaSize(media.size),
                     isSample: false,
                     duration: media.duration
                 }))

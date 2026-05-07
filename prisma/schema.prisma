@@ -513,7 +513,7 @@ model Media {
 
   url      String
   type     String // IMAGE, VIDEO
-  size     Int      @default(0) // ファイルサイズ（バイト）
+  size     BigInt   @default(0) // ファイルサイズ（バイト）
   isSample Boolean @default(false) // サンプルメディア（誰でも閲覧可能）
   duration Int? // 動画の長さ（秒数、動画のみ）
 
@@ -839,6 +839,9 @@ model CreatorPlan {
 
   // 手数料率
   feeRate Float // 手数料率（8.0 = 8%, 5.0 = 5%, 2.8 = 2.8%）
+
+  // ストレージ制限
+  storageLimitBytes BigInt @default(0) // ストレージ上限（バイト）
 
   // プラン特典
   features Json? // プラン特典のJSON配列
