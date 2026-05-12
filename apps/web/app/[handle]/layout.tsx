@@ -1,6 +1,7 @@
 import { prisma } from "@creator/shared";
 import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
+import { brandThemeOverrideCSS, getThemeConfig } from "@/lib/theme-config";
 // import { HandleSessionProvider } from "./providers";
 import { CustomSessionProvider } from "@/components/providers/handle-session-provider";
 // DebugSessionコンポーネントを削除
@@ -26,6 +27,13 @@ interface HandleLayoutProps {
 
 // メタデータを動的に生成
 export async function generateMetadata({ params }: HandleLayoutProps): Promise<Metadata> {
+    if (params.handle === "demo") {
+        return {
+            title: "CocoBa Demo Studio",
+            description: "CocoBaのファン向けコンテンツ販売ページのデモです。",
+        };
+    }
+
     const creator = await prisma.creatorProfile.findUnique({
         where: { handle: params.handle },
         select: { displayName: true, bio: true, faviconUrl: true }
@@ -58,6 +66,15 @@ import { headers } from "next/headers";
 export default async function HandleLayout({ children, params }: HandleLayoutProps) {
     noStore(); // データのキャッシュを無効化
     const session = await getServerSession(authOptions);
+
+    if (params.handle === "demo") {
+        return (
+            <CustomSessionProvider session={session}>
+                {children}
+            </CustomSessionProvider>
+        );
+    }
+
     const headersList = headers();
     const host = headersList.get("host");
     const customDomainHeader = headersList.get("x-custom-domain");
@@ -73,6 +90,7 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
             handle: true,
             displayName: true,
             theme: true,
+            themeConfig: true,
             logoUrl: true,
             faviconUrl: true,
             domains: {
@@ -136,10 +154,13 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
     }
 
     const themeStyle = themeStyles[creator.theme] || themeStyles["creator-pro"];
+    const brandThemeConfig = getThemeConfig(creator.theme, creator.themeConfig as any);
+    const brandCSS = brandThemeOverrideCSS(brandThemeConfig);
 
     return (
         <CustomSessionProvider session={session}>
-            <div className={`min-h-screen ${themeStyle.bg}`}>
+            <style dangerouslySetInnerHTML={{ __html: brandCSS }} />
+            <div className={`min-h-screen ${themeStyle.bg}`} data-brand-theme>
                 {/* クリエイター情報をコンテキストとして渡す */}
                 <div data-creator-id={creator.id} data-creator-handle={creator.handle} data-theme={creator.theme}>
                     {children}
