@@ -10,7 +10,7 @@ import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, Chevron
 const catchphrases = [
   <>あなたの<br className="sm:hidden" />コンテンツに、<br />真の価値を。</>,
   <>業界最安水準の<br className="sm:hidden" />手数料で、<br className="sm:hidden" />手残りを最大化。</>,
-  <>あなたのブランドを、<br className="sm:hidden" />あなたの手で。</>,
+  <>あなたのブランドを、<br />あなたの手で。</>,
 ];
 
 type BillingCycle = "monthly" | "yearly";
