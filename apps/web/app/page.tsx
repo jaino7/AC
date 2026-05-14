@@ -480,7 +480,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== Section 3: Pricing ===== */}
+      {/* ===== Section 3: FAQ ===== */}
+      <section id="faq" className="relative py-16 sm:py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
+              よくある質問
+            </h2>
+            <p className="text-center text-white/50 mb-16">
+              ご不明な点はお気軽にお問い合わせください。
+            </p>
+          </AnimatedSection>
+          <AnimatedSection>
+            <div className="space-y-10">
+              {faqSections.map((section) => (
+                <FaqAccordion key={section.title} sections={[section]} />
+              ))}
+
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ===== Section 4: Pricing ===== */}
       <section id="pricing" className="relative py-12 sm:py-32 px-4 scroll-mt-16">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
@@ -629,7 +651,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== Section 4: Branding & Features (The Weapon) ===== */}
+      {/* ===== Section 5: Branding & Features (The Weapon) ===== */}
       <section className="relative py-24 sm:py-32 px-4">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
@@ -703,28 +725,6 @@ export default function LandingPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* ===== Section 5: FAQ ===== */}
-      <section id="faq" className="relative py-16 sm:py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
-              よくある質問
-            </h2>
-            <p className="text-center text-white/50 mb-16">
-              ご不明な点はお気軽にお問い合わせください。
-            </p>
-          </AnimatedSection>
-          <AnimatedSection>
-            <div className="space-y-10">
-              {faqSections.map((section) => (
-                <FaqAccordion key={section.title} sections={[section]} />
-              ))}
-
             </div>
           </AnimatedSection>
         </div>
