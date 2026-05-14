@@ -269,6 +269,90 @@ function CreatorProContentPageContent() {
     return true;
   });
 
+  const renderPostCard = (post: Post) => (
+    <>
+      {post.cover ? (
+        <div className="relative aspect-video overflow-hidden bg-gray-900">
+          <img
+            src={post.cover}
+            alt={post.title}
+            className="h-full w-full object-cover transition group-hover:scale-105"
+          />
+
+          {/* メディア情報バッジ */}
+          {post.media && (() => {
+            const mainMedia = post.media.filter(m => !m.isSample);
+            const videos = mainMedia.filter(m => m.type === "VIDEO");
+            const images = mainMedia.filter(m => m.type === "IMAGE");
+
+            const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
+
+            const formatDuration = (seconds: number): string => {
+              const hours = Math.floor(seconds / 3600);
+              const minutes = Math.floor((seconds % 3600) / 60);
+              const secs = seconds % 60;
+
+              if (hours > 0) {
+                return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+              }
+              return `${minutes}:${String(secs).padStart(2, '0')}`;
+            };
+
+            if (mainMedia.length === 0) return null;
+
+            return (
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                {videos.length > 0 && totalDuration > 0 && (
+                  <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                    {formatDuration(totalDuration)}
+                  </div>
+                )}
+                {images.length > 0 && (
+                  <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    {images.length}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      ) : (
+        <div className="border-l-4 border-blue-600 bg-blue-600/10 p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm text-blue-400">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+            </svg>
+            <span className="text-xs font-semibold uppercase">固定されたお知らせ</span>
+          </div>
+        </div>
+      )}
+      <div className="p-4">
+        <h3 className="mb-1 font-semibold group-hover:text-blue-500">{post.title}</h3>
+        {post.description && (
+          <p className="mb-3 text-sm text-gray-400 line-clamp-2">{post.description}</p>
+        )}
+        {post.unlockPrice && (
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isPurchasing) handlePurchase(e, post);
+            }}
+            className={`w-full text-center rounded-lg bg-blue-600 py-2 text-sm font-semibold transition ${isPurchasing ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"}`}
+          >
+            {isPurchasing ? "処理中..." : `¥${post.unlockPrice}でアンロック`}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   // 購入処理
   const handlePurchase = async (event: React.MouseEvent, post: Post) => {
     event.preventDefault();
@@ -536,7 +620,7 @@ function CreatorProContentPageContent() {
         )}
 
         {/* Tabs */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-md border-t border-gray-800 md:relative md:bottom-auto md:bg-[#0d1117] md:backdrop-blur-none md:border-t-0 md:border-b md:px-6">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-md border-t border-gray-800 md:relative md:bottom-auto md:left-auto md:right-auto md:bg-[#0d1117] md:backdrop-blur-none md:border-t-0 md:border-b md:px-6">
           <nav className="flex items-center gap-2 overflow-x-auto px-4 pb-[env(safe-area-inset-bottom)] md:px-0 md:pb-0">
             <button
               onClick={() => setActiveTab("all")}
@@ -587,99 +671,32 @@ function CreatorProContentPageContent() {
                 {posts.length === 0 ? "投稿がありません" : "該当する投稿がありません"}
               </div>
             ) : (
-              filteredPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={handle ? `/${handle}/content/${post.id}` : `/creator-pro/content/${post.id}`}
-                  className="group overflow-hidden rounded-xl bg-[#161b22] transition hover:bg-[#1c2128]"
-                >
-                  {post.cover ? (
-                    <div className="relative aspect-video overflow-hidden bg-gray-900">
-                      <img
-                        src={post.cover}
-                        alt={post.title}
-                        className="h-full w-full object-cover transition group-hover:scale-105"
-                      />
+              filteredPosts.map((post) => {
+                const cardClassName = "group overflow-hidden rounded-xl bg-[#161b22] transition hover:bg-[#1c2128]";
 
-                      {/* メディア情報バッジ */}
-                      {post.media && (() => {
-                        const mainMedia = post.media.filter(m => !m.isSample);
-                        const videos = mainMedia.filter(m => m.type === "VIDEO");
-                        const images = mainMedia.filter(m => m.type === "IMAGE");
+                if (!handle) {
+                  return (
+                    <article key={post.id} className={cardClassName}>
+                      {renderPostCard(post)}
+                    </article>
+                  );
+                }
 
-                        const totalDuration = videos.reduce((sum, v) => sum + (v.duration || 0), 0);
-
-                        const formatDuration = (seconds: number): string => {
-                          const hours = Math.floor(seconds / 3600);
-                          const minutes = Math.floor((seconds % 3600) / 60);
-                          const secs = seconds % 60;
-
-                          if (hours > 0) {
-                            return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-                          }
-                          return `${minutes}:${String(secs).padStart(2, '0')}`;
-                        };
-
-                        if (mainMedia.length === 0) return null;
-
-                        return (
-                          <div className="absolute bottom-2 right-2 flex gap-1.5">
-                            {videos.length > 0 && totalDuration > 0 && (
-                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                                </svg>
-                                {formatDuration(totalDuration)}
-                              </div>
-                            )}
-                            {images.length > 0 && (
-                              <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                                </svg>
-                                {images.length}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div className="border-l-4 border-blue-600 bg-blue-600/10 p-4">
-                      <div className="mb-2 flex items-center gap-2 text-sm text-blue-400">
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
-                        </svg>
-                        <span className="text-xs font-semibold uppercase">固定されたお知らせ</span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Content */}
-                  <div className="p-4">
-                    <h3 className="mb-1 font-semibold group-hover:text-blue-500">{post.title}</h3>
-                    {post.description && (
-                      <p className="mb-3 text-sm text-gray-400 line-clamp-2">{post.description}</p>
-                    )}
-                    {post.unlockPrice && (
-                      <div
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (!isPurchasing) handlePurchase(e, post);
-                        }}
-                        className={`w-full text-center rounded-lg bg-blue-600 py-2 text-sm font-semibold transition ${isPurchasing ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"}`}
-                      >
-                        {isPurchasing ? "処理中..." : `¥${post.unlockPrice}でアンロック`}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              ))
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/${handle}/content/${post.id}`}
+                    className={cardClassName}
+                  >
+                    {renderPostCard(post)}
+                  </Link>
+                );
+              })
             )}
           </div>
 
           {/* Footer */}
-          <footer className="mt-auto border-t border-gray-800 bg-[#010409] pt-8 pb-20 md:pt-4 md:pb-4 w-full">
+          <footer className="mt-auto border-t border-gray-800 bg-[#010409] pt-8 pb-4 w-full">
             <div className="mx-auto max-w-5xl px-4 sm:px-0">
               <div className="flex flex-wrap items-center justify-start gap-4 sm:gap-6 text-xs text-gray-500">
                 <a href="/terms/fans" target="_blank" className="hover:text-blue-500 hover:underline whitespace-nowrap">

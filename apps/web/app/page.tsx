@@ -8,9 +8,18 @@ import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, Chevron
 // --- Data ---
 
 const catchphrases = [
-  <>あなたの<br className="sm:hidden" />コンテンツに、<br />真の価値を。</>,
-  <>業界最安水準の<br className="sm:hidden" />手数料で、<br className="sm:hidden" />手残りを最大化。</>,
-  <>あなたのブランドを、<br />あなたの手で。</>,
+  <>独自ドメインで、<br />ファンサイトを<br className="sm:hidden" />自分の資産に。</>,
+  <>決済停止リスクに、<br />振り回されない。</>,
+  <>
+    <span className="sm:hidden">
+      <span className="block whitespace-nowrap">ファンリストと</span>
+      <span className="block whitespace-nowrap">ブランドを、</span>
+      <span className="block whitespace-nowrap">あなたの手元に。</span>
+    </span>
+    <span className="hidden sm:inline">
+      ファンリストとブランドを、<br />あなたの手元に。
+    </span>
+  </>,
 ];
 
 type BillingCycle = "monthly" | "yearly";
@@ -222,13 +231,13 @@ function FaqAccordion({ sections }: { sections: FaqSection[] }) {
   const toggle = (key: string) => setOpenKey((prev) => (prev === key ? null : key));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       {sections.map((section) => (
         <div key={section.title}>
-          <p className="text-sm font-semibold uppercase tracking-widest text-white/30 mb-4 pb-3 border-b border-white/5">
+          <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider sm:tracking-widest text-white/30 mb-2 sm:mb-4 pb-2 sm:pb-3 border-b border-white/5">
             {section.title}
           </p>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {section.items.map((item, i) => {
               const key = `${section.title}-${i}`;
               const isOpen = openKey === key;
@@ -238,17 +247,17 @@ function FaqAccordion({ sections }: { sections: FaqSection[] }) {
                   className={`rounded-xl border transition-all duration-200 overflow-hidden ${isOpen ? "border-white/20 bg-white/[0.08]" : "border-white/10 bg-white/5"}`}
                 >
                   <button
-                    className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+                    className="w-full flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-3.5 sm:py-5 text-left"
                     onClick={() => toggle(key)}
                   >
-                    <span className="text-lg font-medium text-white">{item.q}</span>
+                    <span className="text-sm sm:text-lg font-medium text-white leading-snug">{item.q}</span>
                     <ChevronDown
-                      className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                       style={{ color: isOpen ? "#C5A059" : "rgba(255,255,255,0.4)" }}
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-6 pb-5 text-base text-white/55 leading-relaxed border-t border-white/10 pt-4">
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-5 text-sm sm:text-base text-white/55 leading-relaxed border-t border-white/10 pt-3 sm:pt-4">
                       {item.a}
                     </div>
                   )}
@@ -351,7 +360,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ===== Hero Section ===== */}
-      <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+      <section className="relative min-h-[88svh] sm:min-h-screen flex items-center justify-center pt-16 pb-10 sm:pb-0 overflow-hidden">
         <Particles />
 
         {/* Radial glow */}
@@ -361,8 +370,12 @@ export default function LandingPage() {
         />
 
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+          <div className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#C5A059]/30 bg-[#C5A059]/10 px-4 py-2 text-xs font-semibold text-[#E8D39A] mb-5">
+            アダルトクリエイター向け独自ファンサイト
+          </div>
+
           {/* Rotating catchphrase */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 sm:mb-6">
             <span
               className={`inline-block transition-all duration-500 ${!mounted || isFading ? "opacity-0 translate-y-[-10px]" : "opacity-100 translate-y-0"
                 }`}
@@ -376,20 +389,46 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="hidden sm:block text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
             業界最安水準 <span className="text-white font-semibold">2.8%</span> の手数料。
             <br />
             独自ドメイン・完全自立型で、<br />あなたのブランドを守りながら<br className="sm:hidden" />収益を最大化。
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <p className="sm:hidden text-sm text-white/70 max-w-sm mx-auto mb-5 leading-relaxed">
+            独自ドメインで運営できる、アダルトクリエイター向けファンサイトSaaS。
+            凍結リスクに縛られず、ファンリストとブランドを自分の資産にできます。
+          </p>
+
+          <div className="sm:hidden grid grid-cols-3 gap-2 max-w-sm mx-auto mb-7">
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-3">
+              <p className="text-xs text-white/45">決済</p>
+              <p className="mt-1 text-xs font-semibold text-white">停止リスク対策</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-3">
+              <p className="text-xs text-white/45">資産</p>
+              <p className="mt-1 text-xs font-semibold text-white">ファンリスト</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-3">
+              <p className="text-xs text-white/45">運営</p>
+              <p className="mt-1 text-xs font-semibold text-white">独自ドメイン</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               href="/creators/signup"
-              className="group flex items-center gap-2 text-lg font-bold px-10 py-4 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
+              className="group flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 text-sm sm:text-lg font-bold px-8 sm:px-10 py-4 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
               style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
             >
               無料で始める
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/creator-pro/content"
+              className="sm:hidden flex w-full max-w-sm items-center justify-center rounded-xl border border-white/15 bg-white/5 px-8 py-4 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              サンプルサイトを見る
             </Link>
             <a
               href="#pricing"
@@ -408,12 +447,18 @@ export default function LandingPage() {
       <section className="relative py-12 sm:py-32 px-4">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white" style={{ lineHeight: 1.4 }}>
-              もう、プラットフォームの都合に
-              <br />
-              振り回されない。
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-white leading-snug sm:leading-snug">
+              <span className="sm:hidden">
+                <span className="block whitespace-nowrap">もう、プラットフォームの</span>
+                <span className="block whitespace-nowrap">都合に振り回されない。</span>
+              </span>
+              <span className="hidden sm:block">
+                もう、プラットフォームの都合に
+                <br />
+                振り回されない。
+              </span>
             </h2>
-            <p className="text-center text-white/50 mb-16 max-w-2xl mx-auto">
+            <p className="text-center text-sm sm:text-base text-white/50 mb-10 sm:mb-16 max-w-2xl mx-auto">
               CocoBaは、クリエイターが本当に必要とする<br className="sm:hidden" />自由と安全を提供します。
             </p>
           </AnimatedSection>
@@ -428,10 +473,10 @@ export default function LandingPage() {
                 >
                   <Shield className="w-7 h-7 text-blue-300" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
                   凍結リスク・規約変更からの解放
                 </h3>
-                <p className="text-white/50 leading-relaxed">
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
                   突然のアカウント凍結や一方的な規約変更に怯える必要はもうありません。あなたのコンテンツとファンとの関係を、あなた自身がコントロールできます。
                 </p>
                 {/* Glow effect */}
@@ -448,10 +493,10 @@ export default function LandingPage() {
                 >
                   <TrendingUp className="w-7 h-7 text-blue-200" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
                   安全かつ長期的な収益最大化
                 </h3>
-                <p className="text-white/50 leading-relaxed">
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
                   業界最安水準の手数料2.8%で、あなたの手残りを最大化。安定した決済基盤と透明な料金体系で、長期的な成長をサポートします。
                 </p>
                 <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(0,35,102,0.2), rgba(197,160,89,0.2))" }} />
@@ -467,10 +512,10 @@ export default function LandingPage() {
                 >
                   <Crown className="w-7 h-7 text-yellow-200" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
                   完全自立型のブランディング
                 </h3>
-                <p className="text-white/50 leading-relaxed">
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
                   独自ドメインで、あなただけのブランドを構築。プラットフォームの看板ではなく、あなた自身の名前でファンとつながれます。
                 </p>
                 <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(197,160,89,0.3), transparent)" }} />
@@ -481,18 +526,18 @@ export default function LandingPage() {
       </section>
 
       {/* ===== Section 3: FAQ ===== */}
-      <section id="faq" className="relative py-16 sm:py-20 px-4">
+      <section id="faq" className="relative py-10 sm:py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-2 sm:mb-4 text-white">
               よくある質問
             </h2>
-            <p className="text-center text-white/50 mb-16">
+            <p className="text-center text-sm sm:text-base text-white/50 mb-8 sm:mb-16">
               ご不明な点はお気軽にお問い合わせください。
             </p>
           </AnimatedSection>
           <AnimatedSection>
-            <div className="space-y-10">
+            <div className="space-y-6 sm:space-y-10">
               {faqSections.map((section) => (
                 <FaqAccordion key={section.title} sections={[section]} />
               ))}
@@ -506,20 +551,20 @@ export default function LandingPage() {
       <section id="pricing" className="relative py-12 sm:py-32 px-4 scroll-mt-16">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-white">
               シンプルで透明な<br className="sm:hidden" />料金体系
             </h2>
-            <p className="text-center text-white/50 mb-4 max-w-2xl mx-auto">
+            <p className="text-center text-sm sm:text-base text-white/50 mb-4 max-w-2xl mx-auto">
               あなたの成長に合わせて選べる3つのプラン。<br className="sm:hidden" />すべてのプランに基本機能が含まれています。
             </p>
           </AnimatedSection>
 
           {/* Billing toggle */}
-          <AnimatedSection className="flex justify-center mb-12">
+          <AnimatedSection className="flex justify-center mb-10 sm:mb-12">
             <div className="inline-flex rounded-full p-1 border border-white/10 bg-white/5">
               <button
                 onClick={() => setBillingCycle("monthly")}
-                className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${billingCycle === "monthly"
+                className={`rounded-full px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${billingCycle === "monthly"
                   ? "bg-white text-[#040B1A]"
                   : "text-white/60 hover:text-white"
                   }`}
@@ -528,7 +573,7 @@ export default function LandingPage() {
               </button>
               <button
                 onClick={() => setBillingCycle("yearly")}
-                className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${billingCycle === "yearly"
+                className={`rounded-full px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${billingCycle === "yearly"
                   ? "bg-white text-[#040B1A]"
                   : "text-white/60 hover:text-white"
                   }`}
@@ -568,17 +613,17 @@ export default function LandingPage() {
                     )}
 
                     <div className="text-center mb-3 sm:mb-6">
-                      <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-                      <p className="text-sm text-white/50 mt-1">{plan.description}</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-white">{plan.name}</h3>
+                      <p className="text-xs sm:text-sm text-white/50 mt-1">{plan.description}</p>
                     </div>
 
                     <div className="text-center mb-8">
                       <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-lg text-white/60">¥</span>
-                        <span className="text-5xl font-bold text-white">
+                        <span className="text-base sm:text-lg text-white/60">¥</span>
+                        <span className="text-4xl sm:text-5xl font-bold text-white">
                           {monthlyPrice.toLocaleString("ja-JP")}
                         </span>
-                        <span className="text-sm text-white/60">/月</span>
+                        <span className="text-xs sm:text-sm text-white/60">/月</span>
                       </div>
                       {billingCycle === "yearly" && price > 0 && (
                         <p className="mt-1 text-xs text-white/40">
@@ -594,7 +639,7 @@ export default function LandingPage() {
                       {plan.features.map((feature, i) => {
                         const isTrial = feature.includes("無料");
                         return (
-                          <li key={i} className={`flex items-start gap-3 text-sm ${isTrial ? "rounded-lg bg-emerald-500/10 px-3 py-2 -mx-3" : ""}`}>
+                          <li key={i} className={`flex items-start gap-3 text-xs sm:text-sm ${isTrial ? "rounded-lg bg-emerald-500/10 px-3 py-2 -mx-3" : ""}`}>
                             <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isTrial ? "text-emerald-400" : ""}`} style={isTrial ? undefined : { color: "#C5A059" }} />
                             <span className={isTrial ? "text-emerald-300 font-semibold" : "text-white/70"}>{feature}</span>
                           </li>
@@ -621,26 +666,29 @@ export default function LandingPage() {
           {/* Comparison table */}
           <AnimatedSection>
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
-              <h3 className="text-xl font-bold text-white text-center py-6 border-b border-white/10">
+              <h3 className="text-lg sm:text-xl font-bold text-white text-center py-4 sm:py-6 border-b border-white/10">
                 プラン比較
               </h3>
+              <p className="sm:hidden px-4 py-2 text-center text-xs text-white/40 border-b border-white/5">
+                横にスクロールして各プランを比較できます。
+              </p>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[620px]">
                   <thead>
                     <tr className="border-b border-white/10">
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-white/60">機能</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-white/60">Free</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-white">Lite</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-white/60">Business</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-white/60">機能</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-white/60">Free</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-white">Lite</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-white/60">Business</th>
                     </tr>
                   </thead>
                   <tbody>
                     {comparisonFeatures.map((feature, i) => (
                       <tr key={i} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium text-white/80">{feature.name}</td>
-                        <td className="px-6 py-4 text-sm text-center text-white/50">{feature.free}</td>
-                        <td className="px-6 py-4 text-sm text-center text-white font-medium">{feature.lite}</td>
-                        <td className="px-6 py-4 text-sm text-center text-white/70">{feature.business}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-white/80">{feature.name}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-center text-white/50">{feature.free}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-center text-white font-medium">{feature.lite}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-center text-white/70">{feature.business}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -655,10 +703,10 @@ export default function LandingPage() {
       <section className="relative py-24 sm:py-32 px-4">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-white">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-white">
               あなたの価値を、正しく表現するための武器。
             </h2>
-            <p className="text-center text-white/50 mb-16 max-w-2xl mx-auto">
+            <p className="text-center text-sm sm:text-base text-white/50 mb-10 sm:mb-16 max-w-2xl mx-auto">
               独自ドメインと洗練されたテーマで、<br className="sm:hidden" />プロフェッショナルなブランドを構築。
             </p>
           </AnimatedSection>
@@ -676,10 +724,10 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="text-center md:text-left">
-                  <h3 className="text-2xl font-bold text-white mb-3">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
                     独自ドメインで、<br className="sm:hidden" />あなただけの世界を。
                   </h3>
-                  <p className="text-white/50 leading-relaxed max-w-xl">
+                  <p className="text-sm sm:text-base text-white/50 leading-relaxed max-w-xl">
                     <span className="font-semibold text-white/70">yourbrand.com</span> であなたのページを公開。
                     プラットフォームの URL ではなく、あなた自身のブランドでファンを迎えましょう。
                     設定は簡単、プログラミングの知識は一切不要です。
@@ -692,11 +740,11 @@ export default function LandingPage() {
           {/* Theme grid */}
           <AnimatedSection>
             <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 text-sm text-white/50 mb-2">
+              <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-white/50 mb-2">
                 <Palette className="w-4 h-4" />
                 プログラミング不要
               </div>
-              <h3 className="text-2xl font-bold text-white">
+              <h3 className="text-xl sm:text-2xl font-bold text-white">
                 6つの洗練されたテーマから選択
               </h3>
             </div>
@@ -721,7 +769,7 @@ export default function LandingPage() {
                   </div>
                   {/* Theme name */}
                   <div className="bg-white/5 px-4 py-3 backdrop-blur-sm">
-                    <p className="text-sm font-medium text-white/80">{theme.name}</p>
+                    <p className="text-xs sm:text-sm font-medium text-white/80">{theme.name}</p>
                   </div>
                 </div>
               ))}
@@ -740,7 +788,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-8 sm:mb-16 leading-tight">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-8 sm:mb-16 leading-tight">
               さあ、真の自由と、
               <br />
               最大の手残りを<br className="sm:hidden" />手に入れよう。
@@ -748,7 +796,7 @@ export default function LandingPage() {
 
             <Link
               href="/creators/signup"
-              className="group inline-flex items-center gap-2 text-lg font-bold px-12 py-5 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
+              className="group inline-flex items-center gap-2 text-base sm:text-lg font-bold px-10 sm:px-12 py-4 sm:py-5 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
               style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
             >
               無料で始める
@@ -765,7 +813,7 @@ export default function LandingPage() {
             {/* Column 1: About */}
             <div>
               <img src="/logo-top.png" alt="CocoBa Logo" className="h-8 w-auto mb-4" />
-              <p className="text-sm text-white/50 leading-relaxed">
+              <p className="text-xs sm:text-sm text-white/50 leading-relaxed">
                 業界最安水準の手数料で、クリエイターの収益を最大化するプラットフォーム。
               </p>
             </div>
@@ -773,7 +821,7 @@ export default function LandingPage() {
             {/* Column 2: Legal */}
             <div>
               <h3 className="text-white font-semibold mb-4">法的情報</h3>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-xs sm:text-sm">
                 <li>
                   <Link href="/terms/creators" className="text-white/50 hover:text-white transition-colors">
                     利用規約
@@ -795,7 +843,7 @@ export default function LandingPage() {
             {/* Column 3: Support */}
             <div>
               <h3 className="text-white font-semibold mb-4">サポート</h3>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-xs sm:text-sm">
                 <li>
                   <Link href="/contact" className="text-white/50 hover:text-white transition-colors">
                     お問い合わせ
@@ -816,7 +864,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-white/5 pt-6 text-center">
-            <p className="text-sm text-white/30">
+            <p className="text-xs sm:text-sm text-white/30">
               &copy; 2025 CocoBa. All rights reserved.
             </p>
           </div>
