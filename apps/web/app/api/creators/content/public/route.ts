@@ -65,7 +65,15 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({ posts });
+        const serializedPosts = posts.map((post) => ({
+            ...post,
+            media: post.media.map((media) => ({
+                ...media,
+                size: Number(media.size),
+            })),
+        }));
+
+        return NextResponse.json({ posts: serializedPosts });
     } catch (error) {
         console.error("Error fetching public posts:", error);
         return NextResponse.json(
