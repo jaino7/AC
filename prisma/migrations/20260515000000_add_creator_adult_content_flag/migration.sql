@@ -1,0 +1,1 @@
+ALTER TABLE "CreatorProfile" ADD COLUMN IF NOT EXISTS "isAdultContent" BOOLEAN NOT NULL DEFAULT false;

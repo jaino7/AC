@@ -236,6 +236,7 @@ model CreatorProfile {
   // ストレージ管理
   storageUsedBytes  BigInt @default(0) // 使用中のストレージ（バイト単位）
   storageLimitBytes BigInt? // ストレージ上限（nullの場合はプランのデフォルト）
+  isAdultContent Boolean @default(false) // サイト全体のアダルトコンテンツフラグ（本人確認必須）
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

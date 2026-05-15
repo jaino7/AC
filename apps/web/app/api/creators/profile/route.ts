@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
                     logoUrl: true,
                     headerUrl: true,
                     faviconUrl: true,
+                    isAdultContent: true,
                     twitterUrl: true,
                     instagramUrl: true,
                     tiktokUrl: true,
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
                             logoUrl: true,
                             headerUrl: true,
                             faviconUrl: true,
+                            isAdultContent: true,
                             twitterUrl: true,
                             instagramUrl: true,
                             tiktokUrl: true,
@@ -135,7 +137,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl, showNameInHeader, notifyPurchase, notifyInquiry, notifyAnnouncement } = body;
+        const { displayName, bio, twitterUrl, instagramUrl, tiktokUrl, discordUrl, otherUrl, otherUrlName, headerUrl, showNameInHeader, notifyPurchase, notifyInquiry, notifyAnnouncement, isAdultContent } = body;
 
         console.log("Updating profile for:", user.creatorProfile.id, "with data:", {
             displayName,
@@ -179,6 +181,7 @@ export async function PUT(request: NextRequest) {
                 ...(notifyPurchase !== undefined && { notifyPurchase }),
                 ...(notifyInquiry !== undefined && { notifyInquiry }),
                 ...(notifyAnnouncement !== undefined && { notifyAnnouncement }),
+                ...(isAdultContent !== undefined && { isAdultContent: Boolean(isAdultContent) }),
             },
             select: {
                 id: true,
@@ -191,6 +194,7 @@ export async function PUT(request: NextRequest) {
                 logoUrl: true,
                 headerUrl: true,
                 faviconUrl: true,
+                isAdultContent: true,
                 twitterUrl: true,
                 instagramUrl: true,
                 tiktokUrl: true,

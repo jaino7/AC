@@ -89,6 +89,8 @@ export default function SettingsContent() {
     const [notifyPurchase, setNotifyPurchase] = useState(true);
     const [notifyInquiry, setNotifyInquiry] = useState(true);
     const [notifyAnnouncement, setNotifyAnnouncement] = useState(true);
+    const [isAdultContent, setIsAdultContent] = useState(false);
+    const [isSavingAdultContent, setIsSavingAdultContent] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -154,6 +156,7 @@ export default function SettingsContent() {
                     setNotifyPurchase(data.profile.notifyPurchase ?? true);
                     setNotifyInquiry(data.profile.notifyInquiry ?? true);
                     setNotifyAnnouncement(data.profile.notifyAnnouncement ?? true);
+                    setIsAdultContent(Boolean(data.profile.isAdultContent));
 
                     // Set creator profile for domain access check
                     setCreatorProfile({
@@ -324,6 +327,36 @@ export default function SettingsContent() {
 
         setConfirmingPlan(planType);
         setShowConfirmModal(true);
+    };
+
+    const handleAdultContentChange = async (nextValue: boolean) => {
+        if (!nextValue) {
+            const confirmed = window.confirm("アダルトコンテンツが含まれていないことを確認しましたか？");
+            if (!confirmed) return;
+        }
+
+        const previousValue = isAdultContent;
+        setIsAdultContent(nextValue);
+        setIsSavingAdultContent(true);
+
+        try {
+            const response = await fetch("/api/creators/profile", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isAdultContent: nextValue }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || "アダルトコンテンツ設定の保存に失敗しました。");
+            }
+        } catch (error) {
+            console.error("Failed to update adult content setting:", error);
+            setIsAdultContent(previousValue);
+            alert(error instanceof Error ? error.message : "アダルトコンテンツ設定の保存に失敗しました。");
+        } finally {
+            setIsSavingAdultContent(false);
+        }
     };
 
     const loadDomain = async () => {
@@ -640,6 +673,32 @@ export default function SettingsContent() {
                                         </div>
                                     </div>
                                 )}
+
+                                <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <h2 className="text-xl font-semibold">アダルトコンテンツ設定</h2>
+                                            <p className="mt-2 max-w-2xl text-sm text-neutral-600">
+                                                1つでもアダルトコンテンツを公開する場合、サイト全体をアダルトコンテンツとして扱います。
+                                            </p>
+                                            {isAdultContent && verificationStatus !== "APPROVED" && (
+                                                <p className="mt-2 text-sm font-semibold text-amber-700">
+                                                    アダルトコンテンツの公開には本人確認の完了が必要です。
+                                                </p>
+                                            )}
+                                        </div>
+                                        <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-black/10 px-4 py-3 text-sm font-semibold">
+                                            <input
+                                                type="checkbox"
+                                                checked={isAdultContent}
+                                                disabled={isSavingAdultContent}
+                                                onChange={(event) => handleAdultContentChange(event.target.checked)}
+                                                className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                            />
+                                            アダルトコンテンツを含む
+                                        </label>
+                                    </div>
+                                </section>
 
                                 {/* Basic Info */}
                                 <section className="rounded-none md:rounded-3xl border-y md:border border-black/10 bg-white p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">

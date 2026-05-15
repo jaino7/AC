@@ -6,6 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal";
 import { ImageLightbox } from "@/components/common/ImageLightbox";
+import { AgeGate } from "@/components/common/AgeGate";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
 
 interface Media {
@@ -39,6 +40,7 @@ interface Creator {
     displayName: string;
     bio: string | null;
     theme: string;
+    isAdultContent: boolean;
 }
 
 export default function ContentDetailPage() {
@@ -244,6 +246,11 @@ export default function ContentDetailPage() {
     const mainImages = mainMedia.filter((m) => m.type === "IMAGE").map((m) => ({ src: m.url, alt: "Content" }));
 
     return (
+        <AgeGate
+            isRequired={Boolean(creator.isAdultContent)}
+            creatorHandle={handle}
+            creatorName={creator.displayName}
+        >
         <div className="min-h-screen bg-white">
             {/* ヘッダー */}
             <header className="border-b border-neutral-200 px-6 py-4">
@@ -707,5 +714,6 @@ export default function ContentDetailPage() {
                 />
             )}
         </div>
+        </AgeGate>
     );
 }

@@ -21,6 +21,7 @@ export async function GET(
                         handle: true,
                         displayName: true,
                         logoUrl: true,
+                        isAdultContent: true,
                     },
                 },
                 folder: {

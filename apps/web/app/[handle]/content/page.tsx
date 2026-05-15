@@ -3,10 +3,21 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ThemeContentWrapper } from "./theme-wrapper";
+import StudioProContentPage from "@/app/studio-pro/content/page";
+import { AgeGate } from "@/components/common/AgeGate";
 
 export default function ContentPage() {
     const params = useParams();
     const handle = params.handle as string;
+
+    if (handle === "demo") {
+        return <StudioProContentPage />;
+    }
+
+    return <LiveContentPage handle={handle} />;
+}
+
+function LiveContentPage({ handle }: { handle: string }) {
 
     // クリエイターのテーマを取得
     const { data, isLoading } = useQuery({
@@ -19,7 +30,8 @@ export default function ContentPage() {
         enabled: !!handle,
     });
 
-    const theme = data?.profile?.theme || "creator-pro";
+    const profile = data?.profile;
+    const theme = profile?.theme || "creator-pro";
 
     if (!handle || isLoading) {
         return (
@@ -29,5 +41,13 @@ export default function ContentPage() {
         );
     }
 
-    return <ThemeContentWrapper handle={handle} initialTheme={theme} />;
+    return (
+        <AgeGate
+            isRequired={Boolean(profile?.isAdultContent)}
+            creatorHandle={handle}
+            creatorName={profile?.displayName}
+        >
+            <ThemeContentWrapper handle={handle} initialTheme={theme} />
+        </AgeGate>
+    );
 }

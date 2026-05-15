@@ -61,6 +61,7 @@ export default function NewContentPage() {
 
     // アダルトコンテンツ設定
     const [isAdultContent, setIsAdultContent] = useState(false);
+    const [siteIsAdultContent, setSiteIsAdultContent] = useState(false);
     const [verificationStatus, setVerificationStatus] = useState<string>("NONE");
     const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -157,6 +158,20 @@ export default function NewContentPage() {
 
     // 本人確認ステータスを取得
     useEffect(() => {
+        const fetchCreatorProfile = async () => {
+            try {
+                const response = await fetch("/api/creators/profile");
+                if (response.ok) {
+                    const data = await response.json();
+                    const adultContent = Boolean(data.profile?.isAdultContent);
+                    setSiteIsAdultContent(adultContent);
+                    setIsAdultContent(adultContent);
+                }
+            } catch (error) {
+                console.error("Failed to fetch creator profile:", error);
+            }
+        };
+
         const fetchVerificationStatus = async () => {
             try {
                 const response = await fetch("/api/creators/identity-verification/status");
@@ -169,6 +184,7 @@ export default function NewContentPage() {
             }
         };
 
+        fetchCreatorProfile();
         fetchVerificationStatus();
     }, []);
 
@@ -430,7 +446,9 @@ export default function NewContentPage() {
         }
 
         // アダルトコンテンツチェック
-        if (isAdultContent && verificationStatus !== "APPROVED") {
+        const effectiveIsAdultContent = siteIsAdultContent || isAdultContent;
+
+        if (effectiveIsAdultContent && verificationStatus !== "APPROVED") {
             setErrorMessage("アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。");
             return;
         }
@@ -456,7 +474,7 @@ export default function NewContentPage() {
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
             singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
-            isAdultContent,
+            isAdultContent: effectiveIsAdultContent,
         });
     };
 
@@ -470,7 +488,9 @@ export default function NewContentPage() {
         }
 
         // アダルトコンテンツチェック
-        if (isAdultContent && verificationStatus !== "APPROVED") {
+        const effectiveIsAdultContent = siteIsAdultContent || isAdultContent;
+
+        if (effectiveIsAdultContent && verificationStatus !== "APPROVED") {
             setErrorMessage("アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。");
             return;
         }
@@ -489,7 +509,7 @@ export default function NewContentPage() {
             isLocked: accessPermission === "plans" || accessPermission === "single_sale",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
             singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
-            isAdultContent,
+            isAdultContent: effectiveIsAdultContent,
         });
     };
 
@@ -927,8 +947,8 @@ export default function NewContentPage() {
                             </div>
                         </div>
 
-                        {/* アダルトコンテンツ設定（本人確認済みでない場合のみ表示） */}
-                        {verificationStatus !== "APPROVED" && (
+                        {/* アダルトコンテンツ設定（サイト全体のアダルト設定と本人確認が揃うまでは表示） */}
+                        {!(siteIsAdultContent && verificationStatus === "APPROVED") && (
                             <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.05)] sm:rounded-3xl sm:p-6">
                                 <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500 sm:text-sm sm:tracking-[0.3em]">
                                     コンテンツ区分

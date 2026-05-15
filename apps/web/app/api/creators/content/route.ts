@@ -101,6 +101,7 @@ export async function POST(req: Request) {
             where: { userId: user.id },
             select: {
                 id: true,
+                isAdultContent: true,
                 identityVerification: {
                     select: { status: true }
                 }
@@ -115,13 +116,22 @@ export async function POST(req: Request) {
         }
 
         // アダルトコンテンツの場合、本人確認済みかチェック
-        if (isAdultContent) {
+        const shouldTreatAsAdultContent = Boolean(creatorProfile.isAdultContent || isAdultContent);
+
+        if (shouldTreatAsAdultContent) {
             const verificationStatus = creatorProfile.identityVerification?.status;
             if (verificationStatus !== "APPROVED") {
                 return NextResponse.json(
                     { error: "アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。" },
                     { status: 403 }
                 );
+            }
+
+            if (isAdultContent && !creatorProfile.isAdultContent) {
+                await prisma.creatorProfile.update({
+                    where: { id: creatorProfile.id },
+                    data: { isAdultContent: true }
+                });
             }
         }
 
@@ -146,7 +156,7 @@ export async function POST(req: Request) {
                 isLocked: isLocked || false,
                 requiredPlanId: requiredPlanId || null,
                 price: singleSalePrice ? Math.round(singleSalePrice) : null,
-                isAdultContent: isAdultContent || false
+                isAdultContent: shouldTreatAsAdultContent
             }
         });
 

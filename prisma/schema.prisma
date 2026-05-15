@@ -268,6 +268,7 @@ model CreatorProfile {
 
   // お問い合わせ設定
   inquiryEnabled Boolean @default(true)
+  isAdultContent Boolean @default(false) // サイト全体のアダルトコンテンツフラグ（本人確認必須）
 
   // メール通知設定
   notifyPurchase     Boolean @default(true)
