@@ -28,6 +28,16 @@ export interface ThemeConfig {
     };
 }
 
+const BACKGROUND_IMAGE_THEMES = new Set(["studio-pro", "zine-lite"]);
+
+export function supportsThemeBackgroundImage(theme: string): boolean {
+    return BACKGROUND_IMAGE_THEMES.has(theme);
+}
+
+interface BrandThemeCSSOptions {
+    enableBackgroundImage?: boolean;
+}
+
 /**
  * デフォルトテーマ設定
  */
@@ -244,74 +254,122 @@ export function themeConfigToCSS(config: ThemeConfig): string {
   `.trim();
 }
 
-export function getBackgroundPatternCSS(pattern: ThemeConfig["background"]["pattern"]): string {
-    switch (pattern) {
-        case "dots":
-            return "radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-accent) 28%, transparent) 1px, transparent 0)";
-        case "grid":
-            return "linear-gradient(color-mix(in srgb, var(--color-accent) 18%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 18%, transparent) 1px, transparent 1px)";
-        case "diagonal":
-            return "repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 16%, transparent) 0 1px, transparent 1px 14px)";
-        case "soft":
-            return "radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 32rem), radial-gradient(circle at bottom right, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 28rem)";
-        default:
-            return "none";
-    }
-}
-
-export function brandThemeOverrideCSS(config: ThemeConfig): string {
-    const pattern = getBackgroundPatternCSS(config.background.pattern);
+export function brandThemeOverrideCSS(config: ThemeConfig, options: BrandThemeCSSOptions = {}): string {
+    const backgroundImage = options.enableBackgroundImage === false ? "none" : "var(--brand-background-image)";
 
     return `
     [data-brand-theme] {
       ${themeConfigToCSS(config)}
       background-color: var(--color-background) !important;
-      background-image: var(--brand-background-image), ${pattern} !important;
-      background-size: cover, ${config.background.pattern === "grid" ? "28px 28px" : config.background.pattern === "dots" ? "18px 18px" : "auto"} !important;
-      background-attachment: fixed, fixed !important;
-      color: var(--color-text);
-      font-family: var(--font-body);
+      background-image: ${backgroundImage} !important;
+      background-size: cover !important;
+      background-position: center !important;
+      background-attachment: fixed !important;
+      color: var(--color-text) !important;
+      font-family: var(--font-body) !important;
+      --tw-ring-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    }
+    [data-brand-theme] > [data-creator-id] > [class*="min-h-screen"] {
+      background: transparent !important;
+      color: var(--color-text) !important;
     }
     [data-brand-theme] main,
     [data-brand-theme] header,
     [data-brand-theme] section,
-    [data-brand-theme] article {
-      font-family: var(--font-body);
+    [data-brand-theme] article,
+    [data-brand-theme] input,
+    [data-brand-theme] textarea,
+    [data-brand-theme] select,
+    [data-brand-theme] button {
+      font-family: var(--font-body) !important;
     }
     [data-brand-theme] h1,
     [data-brand-theme] h2,
-    [data-brand-theme] h3 {
-      font-family: var(--font-heading);
+    [data-brand-theme] h3,
+    [data-brand-theme] h4 {
+      font-family: var(--font-heading) !important;
     }
-    [data-brand-theme] .text-cyan-400,
-    [data-brand-theme] .text-cyan-500,
-    [data-brand-theme] .text-pink-500,
-    [data-brand-theme] .text-emerald-500,
-    [data-brand-theme] .text-amber-600,
-    [data-brand-theme] .text-blue-600 {
-      color: var(--color-accent) !important;
+    [data-brand-theme] header.bg-white,
+    [data-brand-theme] footer.bg-white,
+    [data-brand-theme] [class*="fixed"][class*="bg-white"] {
+      background-color: color-mix(in srgb, var(--color-background) 92%, var(--color-text) 8%) !important;
+      color: var(--color-text) !important;
     }
-    [data-brand-theme] button,
-    [data-brand-theme] a.bg-cyan-400,
-    [data-brand-theme] a.bg-cyan-500,
-    [data-brand-theme] a.bg-pink-500,
-    [data-brand-theme] a.bg-emerald-500,
-    [data-brand-theme] a.bg-amber-500,
-    [data-brand-theme] a.bg-blue-600 {
+    [data-brand-theme] input,
+    [data-brand-theme] textarea,
+    [data-brand-theme] select {
       border-radius: var(--brand-button-radius) !important;
     }
-    [data-brand-theme] .bg-cyan-400,
-    [data-brand-theme] .bg-cyan-500,
-    [data-brand-theme] .bg-pink-500,
-    [data-brand-theme] .bg-emerald-500,
-    [data-brand-theme] .bg-amber-500,
-    [data-brand-theme] .bg-blue-600 {
+    [data-brand-theme] a:hover,
+    [data-brand-theme] button:hover {
+      border-color: var(--color-accent) !important;
+    }
+    [data-brand-theme] [class*="text-cyan-"],
+    [data-brand-theme] [class*="text-blue-"],
+    [data-brand-theme] [class*="text-purple-"],
+    [data-brand-theme] [class*="text-pink-"],
+    [data-brand-theme] [class*="text-emerald-"],
+    [data-brand-theme] [class*="text-green-"],
+    [data-brand-theme] [class*="text-amber-"],
+    [data-brand-theme] [class*="text-yellow-"] {
+      color: var(--color-accent) !important;
+    }
+    [data-brand-theme] [class*="border-cyan-"],
+    [data-brand-theme] [class*="border-blue-"],
+    [data-brand-theme] [class*="border-purple-"],
+    [data-brand-theme] [class*="border-pink-"],
+    [data-brand-theme] [class*="border-emerald-"],
+    [data-brand-theme] [class*="border-green-"],
+    [data-brand-theme] [class*="border-amber-"],
+    [data-brand-theme] [class*="border-yellow-"] {
+      border-color: color-mix(in srgb, var(--color-accent) 65%, transparent) !important;
+    }
+    [data-brand-theme] button,
+    [data-brand-theme] a[class*=" px-"],
+    [data-brand-theme] a[class*="px-"] {
+      border-radius: var(--brand-button-radius) !important;
+    }
+    [data-brand-theme] :is(button, a)[class*="bg-cyan-"],
+    [data-brand-theme] :is(button, a)[class*="bg-blue-"],
+    [data-brand-theme] :is(button, a)[class*="bg-purple-"],
+    [data-brand-theme] :is(button, a)[class*="bg-pink-"],
+    [data-brand-theme] :is(button, a)[class*="bg-emerald-"],
+    [data-brand-theme] :is(button, a)[class*="bg-green-"],
+    [data-brand-theme] :is(button, a)[class*="bg-amber-"],
+    [data-brand-theme] :is(button, a)[class*="bg-yellow-"] {
       background-color: var(--color-primary) !important;
+    }
+    [data-brand-theme] :is(button, a)[class*="from-cyan-"],
+    [data-brand-theme] :is(button, a)[class*="from-blue-"],
+    [data-brand-theme] :is(button, a)[class*="from-purple-"],
+    [data-brand-theme] :is(button, a)[class*="from-pink-"],
+    [data-brand-theme] :is(button, a)[class*="from-emerald-"],
+    [data-brand-theme] :is(button, a)[class*="from-green-"],
+    [data-brand-theme] :is(button, a)[class*="from-amber-"],
+    [data-brand-theme] :is(button, a)[class*="from-yellow-"] {
+      --tw-gradient-from: var(--color-primary) var(--tw-gradient-from-position) !important;
+      --tw-gradient-to: color-mix(in srgb, var(--color-primary) 0%, transparent) var(--tw-gradient-to-position) !important;
+      --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+    }
+    [data-brand-theme] :is(button, a)[class*="to-cyan-"],
+    [data-brand-theme] :is(button, a)[class*="to-blue-"],
+    [data-brand-theme] :is(button, a)[class*="to-purple-"],
+    [data-brand-theme] :is(button, a)[class*="to-pink-"],
+    [data-brand-theme] :is(button, a)[class*="to-emerald-"],
+    [data-brand-theme] :is(button, a)[class*="to-green-"],
+    [data-brand-theme] :is(button, a)[class*="to-amber-"],
+    [data-brand-theme] :is(button, a)[class*="to-yellow-"] {
+      --tw-gradient-to: var(--color-secondary) var(--tw-gradient-to-position) !important;
     }
     [data-brand-theme] article,
     [data-brand-theme] main a.group[class*="border"],
-    [data-brand-theme] section div[class*="border"][class*="p-6"] {
-      border-radius: var(--brand-card-radius);
+    [data-brand-theme] section div[class*="border"][class*="p-6"],
+    [data-brand-theme] section div[class*="border"][class*="p-4"],
+    [data-brand-theme] section div[class*="border"][class*="px-6"] {
+      border-radius: var(--brand-card-radius) !important;
+    }
+    [data-brand-theme] article {
+      padding: var(--brand-spacing) !important;
     }
   `.trim();
 }

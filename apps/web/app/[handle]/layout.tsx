@@ -1,7 +1,7 @@
 import { prisma } from "@creator/shared";
 import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
-import { brandThemeOverrideCSS, getThemeConfig } from "@/lib/theme-config";
+import { brandThemeOverrideCSS, getThemeConfig, supportsThemeBackgroundImage } from "@/lib/theme-config";
 // import { HandleSessionProvider } from "./providers";
 import { CustomSessionProvider } from "@/components/providers/handle-session-provider";
 // DebugSessionコンポーネントを削除
@@ -155,7 +155,9 @@ export default async function HandleLayout({ children, params }: HandleLayoutPro
 
     const themeStyle = themeStyles[creator.theme] || themeStyles["creator-pro"];
     const brandThemeConfig = getThemeConfig(creator.theme, creator.themeConfig as any);
-    const brandCSS = brandThemeOverrideCSS(brandThemeConfig);
+    const brandCSS = brandThemeOverrideCSS(brandThemeConfig, {
+        enableBackgroundImage: supportsThemeBackgroundImage(creator.theme),
+    });
 
     return (
         <CustomSessionProvider session={session}>

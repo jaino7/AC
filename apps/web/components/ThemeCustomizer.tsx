@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ThemeConfig, brandThemeOverrideCSS, getThemeConfig } from "@/lib/theme-config";
+import {
+    ThemeConfig,
+    brandThemeOverrideCSS,
+    getThemeConfig,
+    supportsThemeBackgroundImage,
+} from "@/lib/theme-config";
 
 interface ThemeCustomizerProps {
     theme: string;
@@ -10,7 +15,8 @@ interface ThemeCustomizerProps {
 }
 
 const colorFields: Array<{ key: keyof ThemeConfig["colors"]; label: string; help: string }> = [
-    { key: "primary", label: "メインカラー", help: "主要ボタンや強いCTAに使います" },
+    { key: "primary", label: "メインカラー", help: "主要ボタンやCTAに使います" },
+    { key: "secondary", label: "サブカラー", help: "グラデーションの終点や補助色に使います" },
     { key: "accent", label: "アクセントカラー", help: "リンク、ラベル、強調表示に使います" },
     { key: "background", label: "背景色", help: "サイト全体のベース色です" },
     { key: "text", label: "文字色", help: "本文と見出しの基本色です" },
@@ -20,7 +26,7 @@ const fontOptions = [
     { value: "Inter, sans-serif", label: "Inter / モダン" },
     { value: "Roboto, sans-serif", label: "Roboto / ニュートラル" },
     { value: "Outfit, sans-serif", label: "Outfit / 個性的" },
-    { value: "Noto Sans JP, sans-serif", label: "Noto Sans JP / 日本語重視" },
+    { value: "Noto Sans JP, sans-serif", label: "Noto Sans JP / 日本語" },
     { value: "Playfair Display, serif", label: "Playfair / 上品" },
     { value: "Merriweather, serif", label: "Merriweather / 読み物向け" },
 ];
@@ -28,7 +34,6 @@ const fontOptions = [
 const buttonRadiusOptions = [
     { value: "6px", label: "シャープ" },
     { value: "12px", label: "標準" },
-    { value: "20px", label: "やわらかい" },
     { value: "999px", label: "丸い" },
 ];
 
@@ -46,29 +51,26 @@ const spacingOptions = [
     { value: "1.5rem", label: "広め" },
 ];
 
-const patternOptions: Array<{ value: ThemeConfig["background"]["pattern"]; label: string }> = [
-    { value: "none", label: "なし" },
-    { value: "dots", label: "ドット" },
-    { value: "grid", label: "グリッド" },
-    { value: "diagonal", label: "斜線" },
-    { value: "soft", label: "ソフト光彩" },
-];
-
 export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomizerProps) {
     const [config, setConfig] = useState<ThemeConfig>(() => getThemeConfig(theme, initialConfig));
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+    const canUseBackgroundImage = supportsThemeBackgroundImage(theme);
+
+    useEffect(() => {
+        setConfig(getThemeConfig(theme, initialConfig));
+    }, [theme, initialConfig]);
 
     useEffect(() => {
         const style = document.createElement("style");
         style.id = "theme-customizer-preview";
-        style.textContent = brandThemeOverrideCSS(config);
+        style.textContent = brandThemeOverrideCSS(config, { enableBackgroundImage: canUseBackgroundImage });
         document.head.appendChild(style);
 
         return () => {
             style.remove();
         };
-    }, [config]);
+    }, [canUseBackgroundImage, config]);
 
     const handleColorChange = (key: keyof ThemeConfig["colors"], value: string) => {
         setConfig((prev) => ({
@@ -84,13 +86,10 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
         }));
     };
 
-    const handleBackgroundChange = <K extends keyof ThemeConfig["background"]>(
-        key: K,
-        value: ThemeConfig["background"][K],
-    ) => {
+    const handleBackgroundImageChange = (imageUrl: string) => {
         setConfig((prev) => ({
             ...prev,
-            background: { ...prev.background, [key]: value },
+            background: { ...prev.background, imageUrl },
         }));
     };
 
@@ -130,7 +129,9 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
             <section className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
                 <div className="mb-5">
                     <h2 className="text-xl font-semibold text-neutral-950">カラー</h2>
-                    <p className="mt-1 text-sm text-neutral-600">ブランドの印象と購入導線に使う基本色です。</p>
+                    <p className="mt-1 text-sm text-neutral-600">
+                        ブランドの印象と購入導線に使う基本色です。
+                    </p>
                 </div>
                 <div className="grid gap-5 md:grid-cols-2">
                     {colorFields.map(({ key, label, help }) => (
@@ -157,43 +158,31 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                 </div>
             </section>
 
-            <section className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-                <div className="mb-5">
-                    <h2 className="text-xl font-semibold text-neutral-950">背景</h2>
-                    <p className="mt-1 text-sm text-neutral-600">背景色に加えて、画像URLや控えめなパターンを設定できます。</p>
-                </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-neutral-800">背景画像URL</label>
-                        <input
-                            type="url"
-                            value={config.background.imageUrl}
-                            onChange={(e) => handleBackgroundChange("imageUrl", e.target.value)}
-                            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                            placeholder="https://example.com/background.jpg"
-                        />
+            {canUseBackgroundImage && (
+                <section className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+                    <div className="mb-5">
+                        <h2 className="text-xl font-semibold text-neutral-950">背景画像</h2>
+                        <p className="mt-1 text-sm text-neutral-600">
+                            Studio Pro と Zine Lite で使う背景画像URLを設定できます。
+                        </p>
                     </div>
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-neutral-800">背景パターン</label>
-                        <select
-                            value={config.background.pattern}
-                            onChange={(e) => handleBackgroundChange("pattern", e.target.value as ThemeConfig["background"]["pattern"])}
-                            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                        >
-                            {patternOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </section>
+                    <label className="mb-2 block text-sm font-medium text-neutral-800">画像URL</label>
+                    <input
+                        type="url"
+                        value={config.background.imageUrl}
+                        onChange={(e) => handleBackgroundImageChange(e.target.value)}
+                        className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                        placeholder="https://example.com/background.jpg"
+                    />
+                </section>
+            )}
 
             <section className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
                 <div className="mb-5">
                     <h2 className="text-xl font-semibold text-neutral-950">フォントと形</h2>
-                    <p className="mt-1 text-sm text-neutral-600">文字の雰囲気、ボタン形状、カード角丸、余白感を調整します。</p>
+                    <p className="mt-1 text-sm text-neutral-600">
+                        文字、ボタン形状、カード角丸、余白を調整します。
+                    </p>
                 </div>
                 <div className="grid gap-5 md:grid-cols-2">
                     <div>
@@ -204,7 +193,9 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                         >
                             {fontOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -216,7 +207,9 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                         >
                             {fontOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -228,7 +221,9 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                         >
                             {buttonRadiusOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -240,19 +235,23 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                         >
                             {cardRadiusOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-neutral-800">余白感</label>
+                        <label className="mb-2 block text-sm font-medium text-neutral-800">余白</label>
                         <select
                             value={config.appearance.spacing}
                             onChange={(e) => handleAppearanceChange("spacing", e.target.value)}
                             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                         >
                             {spacingOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -267,8 +266,10 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                 <div data-brand-theme className="overflow-hidden rounded-lg border border-black/10 p-6">
                     <div className="mx-auto max-w-3xl space-y-5">
                         <div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>Creator Site</p>
-                            <h3 className="mt-2 text-3xl font-bold">あなたの世界観を伝えるトップ</h3>
+                            <p className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+                                Creator Site
+                            </p>
+                            <h3 className="mt-2 text-3xl font-bold">あなたの世界観を伝えるテーマ</h3>
                             <p className="mt-2 max-w-xl text-sm opacity-75">
                                 カラー、背景、フォント、ボタン、カードの見た目がファン向けページに反映されます。
                             </p>
@@ -276,7 +277,7 @@ export function ThemeCustomizer({ theme, initialConfig, onSave }: ThemeCustomize
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="border border-black/10 bg-white/80 p-5 shadow-sm">
                                 <h4 className="font-semibold">メンバー限定コンテンツ</h4>
-                                <p className="mt-2 text-sm opacity-70">カード角丸と余白感のサンプルです。</p>
+                                <p className="mt-2 text-sm opacity-70">カード角丸と余白のサンプルです。</p>
                             </div>
                             <div className="border border-black/10 bg-white/80 p-5 shadow-sm">
                                 <h4 className="font-semibold">おすすめプラン</h4>
