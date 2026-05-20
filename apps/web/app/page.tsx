@@ -9,12 +9,26 @@ import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, Chevron
 
 const catchphrases = [
   <>
-    <span className="block whitespace-nowrap">ファンリストとブランドを、</span>
-    <span className="mt-3 block whitespace-nowrap sm:mt-5">あなたの手元に。</span>
+    <span className="sm:hidden">
+      <span className="block whitespace-nowrap">ファンリストと</span>
+      <span className="mt-3 block whitespace-nowrap">ブランドを、</span>
+      <span className="mt-3 block whitespace-nowrap">あなたの手元に。</span>
+    </span>
+    <span className="hidden sm:block">
+      <span className="block whitespace-nowrap">ファンリストとブランドを、</span>
+      <span className="mt-5 block whitespace-nowrap">あなたの手元に。</span>
+    </span>
   </>,
   <>
-    <span className="block whitespace-nowrap">独自ドメインで、</span>
-    <span className="mt-3 block whitespace-nowrap sm:mt-5">ファンサイトを自分の資産に。</span>
+    <span className="sm:hidden">
+      <span className="block whitespace-nowrap">独自ドメインで、</span>
+      <span className="mt-3 block whitespace-nowrap">ファンサイトを</span>
+      <span className="mt-3 block whitespace-nowrap">自分の資産に。</span>
+    </span>
+    <span className="hidden sm:block">
+      <span className="block whitespace-nowrap">独自ドメインで、</span>
+      <span className="mt-5 block whitespace-nowrap">ファンサイトを自分の資産に。</span>
+    </span>
   </>,
   <>
     <span className="block whitespace-nowrap">決済停止リスクに、</span>
