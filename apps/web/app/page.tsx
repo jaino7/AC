@@ -8,17 +8,17 @@ import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, Chevron
 // --- Data ---
 
 const catchphrases = [
-  <>独自ドメインで、<br />ファンサイトを<br className="sm:hidden" />自分の資産に。</>,
-  <>決済停止リスクに、<br />振り回されない。</>,
   <>
-    <span className="sm:hidden">
-      <span className="block whitespace-nowrap">ファンリストと</span>
-      <span className="block whitespace-nowrap">ブランドを、</span>
-      <span className="block whitespace-nowrap">あなたの手元に。</span>
-    </span>
-    <span className="hidden sm:inline">
-      ファンリストとブランドを、<br />あなたの手元に。
-    </span>
+    <span className="block whitespace-nowrap">ファンリストとブランドを、</span>
+    <span className="mt-3 block whitespace-nowrap sm:mt-5">あなたの手元に。</span>
+  </>,
+  <>
+    <span className="block whitespace-nowrap">独自ドメインで、</span>
+    <span className="mt-3 block whitespace-nowrap sm:mt-5">ファンサイトを自分の資産に。</span>
+  </>,
+  <>
+    <span className="block whitespace-nowrap">決済停止リスクに、</span>
+    <span className="mt-3 block whitespace-nowrap sm:mt-5">振り回されない。</span>
   </>,
 ];
 
@@ -375,15 +375,15 @@ export default function LandingPage() {
           style={{ background: "radial-gradient(circle, #002366 0%, transparent 70%)" }}
         />
 
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+        <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
           <div className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#C5A059]/30 bg-[#C5A059]/10 px-4 py-2 text-xs font-semibold text-[#E8D39A] mb-5">
             アダルトクリエイター向け独自ファンサイト
           </div>
 
           {/* Rotating catchphrase */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-none mb-4 sm:mb-6">
             <span
-              className={`inline-block transition-all duration-500 ${!mounted || isFading ? "opacity-0 translate-y-[-10px]" : "opacity-100 translate-y-0"
+              className={`inline-block sm:whitespace-nowrap transition-all duration-500 ${!mounted || isFading ? "opacity-0 translate-y-[-10px]" : "opacity-100 translate-y-0"
                 }`}
               style={{
                 background: "linear-gradient(135deg, #FFFFFF 30%, #C5A059 100%)",
