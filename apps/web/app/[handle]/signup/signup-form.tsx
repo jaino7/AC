@@ -10,6 +10,7 @@ import { FanSignupInput, fanSignupSchema } from "@/lib/validators/fan-auth";
 import { fanSignup } from "@/lib/api";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 // テーマに応じたスタイルマッピング
 const themeStyles: Record<string, {
@@ -189,11 +190,10 @@ export function SignupForm({ creatorHandle, creatorName, theme, logoUrl }: Signu
                         const cbUrl = path("/content");
 
                         if (isCustomDomain) {
-                            const protocol = window.location.protocol;
                             const domain = window.location.host;
-                            window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(cbUrl)}`;
+                            startGoogleOAuthLogin({ domain, callbackUrl: cbUrl });
                         } else {
-                            signIn("google", { callbackUrl: cbUrl });
+                            startGoogleOAuthLogin({ callbackUrl: cbUrl });
                         }
                     }}
                     className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 py-3 text-sm font-semibold ${styles.text} transition hover:bg-white/5`}

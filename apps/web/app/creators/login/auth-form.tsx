@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { clsx } from "clsx";
 import { z } from "zod";
 import { creatorSignup } from "@/lib/api";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 // Email入力のバリデーション
 const emailSchema = z.object({
@@ -197,11 +198,8 @@ export const AuthForm = () => {
     });
 
     // Googleログイン
-    const handleGoogleAuth = async () => {
-        await signIn("google", {
-            redirect: true,
-            callbackUrl: "/creators/dashboard"
-        });
+    const handleGoogleAuth = () => {
+        startGoogleOAuthLogin({ callbackUrl: "/creators/dashboard" });
     };
 
     const onEmailSubmit = (values: EmailInput) => {

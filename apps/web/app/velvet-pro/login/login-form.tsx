@@ -13,6 +13,7 @@ import {
 import { clsx } from "clsx";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 interface VelvetProLoginFormProps {
     handle?: string;
@@ -89,11 +90,10 @@ export const VelvetProLoginForm = ({ handle: propHandle }: VelvetProLoginFormPro
                         && window.location.hostname !== "127.0.0.1";
 
                     if (isCustomDomain) {
-                        const protocol = window.location.protocol;
                         const domain = window.location.host;
-                        window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(callbackUrl)}`;
+                        startGoogleOAuthLogin({ domain, callbackUrl });
                     } else {
-                        signIn("google", { callbackUrl });
+                        startGoogleOAuthLogin({ callbackUrl });
                     }
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#1a1b2e] py-3 text-sm font-semibold text-white transition hover:bg-[#23243a]"

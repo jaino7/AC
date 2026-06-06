@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { prisma } from "@creator/shared";
+import { getCreatorPlatformUrl } from "@/lib/platform-url";
 
 interface ContentLayoutProps {
     children: React.ReactNode;
@@ -26,12 +27,11 @@ export async function generateMetadata({ params }: ContentLayoutProps): Promise<
         return { title: "Not Found" };
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const title = `${post.title} - ${post.creator.displayName}`;
     const description = post.content
         ? post.content.slice(0, 200)
         : `${post.creator.displayName}のコンテンツ`;
-    const url = `${baseUrl}/${post.creator.handle}/content/${params.id}`;
+    const url = getCreatorPlatformUrl(post.creator.handle, `/content/${params.id}`);
 
     return {
         title,

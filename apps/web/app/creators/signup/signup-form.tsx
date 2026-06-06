@@ -15,6 +15,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 export const SignupForm = () => {
   const router = useRouter();
@@ -39,9 +40,7 @@ export const SignupForm = () => {
   });
 
   const handleGoogleAuth = () => {
-    signIn("google", {
-      callbackUrl: "/creators/dashboard"
-    });
+    startGoogleOAuthLogin({ callbackUrl: "/creators/dashboard" });
   };
 
   const mutation = useMutation({

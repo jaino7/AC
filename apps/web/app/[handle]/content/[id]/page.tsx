@@ -272,7 +272,7 @@ export default function ContentDetailPage() {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={async () => {
-                                    const shareUrl = `${window.location.origin}/${handle}/content/${id}`;
+                                    const shareUrl = `${window.location.origin}${path(`/content/${id}`)}`;
                                     if (navigator.share) {
                                         try {
                                             await navigator.share({ title: post.title, url: shareUrl });

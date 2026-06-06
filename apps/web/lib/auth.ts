@@ -7,6 +7,8 @@ import { verify } from "argon2";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const useSecureAuthCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? process.env.NODE_ENV === "production";
+const googleOAuthChecks = process.env.NODE_ENV === "development" ? ["none" as const] : ["pkce" as const, "state" as const];
 
 // Google OAuthは一旦スキップ（オプショナル）
 const useGoogleAuth = googleClientId && googleClientSecret;
@@ -20,7 +22,8 @@ export const authOptions: NextAuthOptions = {
       ? [
         GoogleProvider({
           clientId: googleClientId!,
-          clientSecret: googleClientSecret!
+          clientSecret: googleClientSecret!,
+          checks: googleOAuthChecks,
         })
       ]
       : []),
@@ -89,7 +92,7 @@ export const authOptions: NextAuthOptions = {
   // Next.jsはlocalhost:3000(HTTP)で動くため、middlewareはHTTPと認識して
   // プレフィックスなし(next-auth.session-token)を探す
   // → useSecureCookies: false でプレフィックスなし名称を使い両者を一致させる
-  useSecureCookies: false,
+  useSecureCookies: useSecureAuthCookies,
   cookies: {
     sessionToken: {
       name: 'next-auth.session-token',
@@ -97,7 +100,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: useSecureAuthCookies,
       },
     },
     callbackUrl: {
@@ -106,7 +109,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: useSecureAuthCookies,
       },
     },
     csrfToken: {
@@ -115,7 +118,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: useSecureAuthCookies,
       },
     },
     pkceCodeVerifier: {
@@ -124,7 +127,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: useSecureAuthCookies,
         maxAge: 900,
       },
     },
@@ -134,7 +137,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: useSecureAuthCookies,
         maxAge: 900,
       },
     },
@@ -144,7 +147,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: useSecureAuthCookies,
       },
     },
   },
@@ -152,6 +155,27 @@ export const authOptions: NextAuthOptions = {
   //   signIn: "/creators/login"  // デフォルトのサインインページを強制しない
   // },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      const parsedUrl = new URL(url, baseUrl);
+      const state = parsedUrl.searchParams.get("state");
+
+      if (state) {
+        try {
+          const callbackUrl = Buffer.from(state, "base64").toString("utf8");
+          const parsedCallbackUrl = new URL(callbackUrl, baseUrl);
+
+          if (parsedCallbackUrl.origin === baseUrl) {
+            return parsedCallbackUrl.toString();
+          }
+        } catch {
+          // Fall through to the default redirect behavior.
+        }
+      }
+
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (parsedUrl.origin === baseUrl) return url;
+      return baseUrl;
+    },
     async signIn({ user, account, profile }) {
       // Google認証の場合、ユーザーをDBに作成または取得
       if (account?.provider === "google" && user.email) {

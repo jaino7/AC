@@ -13,6 +13,7 @@ import {
 import { clsx } from "clsx";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 interface NeonProLoginFormProps {
     handle?: string;
@@ -89,11 +90,10 @@ export const NeonProLoginForm = ({ handle: propHandle }: NeonProLoginFormProps =
                         && window.location.hostname !== "127.0.0.1";
 
                     if (isCustomDomain) {
-                        const protocol = window.location.protocol;
                         const domain = window.location.host;
-                        window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(callbackUrl)}`;
+                        startGoogleOAuthLogin({ domain, callbackUrl });
                     } else {
-                        signIn("google", { callbackUrl });
+                        startGoogleOAuthLogin({ callbackUrl });
                     }
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-[#0f1c3c] py-3 text-sm font-semibold text-white transition hover:bg-[#16254d] hover:border-cyan-400/50"

@@ -12,6 +12,7 @@ import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 export const CreatorProSignupForm = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<FanSignupInput>({
@@ -58,11 +59,10 @@ export const CreatorProSignupForm = () => {
                     && window.location.hostname !== "127.0.0.1";
 
                 if (isCustomDomain) {
-                    const protocol = window.location.protocol;
                     const domain = window.location.host;
-                    window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(cbUrl)}`;
+                    startGoogleOAuthLogin({ domain, callbackUrl: cbUrl });
                 } else {
-                    signIn("google", { callbackUrl: cbUrl });
+                    startGoogleOAuthLogin({ callbackUrl: cbUrl });
                 }
             }}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#161b22] py-3 text-sm font-semibold text-white transition hover:bg-[#1f2937]">

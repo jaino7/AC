@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getPlatformDomain } from "@/lib/platform-url";
 
 /**
  * カスタムドメインかどうかを判定するフック
@@ -10,11 +11,21 @@ export function useIsCustomDomain(): boolean {
 
     useEffect(() => {
         const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || "";
-        const mainHost = mainDomain.split(":")[0];
+        const mainHost = mainDomain
+            .replace(/^https?:\/\//, "")
+            .replace(/^www\./, "")
+            .split("/")[0]
+            .split(":")[0];
+        const platformDomain = getPlatformDomain();
+        const hostname = window.location.hostname;
         setIsCustomDomain(
-            window.location.hostname !== mainHost
-            && window.location.hostname !== "localhost"
-            && window.location.hostname !== "127.0.0.1"
+            hostname !== mainHost
+            && hostname !== platformDomain
+            && hostname !== `www.${platformDomain}`
+            && !hostname.endsWith(`.${platformDomain}`)
+            && !hostname.endsWith(".localhost")
+            && hostname !== "localhost"
+            && hostname !== "127.0.0.1"
         );
     }, []);
 
@@ -27,7 +38,20 @@ export function useIsCustomDomain(): boolean {
  */
 export function useHandlePath(handle: string) {
     const isCustomDomain = useIsCustomDomain();
-    const prefix = isCustomDomain ? "" : `/${handle}`;
+    const [isPlatformSubdomain, setIsPlatformSubdomain] = useState(false);
+
+    useEffect(() => {
+        const platformDomain = getPlatformDomain();
+        const hostname = window.location.hostname;
+        setIsPlatformSubdomain(
+            (hostname.endsWith(`.${platformDomain}`) &&
+                hostname !== `www.${platformDomain}`) ||
+            (hostname.endsWith(".localhost") &&
+                hostname !== "www.localhost")
+        );
+    }, []);
+
+    const prefix = isCustomDomain || isPlatformSubdomain ? "" : `/${handle}`;
 
     return {
         isCustomDomain,

@@ -2,6 +2,73 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const DEFAULT_PLATFORM_DOMAIN = "getcocoba.com";
+const RESERVED_MAIN_PATHS = new Set([
+    "admin",
+    "api",
+    "auth",
+    "contact",
+    "creators",
+    "content",
+    "creator-pro",
+    "forbidden",
+    "legal",
+    "neon-pro",
+    "privacy",
+    "pure-lite",
+    "studio-pro",
+    "terms",
+    "test",
+    "trust-guide",
+    "velvet-pro",
+    "zine-lite",
+    "account-suspended",
+]);
+
+function normalizeDomain(domain?: string): string {
+    const normalized = (domain || DEFAULT_PLATFORM_DOMAIN)
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .split("/")[0]
+        .split(":")[0];
+
+    if (!normalized || normalized === "localhost" || normalized === "127.0.0.1") {
+        return DEFAULT_PLATFORM_DOMAIN;
+    }
+
+    return normalized;
+}
+
+function getPlatformDomain(): string {
+    return normalizeDomain(
+        process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
+        process.env.NEXT_PUBLIC_MAIN_DOMAIN ||
+        DEFAULT_PLATFORM_DOMAIN
+    );
+}
+
+function getPlatformSubdomainHandle(hostname: string, platformDomain: string): string | null {
+    const suffix = `.${platformDomain}`;
+    if (!hostname.endsWith(suffix)) return null;
+
+    const subdomain = hostname.slice(0, -suffix.length);
+    if (!subdomain || subdomain === "www") return null;
+    if (subdomain.includes(".")) return null;
+
+    return /^[a-zA-Z0-9-]+$/.test(subdomain) ? subdomain : null;
+}
+
+function getLocalhostSubdomainHandle(hostname: string): string | null {
+    const suffix = ".localhost";
+    if (!hostname.endsWith(suffix)) return null;
+
+    const subdomain = hostname.slice(0, -suffix.length);
+    if (!subdomain || subdomain === "www") return null;
+    if (subdomain.includes(".")) return null;
+
+    return /^[a-zA-Z0-9-]+$/.test(subdomain) ? subdomain : null;
+}
+
 // カスタムドメインからクリエイター情報を取得
 async function getCreatorByDomain(domain: string): Promise<{
     handle: string;
@@ -132,21 +199,60 @@ export default withAuth(
 
         // カスタムドメインチェック
         // localhost, 127.0.0.1, vercel.app, メインドメインなどを除外
+        const platformDomain = getPlatformDomain();
+        const platformSubdomainHandle =
+            getPlatformSubdomainHandle(hostname, platformDomain) ||
+            getLocalhostSubdomainHandle(hostname);
         const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN;
-        const mainDomainHost = mainDomain ? mainDomain.split(':')[0] : '';
+        const mainDomainHost = mainDomain ? normalizeDomain(mainDomain) : '';
         // メインドメインとその関連ドメインを除外
         const isOwnDomain =
             hostname === mainDomainHost ||
             hostname === `www.${mainDomainHost}` ||
-            hostname === 'getcocoba.com' ||
-            hostname === 'www.getcocoba.com' ||
+            hostname === platformDomain ||
+            hostname === `www.${platformDomain}` ||
             hostname === 'cocoba.com' ||
             hostname === 'www.cocoba.com';
+
+        if (isOwnDomain) {
+            const firstSegment = path.split("/").filter(Boolean)[0];
+            if (firstSegment && !RESERVED_MAIN_PATHS.has(firstSegment)) {
+                const redirectUrl = req.nextUrl.clone();
+                redirectUrl.hostname = `${firstSegment}.${platformDomain}`;
+                redirectUrl.pathname = path.replace(`/${firstSegment}`, "") || "/";
+                redirectUrl.protocol = "https:";
+                return NextResponse.redirect(redirectUrl, 301);
+            }
+        }
+
+        if (platformSubdomainHandle) {
+            const url = req.nextUrl.clone();
+
+            if (path.startsWith(`/${platformSubdomainHandle}`)) {
+                return NextResponse.next();
+            }
+
+            if (path === "/" || path === "") {
+                url.pathname = `/${platformSubdomainHandle}/content`;
+            } else {
+                url.pathname = `/${platformSubdomainHandle}${path}`;
+            }
+
+            url.searchParams.set("handle", platformSubdomainHandle);
+
+            const response = NextResponse.rewrite(url);
+            response.headers.set("x-platform-subdomain", hostname);
+            response.headers.set("x-creator-handle", platformSubdomainHandle);
+            response.headers.set("x-pathname", path);
+            return response;
+        }
         const isCustomDomain =
             hostname !== "localhost" &&
             hostname !== "127.0.0.1" &&
             !hostname.endsWith(".vercel.app") &&
             !hostname.endsWith(".ngrok.io") &&
+            !hostname.endsWith(`.${platformDomain}`) &&
+            !hostname.endsWith(".localhost") &&
             !isOwnDomain;
 
         if (isCustomDomain) {
@@ -317,6 +423,7 @@ export default withAuth(
 
                 // Public paths that don't require authentication
                 if (
+                    (path.startsWith('/creators/demo/dashboard') && req.nextUrl.searchParams.get('demo') === 'true') ||
                     path.startsWith('/creators/login') ||
                     path.startsWith('/creators/signup') ||
                     path.startsWith('/creators/password-reset') ||

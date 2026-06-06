@@ -12,6 +12,7 @@ import { getCreatorHandleFromPath } from "@/lib/utils/creator";
 import { clsx } from "clsx";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 export const PureLiteSignupForm = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<FanSignupInput>({
@@ -56,11 +57,10 @@ export const PureLiteSignupForm = () => {
                     const cbUrl = path("/content");
 
                     if (isCustomDomain) {
-                        const protocol = window.location.protocol;
                         const domain = window.location.host;
-                        window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(cbUrl)}`;
+                        startGoogleOAuthLogin({ domain, callbackUrl: cbUrl });
                     } else {
-                        signIn("google", { callbackUrl: cbUrl });
+                        startGoogleOAuthLogin({ callbackUrl: cbUrl });
                     }
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-pink-200 bg-white py-3 text-sm font-semibold text-[#2d2a26] transition hover:bg-pink-50">

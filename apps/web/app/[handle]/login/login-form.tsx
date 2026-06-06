@@ -9,6 +9,7 @@ import { signIn } from "next-auth/react";
 import { z } from "zod";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 // テーマに応じたスタイルマッピング（signup-formと同じ）
 const themeStyles: Record<string, {
@@ -188,12 +189,11 @@ export function LoginForm({ creatorHandle, creatorName, theme, logoUrl }: LoginF
 
                         if (isCustomDomain) {
                             // カスタムドメイン: メインドメイン経由でOAuth実行
-                            const protocol = window.location.protocol;
                             const domain = window.location.host;
                             const contentPath = path("/content");
-                            window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(contentPath)}`;
+                            startGoogleOAuthLogin({ domain, callbackUrl: contentPath });
                         } else {
-                            signIn("google", { callbackUrl: path("/content") });
+                            startGoogleOAuthLogin({ callbackUrl: path("/content") });
                         }
                     }}
                     className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 py-3 text-sm font-semibold ${styles.text} transition hover:bg-white/5`}

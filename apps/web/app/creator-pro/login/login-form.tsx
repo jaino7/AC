@@ -13,6 +13,7 @@ import {
 import { clsx } from "clsx";
 import Link from "next/link";
 import { useHandlePath } from "@/lib/hooks/use-custom-domain";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 interface CreatorProLoginFormProps {
     handle?: string;
@@ -88,11 +89,10 @@ export const CreatorProLoginForm = ({ handle: propHandle }: CreatorProLoginFormP
                         && window.location.hostname !== "127.0.0.1";
 
                     if (isCustomDomain) {
-                        const protocol = window.location.protocol;
                         const domain = window.location.host;
-                        window.location.href = `${protocol}//${mainDomain.replace(/^https?:\/\//, "")}/auth/google-redirect?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(callbackUrl)}`;
+                        startGoogleOAuthLogin({ domain, callbackUrl });
                     } else {
-                        signIn("google", { callbackUrl });
+                        startGoogleOAuthLogin({ callbackUrl });
                     }
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm font-semibold text-[#021019] transition hover:bg-gray-100"
