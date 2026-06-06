@@ -65,9 +65,8 @@ export default function EditContentPage() {
     const [publishMode, setPublishMode] = useState<PublishMode>("publish");
     const [scheduledDate, setScheduledDate] = useState("");
     const [scheduledTime, setScheduledTime] = useState("");
-    const [accessPermission, setAccessPermission] = useState<"everyone" | "plans" | "single_sale">("everyone");
+    const [accessPermission, setAccessPermission] = useState<"everyone" | "plans">("everyone");
     const [selectedPlanId, setSelectedPlanId] = useState<string>("");
-    const [singleSalePrice, setSingleSalePrice] = useState<string>("");
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loadingPlans, setLoadingPlans] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -110,9 +109,6 @@ export default function EditContentPage() {
             if (post.isLocked && post.requiredPlanId) {
                 setAccessPermission("plans");
                 setSelectedPlanId(post.requiredPlanId);
-            } else if (post.price && post.price > 0) {
-                setAccessPermission("single_sale");
-                setSingleSalePrice(post.price.toString());
             } else {
                 setAccessPermission("everyone");
             }
@@ -353,7 +349,6 @@ export default function EditContentPage() {
             mainMedia?: UploadedMedia[];
             isLocked: boolean;
             requiredPlanId?: string;
-            singleSalePrice?: number;
         }) => {
             const response = await fetch(`/api/creators/content/${postId}`, {
                 method: "PATCH",
@@ -406,9 +401,8 @@ export default function EditContentPage() {
             mainMedia: uploadedFileUrls.length > 0
                 ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i], size: uploadedFileSizes[i] || 0 }))
                 : undefined,
-            isLocked: accessPermission === "plans" || accessPermission === "single_sale",
+            isLocked: accessPermission === "plans",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
-            singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
         });
     };
 
@@ -432,9 +426,8 @@ export default function EditContentPage() {
             mainMedia: uploadedFileUrls.length > 0
                 ? uploadedFileUrls.map((url, i) => ({ url, duration: uploadedDurations[i], size: uploadedFileSizes[i] || 0 }))
                 : undefined,
-            isLocked: accessPermission === "plans" || accessPermission === "single_sale",
+            isLocked: accessPermission === "plans",
             requiredPlanId: accessPermission === "plans" ? selectedPlanId : undefined,
-            singleSalePrice: accessPermission === "single_sale" && singleSalePrice ? parseFloat(singleSalePrice) : undefined,
         });
     };
 
@@ -769,7 +762,7 @@ export default function EditContentPage() {
                                         name="access"
                                         value="everyone"
                                         checked={accessPermission === "everyone"}
-                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
+                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans")}
                                         className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">全員（無料）</span>
@@ -780,23 +773,11 @@ export default function EditContentPage() {
                                         name="access"
                                         value="plans"
                                         checked={accessPermission === "plans"}
-                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
+                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans")}
                                         className="h-4 w-4 shrink-0"
                                     />
                                     <span className="text-sm font-semibold">プラン限定</span>
                                 </label>
-                                <label className="flex min-w-0 cursor-pointer items-center gap-3">
-                                    <input
-                                        type="radio"
-                                        name="access"
-                                        value="single_sale"
-                                        checked={accessPermission === "single_sale"}
-                                        onChange={(e) => setAccessPermission(e.target.value as "everyone" | "plans" | "single_sale")}
-                                        className="h-4 w-4 shrink-0"
-                                    />
-                                    <span className="text-sm font-semibold">単体販売</span>
-                                </label>
-
                                 {accessPermission === "plans" && (
                                     <div className="space-y-2 border-l-2 border-black/10 pl-4 sm:ml-7">
                                         <select
@@ -822,30 +803,6 @@ export default function EditContentPage() {
                                     </div>
                                 )}
 
-                                {accessPermission === "single_sale" && (
-                                    <div className="space-y-2 border-l-2 border-black/10 pl-4 sm:ml-7">
-                                        <label className="block">
-                                            <span className="mb-1 block text-xs font-semibold text-neutral-600">
-                                                販売価格
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-neutral-600">¥</span>
-                                                <input
-                                                    type="number"
-                                                    value={singleSalePrice}
-                                                    onChange={(e) => setSingleSalePrice(e.target.value)}
-                                                    placeholder="例: 500"
-                                                    min="0"
-                                                    step="1"
-                                                    className="flex-1 rounded-xl border border-black/10 px-3 py-2 text-sm focus:border-black/40 focus:outline-none"
-                                                />
-                                            </div>
-                                        </label>
-                                        <p className="text-xs text-neutral-500">
-                                            このコンテンツを購入した人のみ閲覧できます
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </aside>

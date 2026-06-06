@@ -12,37 +12,18 @@ type Fan = {
     planDurationMonths?: number;
     lastUpdated?: string;
 
-    // Purchase related
-    purchasedTitles?: string[];
-    purchaseCount?: number;
-    lastPurchasedDate?: string;
-
     hasTwitter: boolean;
     totalSupport: number;
     status: "active" | "inactive";
 };
 
 type AnalyticsData = {
-    overall?: {
-        totalRevenue: number;
-        purchaseRevenue: number;
-        subscriptionRevenue: number;
-        revenueChange: number;
-    };
     plans?: {
         revenue30d: number;
         planMembers: number;
         acquiredMembers30d: number;
         cancellations30d: number;
         revenueChange?: number;
-    };
-    purchases?: {
-        revenue30d: number;
-        purchaseCount30d: number;
-        purchaserCount30d: number;
-        averagePrice: number;
-        revenueChange?: number;
-        purchaseCountChange?: number;
     };
     charts?: Record<string, Array<{ date: string; count: number }>>;
     revenueChart?: Array<{ date: string; amount: number }>;
@@ -53,7 +34,6 @@ export default function FanManagementPage() {
     const params = useParams();
     const handle = params.handle as string;
 
-    const [activeTab, setActiveTab] = useState<"revenue" | "plans" | "purchases">("revenue");
     const [searchQuery, setSearchQuery] = useState("");
     const [planFilter, setPlanFilter] = useState("全て");
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -69,17 +49,10 @@ export default function FanManagementPage() {
     // Fetch fans data
     useEffect(() => {
         const fetchFans = async () => {
-            // Only fetch fans for plans and purchases tabs, not for revenue tab
-            if (activeTab === "revenue") {
-                setFans([]);
-                setIsLoading(false);
-                return;
-            }
-
             try {
                 setIsLoading(true);
                 const response = await fetch(
-                    `/api/creators/${handle}/fans?tab=${activeTab}&planFilter=${planFilter}`
+                    `/api/creators/${handle}/fans?tab=plans&planFilter=${planFilter}`
                 );
 
                 if (!response.ok) {
@@ -99,13 +72,13 @@ export default function FanManagementPage() {
         if (handle) {
             fetchFans();
         }
-    }, [handle, activeTab, planFilter]);
+    }, [handle, planFilter]);
 
     // Fetch analytics data
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const response = await fetch(`/api/creators/analytics?tab=${activeTab}&days=${selectedPeriod}`);
+                const response = await fetch(`/api/creators/analytics?days=${selectedPeriod}`);
 
                 if (!response.ok) {
                     throw new Error("Failed to fetch analytics");
@@ -122,12 +95,12 @@ export default function FanManagementPage() {
         };
 
         fetchAnalytics();
-    }, [activeTab, selectedPeriod]);
+    }, [selectedPeriod]);
 
     // Filter fans based on active tab
     const filteredFans = fans
         .filter(fan => {
-            if (activeTab === "plans") {
+            if (fan.plan) {
                 // Must have a plan
                 if (!fan.plan) return false;
 
@@ -137,46 +110,24 @@ export default function FanManagementPage() {
                 }
 
                 return true;
-            } else {
-                return (fan.purchaseCount ?? 0) > 0;
             }
+            return false;
         })
         .sort((a, b) => {
-            if (activeTab === "plans") {
-                // Sort by lastUpdated (newest first)
-                const dateA = new Date(a.lastUpdated ?? "1970-01-01");
-                const dateB = new Date(b.lastUpdated ?? "1970-01-01");
-                return dateB.getTime() - dateA.getTime();
-            } else {
-                // Sort by lastPurchasedDate (newest first)
-                const dateA = new Date(a.lastPurchasedDate ?? "1970-01-01");
-                const dateB = new Date(b.lastPurchasedDate ?? "1970-01-01");
-                return dateB.getTime() - dateA.getTime();
-            }
+            const dateA = new Date(a.lastUpdated ?? "1970-01-01");
+            const dateB = new Date(b.lastUpdated ?? "1970-01-01");
+            return dateB.getTime() - dateA.getTime();
         });
 
     // Compute dynamic chart max from real data
     const chartMax = (() => {
         if (!analytics?.charts) return 10;
-        if (activeTab === "revenue") {
-            const data = (analytics.charts as any)?.revenue || [];
-            const values = (data as Array<{ amount: number }>).map((d) => d.amount);
-            const m = values.length > 0 ? Math.max(...values) : 0;
-            if (m === 0) return 1000;
-            return Math.ceil(m / 500) * 500;
-        }
         // 収益モードの場合はrevenueChartを使う
         if (chartMode === "revenue" && analytics?.revenueChart) {
             const values = analytics.revenueChart.map((d) => d.amount);
             const m = values.length > 0 ? Math.max(...values) : 0;
             if (m === 0) return 1000;
             return Math.ceil(m / 500) * 500;
-        }
-        if (activeTab === "purchases") {
-            const data = (analytics.charts as any)?.purchases || [];
-            const values = (data as Array<{ count: number }>).map((d) => d.count);
-            const m = values.length > 0 ? Math.max(...values) : 0;
-            return Math.max(10, Math.ceil(m / 5) * 5);
         }
         const allValues = Object.values(analytics.charts).flat().map((d) => d.count);
         const m = allValues.length > 0 ? Math.max(...allValues) : 0;
@@ -190,106 +141,11 @@ export default function FanManagementPage() {
                 <h1 className="text-3xl font-semibold">アナリティクス</h1>
             </header>
 
-            {/* タブ切り替え - 固定 */}
-            <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 md:px-6 lg:px-12">
-                <nav className="-mb-px flex gap-8">
-                    <button
-                        onClick={() => setActiveTab("revenue")}
-                        className={`border-b-2 py-4 text-sm font-medium transition-colors ${activeTab === "revenue"
-                            ? "border-blue-600 text-blue-600"
-                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                            }`}
-                    >
-                        合計収益
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("plans")}
-                        className={`border-b-2 py-4 text-sm font-medium transition-colors ${activeTab === "plans"
-                            ? "border-blue-600 text-blue-600"
-                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                            }`}
-                    >
-                        プラン購入
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("purchases")}
-                        className={`border-b-2 py-4 text-sm font-medium transition-colors ${activeTab === "purchases"
-                            ? "border-blue-600 text-blue-600"
-                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                            }`}
-                    >
-                        単体購入
-                    </button>
-                </nav>
-            </div>
-
             <div className="space-y-6 md:space-y-8 px-4 py-6 md:px-6 lg:px-12 lg:py-10">
                 {/* 主要なアナリティクス */}
                 <div className="rounded-2xl md:rounded-3xl border border-black/10 bg-white p-5 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                     <h2 className="mb-4 md:mb-6 text-lg font-semibold">主要なアナリティクス</h2>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {activeTab === "revenue" ? (
-                            <>
-                                {/* 合計収益 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">合計収益</p>
-                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        ¥{analytics?.overall?.totalRevenue?.toLocaleString() || 0}
-                                    </p>
-                                    {analytics?.overall?.revenueChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.overall.revenueChange >= 0 ? "text-green-600" : "text-red-600"
-                                            }`}>
-                                            <span>{analytics.overall.revenueChange >= 0 ? "↑" : "↓"}</span>
-                                            <span>
-                                                {analytics.overall.revenueChange >= 999
-                                                    ? "999%超"
-                                                    : `${Math.abs(analytics.overall.revenueChange)}%`}
-                                            </span>
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* サブスク収益 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">サブスク収益</p>
-                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        ¥{analytics?.overall?.subscriptionRevenue?.toLocaleString() || 0}
-                                    </p>
-                                    <p className="mt-1 text-xs text-neutral-400">
-                                        {analytics?.overall && analytics.overall.totalRevenue > 0
-                                            ? `${Math.round((analytics.overall.subscriptionRevenue / analytics.overall.totalRevenue) * 100)}% of total`
-                                            : "0% of total"}
-                                    </p>
-                                </div>
-
-                                {/* 単体購入収益 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">単体購入収益</p>
-                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        ¥{analytics?.overall?.purchaseRevenue?.toLocaleString() || 0}
-                                    </p>
-                                    <p className="mt-1 text-xs text-neutral-400">
-                                        {analytics?.overall && analytics.overall.totalRevenue > 0
-                                            ? `${Math.round((analytics.overall.purchaseRevenue / analytics.overall.totalRevenue) * 100)}% of total`
-                                            : "0% of total"}
-                                    </p>
-                                </div>
-
-                                {/* 平均日収 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">平均日収</p>
-                                    <p className="text-xs text-neutral-400">&nbsp;</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        ¥{analytics?.overall ? Math.round(analytics.overall.totalRevenue / selectedPeriod).toLocaleString() : 0}
-                                    </p>
-                                </div>
-                            </>
-                        ) : activeTab === "plans" ? (
-                            <>
-                                {/* 収益 */}
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                                 <div>
                                     <p className="text-xs text-neutral-500">収益</p>
                                     <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
@@ -335,77 +191,15 @@ export default function FanManagementPage() {
                                         {analytics?.plans?.cancellations30d || 0}
                                     </p>
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                {/* 収益 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">収益</p>
-                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        ¥{analytics?.purchases?.revenue30d?.toLocaleString() || 0}
-                                    </p>
-                                    {analytics?.purchases?.revenueChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.purchases.revenueChange >= 0 ? "text-green-600" : "text-red-600"
-                                            }`}>
-                                            <span>{analytics.purchases.revenueChange >= 0 ? "↑" : "↓"}</span>
-                                            <span>
-                                                {analytics.purchases.revenueChange >= 999
-                                                    ? "999%超"
-                                                    : `${Math.abs(analytics.purchases.revenueChange)}%`}
-                                            </span>
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/*購入本数 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">購入本数</p>
-                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        {analytics?.purchases?.purchaseCount30d || 0}
-                                    </p>
-                                    {analytics?.purchases?.purchaseCountChange !== undefined && (
-                                        <p className={`mt-1 flex items-center gap-1 text-sm font-semibold ${analytics.purchases.purchaseCountChange >= 0 ? "text-green-600" : "text-red-600"
-                                            }`}>
-                                            <span>{analytics.purchases.purchaseCountChange >= 0 ? "↑" : "↓"}</span>
-                                            <span>
-                                                {analytics.purchases.purchaseCountChange >= 999
-                                                    ? "999%超"
-                                                    : `${Math.abs(analytics.purchases.purchaseCountChange)}%`}
-                                            </span>
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* 購入者数 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">購入者数</p>
-                                    <p className="text-xs text-neutral-400">過去 {selectedPeriod} 日間</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        {analytics?.purchases?.purchaserCount30d || 0}
-                                    </p>
-                                </div>
-
-                                {/* 平均購入単価 */}
-                                <div>
-                                    <p className="text-xs text-neutral-500">平均購入単価</p>
-                                    <p className="text-xs text-neutral-400">&nbsp;</p>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        ¥{analytics?.purchases?.averagePrice?.toLocaleString() || 0}
-                                    </p>
-                                </div>
-                            </>
-                        )}
                     </div>
                 </div>
 
-                {/* 購入者数チャート */}
+                {/* チャート */}
                 <div className="rounded-2xl md:rounded-3xl border border-black/10 bg-white p-5 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                     {/* グラフモード切替 + 凡例 */}
                     <div className="mb-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                         <div>
-                            {activeTab === "plans" && Object.keys(planNames).length > 0 && chartMode === "count" && (
+                            {Object.keys(planNames).length > 0 && chartMode === "count" && (
                                 <div className="flex gap-4 text-sm">
                                     {Object.entries(planNames).map(([planId, name], idx) => {
                                         const LEGEND_COLORS = ["bg-blue-500", "bg-yellow-500", "bg-red-500", "bg-green-500", "bg-purple-500"];
@@ -419,7 +213,7 @@ export default function FanManagementPage() {
                                 </div>
                             )}
                         </div>
-                        {activeTab !== "revenue" && (
+                        {(
                             <div className="flex rounded-xl border border-neutral-200 overflow-hidden">
                                 <button
                                     onClick={() => setChartMode("revenue")}
@@ -437,7 +231,7 @@ export default function FanManagementPage() {
                                         : "bg-white text-neutral-600 hover:bg-neutral-50"
                                         }`}
                                 >
-                                    {activeTab === "plans" ? "購入者数" : "購入回数"}
+                                    購入者数
                                 </button>
                             </div>
                         )}
@@ -483,69 +277,7 @@ export default function FanManagementPage() {
 
                                     const PLAN_STROKE_COLORS = ["#3b82f6", "#eab308", "#ef4444", "#22c55e", "#a855f7"];
 
-                                    if (activeTab === "revenue") {
-                                        // 合計収益: 日別金額のライングラフ
-                                        const revenueChartEntries = (analytics?.charts as any)?.revenue || [];
-                                        const revenueData = (revenueChartEntries as Array<{ date: string; amount: number }>).map((d) => d.amount);
-
-                                        const revenueSvgPoints = revenueData
-                                            .map((value, index) =>
-                                                `${index * pointGap},${chartHeight - (value / max) * (chartHeight - 20)}`
-                                            )
-                                            .join(" ");
-
-                                        return (
-                                            <>
-                                                <svg
-                                                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                                                    className="h-56 w-full"
-                                                    preserveAspectRatio="none"
-                                                >
-                                                    {[0, 1, 2, 3, 4].map((i) => {
-                                                        const y = (chartHeight * i) / 4;
-                                                        return (
-                                                            <line
-                                                                key={`grid-${i}`}
-                                                                x1="0"
-                                                                y1={y}
-                                                                x2={chartWidth}
-                                                                y2={y}
-                                                                stroke="#e5e7eb"
-                                                                strokeWidth="1"
-                                                                strokeDasharray="4 4"
-                                                            />
-                                                        );
-                                                    })}
-
-                                                    {revenueSvgPoints && (
-                                                        <polyline
-                                                            fill="none"
-                                                            stroke="#3b82f6"
-                                                            strokeWidth="4"
-                                                            points={revenueSvgPoints}
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        />
-                                                    )}
-
-                                                    {revenueData.map((value, index) => (
-                                                        <circle
-                                                            key={index}
-                                                            cx={index * pointGap}
-                                                            cy={chartHeight - (value / max) * (chartHeight - 20)}
-                                                            r={5}
-                                                            fill="#3b82f6"
-                                                        />
-                                                    ))}
-                                                </svg>
-                                                <div className="mt-4 flex justify-between text-xs text-neutral-500">
-                                                    {labels.map((label, index) => (
-                                                        <span key={`${label}-${index}`}>{label}</span>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        );
-                                    } else if (chartMode === "revenue" && analytics?.revenueChart) {
+                                    if (chartMode === "revenue" && analytics?.revenueChart) {
                                         // 収益モード: 日別金額のライングラフ
                                         const revenueData = analytics.revenueChart.map((d) => d.amount);
 
@@ -606,7 +338,7 @@ export default function FanManagementPage() {
                                                 </div>
                                             </>
                                         );
-                                    } else if (activeTab === "plans") {
+                                    } else {
                                         // プラン購入: プランごとに1本のライン
                                         const planIds = Object.keys(analytics?.charts || {});
                                         const planDataArrays = planIds.map((planId) => {
@@ -676,69 +408,6 @@ export default function FanManagementPage() {
                                                 </div>
                                             </>
                                         );
-                                    } else {
-                                        // 単体購入: 購入本数（1本のライン）
-                                        const purchaseChartEntries = (analytics?.charts as any)?.purchases || [];
-                                        const purchaseData = (purchaseChartEntries as Array<{ date: string; count: number }>).map((d) => d.count);
-
-                                        const purchaseSvgPoints = purchaseData
-                                            .map((value, index) =>
-                                                `${index * pointGap},${chartHeight - (value / max) * (chartHeight - 20)}`
-                                            )
-                                            .join(" ");
-
-                                        return (
-                                            <>
-                                                <svg
-                                                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                                                    className="h-56 w-full text-black"
-                                                    preserveAspectRatio="none"
-                                                >
-                                                    {/* グリッドライン */}
-                                                    {[0, 1, 2, 3, 4].map((i) => {
-                                                        const y = (chartHeight * i) / 4;
-                                                        return (
-                                                            <line
-                                                                key={`grid-${i}`}
-                                                                x1="0"
-                                                                y1={y}
-                                                                x2={chartWidth}
-                                                                y2={y}
-                                                                stroke="#e5e7eb"
-                                                                strokeWidth="1"
-                                                                strokeDasharray="4 4"
-                                                            />
-                                                        );
-                                                    })}
-
-                                                    {purchaseSvgPoints && (
-                                                        <polyline
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="4"
-                                                            points={purchaseSvgPoints}
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        />
-                                                    )}
-
-                                                    {purchaseData.map((value, index) => (
-                                                        <circle
-                                                            key={index}
-                                                            cx={index * pointGap}
-                                                            cy={chartHeight - (value / max) * (chartHeight - 20)}
-                                                            r={5}
-                                                            fill="black"
-                                                        />
-                                                    ))}
-                                                </svg>
-                                                <div className="mt-4 flex justify-between text-xs text-neutral-500">
-                                                    {labels.map((label, index) => (
-                                                        <span key={`${label}-${index}`}>{label}</span>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        );
                                     }
                                 })()}
                             </div>
@@ -761,8 +430,8 @@ export default function FanManagementPage() {
                     </div>
                 </div>
 
-                {/* 検索・フィルター - Only show for plans and purchases tabs */}
-                {activeTab !== "revenue" && (
+                {/* 検索・フィルター */}
+                {(
                     <div className="flex flex-wrap gap-4">
                         <div className="flex flex-1 items-center gap-3 rounded-2xl border border-black/10 px-4 py-3">
                             <span className="text-neutral-400">🔍</span>
@@ -775,7 +444,7 @@ export default function FanManagementPage() {
                             />
                         </div>
 
-                        {activeTab === "plans" && (
+                        {(
                             <select
                                 value={planFilter}
                                 onChange={(e) => setPlanFilter(e.target.value)}
@@ -790,8 +459,8 @@ export default function FanManagementPage() {
                     </div>
                 )}
 
-                {/* ファンリストテーブル - Only show for plans and purchases tabs */}
-                {activeTab !== "revenue" && (
+                {/* ファンリストテーブル */}
+                {(
                     <div className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -800,31 +469,15 @@ export default function FanManagementPage() {
                                         <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                                             ユーザー
                                         </th>
-                                        {activeTab === "plans" ? (
-                                            <>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                    プラン
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                    合計期間
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                    最終更新日
-                                                </th>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                    購入タイトル
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                    購入本数
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                                    購入日
-                                                </th>
-                                            </>
-                                        )}
+                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                            プラン
+                                        </th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                            合計期間
+                                        </th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                            最終更新日
+                                        </th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                                             メニュー
                                         </th>
@@ -847,49 +500,22 @@ export default function FanManagementPage() {
                                                 </div>
                                             </td>
 
-                                            {activeTab === "plans" ? (
-                                                <>
-                                                    <td className="px-6 py-4">
-                                                        <span
-                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${fan.plan?.name === "プランA"
-                                                                ? "bg-blue-100 text-blue-700"
-                                                                : "bg-yellow-100 text-yellow-700"
-                                                                }`}
-                                                        >
-                                                            {fan.plan?.name}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-neutral-600">
-                                                        {fan.planDurationMonths}ヶ月
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-neutral-600">
-                                                        {fan.lastUpdated}
-                                                    </td>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm font-medium text-neutral-900">
-                                                            {fan.purchasedTitles && fan.purchasedTitles.length > 0 ? (
-                                                                <span>
-                                                                    {fan.purchasedTitles[0]}
-                                                                    {fan.purchasedTitles.length > 1 && (
-                                                                        <span className="ml-1 text-neutral-500"> +{fan.purchasedTitles.length - 1}</span>
-                                                                    )}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-neutral-400">-</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-neutral-600">
-                                                        {fan.purchaseCount}本
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-neutral-600">
-                                                        {fan.lastPurchasedDate}
-                                                    </td>
-                                                </>
-                                            )}
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`rounded-full px-3 py-1 text-xs font-semibold ${fan.plan?.name === "プランA"
+                                                        ? "bg-blue-100 text-blue-700"
+                                                        : "bg-yellow-100 text-yellow-700"
+                                                        }`}
+                                                >
+                                                    {fan.plan?.name}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-neutral-600">
+                                                {fan.planDurationMonths}ヶ月
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-neutral-600">
+                                                {fan.lastUpdated}
+                                            </td>
 
                                             <td className="px-6 py-4">
                                                 <div className="relative">

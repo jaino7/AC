@@ -57,7 +57,7 @@ type Plan = {
   description?: string;
 };
 
-type TabType = "all" | "plans" | "single" | "saved" | "contact";
+type TabType = "all" | "free" | "members" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -436,26 +436,23 @@ function NeonProContentPageContent() {
                   : "text-gray-500 hover:text-white"
                   }`}
               >
-                すべて
-              </button>
+                すべて</button>
               <button
-                onClick={() => setActiveTab("plans")}
-                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "plans"
+                onClick={() => setActiveTab("free")}
+                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "free"
                   ? "border-b-2 border-cyan-400 text-cyan-400"
                   : "text-gray-500 hover:text-white"
                   }`}
               >
-                プラン
-              </button>
+                無料</button>
               <button
-                onClick={() => setActiveTab("single")}
-                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "single"
+                onClick={() => setActiveTab("members")}
+                className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "members"
                   ? "border-b-2 border-cyan-400 text-cyan-400"
                   : "text-gray-500 hover:text-white"
                   }`}
               >
-                単体販売
-              </button>
+                メンバー限定</button>
               <button
                 onClick={() => setActiveTab("saved")}
                 className={`px-3 lg:px-4 py-3 text-[10px] lg:text-xs font-bold uppercase tracking-wider ${activeTab === "saved"
@@ -463,8 +460,7 @@ function NeonProContentPageContent() {
                   : "text-gray-500 hover:text-white"
                   }`}
               >
-                保存済み
-              </button>
+                保存済み</button>
             </div>
           </nav>
 
@@ -477,8 +473,8 @@ function NeonProContentPageContent() {
                   const displayPosts = activeTab === "saved" ? savedPosts : posts;
                   const filteredPosts = displayPosts.filter(post => {
                     if (activeTab === "all") return true;
-                    if (activeTab === "plans") return post.isLocked && post.requiredTier;
-                    if (activeTab === "single") return post.isLocked && post.price && post.price > 0 && (!post.requiredTier || post.requiredTier === "");
+                    if (activeTab === "free") return !post.isLocked && (!post.requiredTier || post.requiredTier === "");
+                    if (activeTab === "members") return post.isLocked && post.requiredTier;
                     if (activeTab === "saved") return true;
                     return true;
                   });

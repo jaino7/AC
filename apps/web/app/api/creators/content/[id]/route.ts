@@ -183,7 +183,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { visibility, title, content, thumbnailUrl, sampleMedia, mainMedia, folderId, tagIds, isLocked, requiredPlanId, singleSalePrice } = await request.json();
+        const { visibility, title, content, thumbnailUrl, sampleMedia, mainMedia, folderId, tagIds, isLocked, requiredPlanId } = await request.json();
 
         // Get user
         const user = await prisma.user.findUnique({
@@ -242,7 +242,7 @@ export async function PATCH(
         if (folderId !== undefined) updateData.folderId = folderId || null;
         if (isLocked !== undefined) updateData.isLocked = isLocked;
         if (requiredPlanId !== undefined) updateData.requiredPlanId = requiredPlanId || null;
-        if (singleSalePrice !== undefined) updateData.price = singleSalePrice;
+        updateData.price = null;
 
         // Update post
         const updatedPost = await prisma.post.update({

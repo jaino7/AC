@@ -57,7 +57,7 @@ type Plan = {
   price: number;
 };
 
-type TabType = "all" | "single" | "saved" | string;
+type TabType = "all" | "free" | "members" | "saved" | string;
 
 // Helper function to calculate time ago
 const getTimeAgo = (date: Date): string => {
@@ -263,8 +263,8 @@ function CreatorProContentPageContent() {
 
   const filteredPosts = displayPosts.filter((post) => {
     if (activeTab === "all") return true;
-    if (activeTab === "plans") return post.isLocked && post.requiredPlan;
-    if (activeTab === "single") return post.isLocked && post.price && post.price > 0 && !post.requiredPlan;
+    if (activeTab === "free") return !post.isLocked && !post.requiredPlan;
+    if (activeTab === "members") return post.isLocked && post.requiredPlan;
     if (activeTab === "saved") return true; // Already filtered by displayPosts
     return true;
   });
@@ -629,27 +629,24 @@ function CreatorProContentPageContent() {
                 : "text-gray-400 hover:text-white"
                 }`}
             >
-              すべての投稿
-            </button>
-            {plans.length > 0 && (
-              <button
-                onClick={() => setActiveTab("plans")}
-                className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "plans"
-                  ? "border-b-2 border-blue-600 text-blue-500"
-                  : "text-gray-400 hover:text-white"
-                  }`}
-              >
-                プラン
-              </button>
-            )}
+              すべて</button>
             <button
-              onClick={() => setActiveTab("single")}
-              className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "single"
+              onClick={() => setActiveTab("free")}
+              className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "free"
                 ? "border-b-2 border-blue-600 text-blue-500"
                 : "text-gray-400 hover:text-white"
                 }`}
             >
-              単体販売
+              無料
+            </button>
+            <button
+              onClick={() => setActiveTab("members")}
+              className={`px-3 py-3 md:px-4 md:py-3 text-xs md:text-sm font-semibold whitespace-nowrap ${activeTab === "members"
+                ? "border-b-2 border-blue-600 text-blue-500"
+                : "text-gray-400 hover:text-white"
+                }`}
+            >
+              メンバー限定
             </button>
             <button
               onClick={() => setActiveTab("saved")}
@@ -658,8 +655,7 @@ function CreatorProContentPageContent() {
                 : "text-gray-400 hover:text-white"
                 }`}
             >
-              保存済み
-            </button>
+              保存済み</button>
           </nav>
         </div>
 

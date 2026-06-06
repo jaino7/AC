@@ -92,18 +92,19 @@ function StudioProContentPageContent() {
   const searchParams = useSearchParams();
   const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
   const pathSegment = pathname.split('/')[1] || '';
+  const isDemo = pathSegment === "demo" || searchParams.get("demo") === "true";
   const propHandle = THEME_PREFIXES.includes(pathSegment)
     ? (searchParams.get("handle") || undefined)
     : (pathSegment && pathSegment !== 'content' ? pathSegment : searchParams.get("handle") || undefined);
   const routeParams = useParams();
-  const handle = (routeParams.handle as string | undefined) || propHandle;
+  const handle = isDemo ? undefined : ((routeParams.handle as string | undefined) || propHandle);
   const isPreview = searchParams.get("preview") === "true";
   const { data: session } = useSession();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [newReleases, setNewReleases] = useState<ContentCard[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "plans" | "single" | "saved" | "contact">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "free" | "members" | "saved" | "contact">("all");
   const [inquiryEnabled, setInquiryEnabled] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,10 +129,10 @@ function StudioProContentPageContent() {
     const fetchData = async () => {
       try {
         // ハンドルがない場合（テーマページとして直接アクセス）はサンプルデータを表示
-        if (!handle && !isPreview) {
+        if (isDemo || (!handle && !isPreview)) {
           setCreatorProfile({
-            handle: "studio-pro",
-            displayName: "Studio Pro Demo",
+            handle: isDemo ? "demo" : "studio-pro",
+            displayName: isDemo ? "CocoBa Demo Studio" : "Studio Pro Demo",
             bio: "これはStudio Proテーマのデモページです。実際のクリエイターページでは、あなたのコンテンツがここに表示されます。",
             headerUrl: null,
             logoUrl: null,
@@ -142,13 +143,22 @@ function StudioProContentPageContent() {
             otherUrl: null,
             otherUrlName: null,
           });
+          if (isDemo) {
+            setPlans([
+              { id: "standard", name: "Standard", price: 1980, description: "Standard plan demo" },
+              { id: "premium", name: "Premium", price: 3980, description: "Premium plan demo" },
+            ]);
+          }
           // Transform sample posts to content cards
           const cards: ContentCard[] = samplePosts.map((post: any, index: number) => ({
             id: post.id,
             title: post.title,
             description: post.description || "",
             cover: post.cover,
-            badge: index < 3 ? "new" : "free",
+            badge: post.badge || (index < 3 ? "new" : "free"),
+            isLocked: post.isLocked,
+            requiredTier: post.requiredTier,
+            price: post.price,
             timeAgo: post.timeAgo,
             media: post.media || [],
           }));
@@ -232,7 +242,7 @@ function StudioProContentPageContent() {
     };
 
     fetchData();
-  }, [handle, isPreview]);
+  }, [handle, isPreview, isDemo]);
 
   useEffect(() => {
     if (activeTab === "saved" && !isPreview && savedCards.length === 0) {
@@ -353,7 +363,7 @@ function StudioProContentPageContent() {
 
                 {/* Description */}
                 <p className="mb-4 text-sm leading-relaxed text-gray-300">
-                  {creatorProfile?.bio || "クリエイターのコンテンツをお楽しみください"}
+                  {isDemo ? "デモ用のコンテンツ販売ページです" : (creatorProfile?.bio || "クリエイターのコンテンツをお楽しみください")}
                 </p>
 
                 {/* Social Links */}
@@ -408,26 +418,22 @@ function StudioProContentPageContent() {
                 onClick={() => setActiveTab("all")}
                 className={`whitespace-nowrap px-4 py-2.5 md:py-1.5 text-sm font-medium rounded-md transition ${activeTab === 'all' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
               >
-                すべて
-              </button>
+                すべて</button>
               <button
-                onClick={() => setActiveTab("plans")}
-                className={`whitespace-nowrap px-4 py-2.5 md:py-1.5 text-sm font-medium rounded-md transition ${activeTab === 'plans' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                onClick={() => setActiveTab("free")}
+                className={`whitespace-nowrap px-4 py-2.5 md:py-1.5 text-sm font-medium rounded-md transition ${activeTab === 'free' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
               >
-                プラン
-              </button>
+                無料</button>
               <button
-                onClick={() => setActiveTab("single")}
-                className={`whitespace-nowrap px-4 py-2.5 md:py-1.5 text-sm font-medium rounded-md transition ${activeTab === 'single' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                onClick={() => setActiveTab("members")}
+                className={`whitespace-nowrap px-4 py-2.5 md:py-1.5 text-sm font-medium rounded-md transition ${activeTab === 'members' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
               >
-                単体販売
-              </button>
+                メンバー限定</button>
               <button
                 onClick={() => setActiveTab("saved")}
                 className={`whitespace-nowrap px-4 py-2.5 md:py-1.5 text-sm font-medium rounded-md transition ${activeTab === 'saved' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
               >
-                保存済み
-              </button>
+                保存済み</button>
             </div>
           </div>
 
@@ -435,8 +441,8 @@ function StudioProContentPageContent() {
             const displayCards = activeTab === "saved" ? savedCards : newReleases;
             const filteredCards = displayCards.filter(card => {
               if (activeTab === "all") return true;
-              if (activeTab === "plans") return card.requiredTier;
-              if (activeTab === "single") return card.isLocked && card.price && card.price > 0 && !card.requiredTier;
+              if (activeTab === "free") return !card.isLocked && !card.requiredTier;
+              if (activeTab === "members") return card.requiredTier;
               if (activeTab === "saved") return true;
               return true;
             });
@@ -450,7 +456,7 @@ function StudioProContentPageContent() {
                 {filteredCards.map((card) => (
                   <Link
                     key={card.id}
-                    href={handle ? `/${handle}/content/${card.id}` : `/studio-pro/content/${card.id}`}
+                    href={isDemo ? "/demo/content" : (handle ? `/${handle}/content/${card.id}` : `/studio-pro/content/${card.id}`)}
                     className="group"
                   >
                     <article className="overflow-hidden rounded-xl bg-[#13171f] transition hover:bg-[#1a1f2e]">

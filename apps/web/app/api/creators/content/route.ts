@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds, sampleMedia, mainMedia, singleSalePrice, isAdultContent } = body;
+        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds, sampleMedia, mainMedia, isAdultContent } = body;
 
         // バリデーション
         if (!title || title.trim() === "") {
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
                 visibility: visibility || "PUBLIC",
                 isLocked: isLocked || false,
                 requiredPlanId: requiredPlanId || null,
-                price: singleSalePrice ? Math.round(singleSalePrice) : null,
+                price: null,
                 isAdultContent: shouldTreatAsAdultContent
             }
         });
@@ -227,7 +227,7 @@ export async function GET(req: Request) {
         const search = searchParams.get("search");
         const folderId = searchParams.get("folderId");
         const tagId = searchParams.get("tagId");
-        const type = searchParams.get("type"); // "free", "plan", "single"
+        const type = searchParams.get("type"); // "free", "plan"
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
@@ -282,9 +282,9 @@ export async function GET(req: Request) {
             };
         }
 
-        // タイプでフィルター (無料, プラン限定, 単体販売)
+        // タイプでフィルター (無料, プラン限定)
         if (type === "free") {
-            // 無料: サブスクリプション必須でもなく、単体販売価格もないもの（isLockedの挙動にも依存するがSchemaを見る限り）
+            // 無料: サブスクリプション必須ではないもの（isLockedの挙動にも依存するがSchemaを見る限り）
             where.requiredPlanId = null;
             // AND price is null or 0 (Prisma doesn't easily support IS NULL OR = 0 without an OR array, but price is Int?)
             where.OR = [
@@ -295,9 +295,6 @@ export async function GET(req: Request) {
         } else if (type === "plan") {
             // プラン限定: requiredPlanId が設定されている
             where.requiredPlanId = { not: null };
-        } else if (type === "single") {
-            // 単体販売: price が 0 より大きく設定されている
-            where.price = { gt: 0 };
         }
 
         const [posts, total] = await Promise.all([

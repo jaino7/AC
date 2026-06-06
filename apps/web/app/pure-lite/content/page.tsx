@@ -45,7 +45,7 @@ type CreatorProfile = {
   themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
-type TabType = "all" | "plans" | "single" | "saved" | "contact";
+type TabType = "all" | "free" | "members" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -220,8 +220,8 @@ function PureLiteContentPageContent() {
   const displayCards = activeTab === "saved" ? savedCards : contentCards;
   const filteredCards = displayCards.filter((card) => {
     if (activeTab === "all") return true;
-    if (activeTab === "plans") return card.type === "premium" && card.tier !== "";
-    if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && (card.tier === "");
+    if (activeTab === "free") return card.type === "free" || (!card.isLocked && card.tier === "");
+    if (activeTab === "members") return card.type === "premium" && card.tier !== "";
     if (activeTab === "saved") return true;
     return true;
   });
@@ -382,32 +382,29 @@ function PureLiteContentPageContent() {
                 : "text-gray-500 hover:text-gray-700"
                 }`}
             >
-              すべて
-              {activeTab === "all" && (
+              すべて{activeTab === "all" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
               )}
             </button>
             <button
-              onClick={() => setActiveTab("plans")}
-              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "plans"
+              onClick={() => setActiveTab("free")}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "free"
                 ? "text-gray-900"
                 : "text-gray-500 hover:text-gray-700"
                 }`}
             >
-              プラン
-              {activeTab === "plans" && (
+              無料{activeTab === "free" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
               )}
             </button>
             <button
-              onClick={() => setActiveTab("single")}
-              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "single"
+              onClick={() => setActiveTab("members")}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${activeTab === "members"
                 ? "text-gray-900"
                 : "text-gray-500 hover:text-gray-700"
                 }`}
             >
-              単体販売
-              {activeTab === "single" && (
+              メンバー限定{activeTab === "members" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
               )}
             </button>
@@ -418,8 +415,7 @@ function PureLiteContentPageContent() {
                 : "text-gray-500 hover:text-gray-700"
                 }`}
             >
-              保存済み
-              {activeTab === "saved" && (
+              保存済み{activeTab === "saved" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
               )}
             </button>
@@ -509,16 +505,12 @@ function PureLiteContentPageContent() {
                       <span
                         className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-bold uppercase ${card.type === "premium" && card.tier !== ""
                           ? "bg-purple-100 text-purple-700"
-                          : card.isLocked && card.price && card.price > 0 && card.tier === ""
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-gray-100 text-gray-700"
+                          : "bg-gray-100 text-gray-700"
                           }`}
                       >
                         {card.type === "premium" && card.tier !== ""
-                          ? "プラン"
-                          : card.isLocked && card.price && card.price > 0 && card.tier === ""
-                            ? "単体販売"
-                            : "無料"}
+                          ? "メンバー限定"
+                          : "無料"}
                       </span>
                     </div>
 

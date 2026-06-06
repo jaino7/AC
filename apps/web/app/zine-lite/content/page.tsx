@@ -51,7 +51,7 @@ type Plan = {
   price: number;
 };
 
-type TabType = "all" | "plans" | "single" | "saved" | "contact";
+type TabType = "all" | "free" | "members" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -251,8 +251,8 @@ function ZineLiteContentPageContent() {
   const displayCards = activeTab === "saved" ? savedCards : contentCards;
   const filteredCards = displayCards.filter((card) => {
     if (activeTab === "all") return true;
-    if (activeTab === "plans") return card.type === "gold" || card.type === "bronze";
-    if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && card.type === "public";
+    if (activeTab === "free") return card.type === "public" || !card.isLocked;
+    if (activeTab === "members") return card.type === "gold" || card.type === "bronze";
     if (activeTab === "saved") return true;
     return true;
   });
@@ -402,26 +402,23 @@ function ZineLiteContentPageContent() {
                   : "text-gray-500 hover:text-gray-700"
                   }`}
               >
-                すべて
-              </button>
+                すべて</button>
               <button
-                onClick={() => setActiveTab("plans")}
-                className={`whitespace-nowrap flex items-center gap-1.5 px-3 md:px-4 py-3 text-xs md:text-sm font-semibold transition ${activeTab === "plans"
+                onClick={() => setActiveTab("free")}
+                className={`whitespace-nowrap flex items-center gap-1.5 px-3 md:px-4 py-3 text-xs md:text-sm font-semibold transition ${activeTab === "free"
                   ? "border-b-2 border-gray-900 text-gray-900"
                   : "text-gray-500 hover:text-gray-700"
                   }`}
               >
-                プラン
-              </button>
+                無料</button>
               <button
-                onClick={() => setActiveTab("single")}
-                className={`whitespace-nowrap px-3 md:px-4 py-3 text-xs md:text-sm font-semibold transition ${activeTab === "single"
+                onClick={() => setActiveTab("members")}
+                className={`whitespace-nowrap flex items-center gap-1.5 px-3 md:px-4 py-3 text-xs md:text-sm font-semibold transition ${activeTab === "members"
                   ? "border-b-2 border-gray-900 text-gray-900"
                   : "text-gray-500 hover:text-gray-700"
                   }`}
               >
-                単体販売
-              </button>
+                メンバー限定</button>
               <button
                 onClick={() => setActiveTab("saved")}
                 className={`whitespace-nowrap px-3 md:px-4 py-3 text-xs md:text-sm font-semibold transition ${activeTab === "saved"
@@ -429,8 +426,7 @@ function ZineLiteContentPageContent() {
                   : "text-gray-500 hover:text-gray-700"
                   }`}
               >
-                保存済み
-              </button>
+                保存済み</button>
             </div>
 
             {/* View Mode Toggle */}
@@ -491,16 +487,12 @@ function ZineLiteContentPageContent() {
                       <span
                         className={`rounded px-2 py-1 text-xs font-bold uppercase ${card.type === "gold" || card.type === "bronze"
                           ? "bg-purple-100 text-purple-700"
-                          : card.isLocked && card.price && card.price > 0
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-gray-900 text-white"
+                          : "bg-gray-900 text-white"
                           }`}
                       >
                         {card.type === "gold" || card.type === "bronze"
-                          ? "プラン"
-                          : card.isLocked && card.price && card.price > 0
-                            ? "単体販売"
-                            : "無料"}
+                          ? "メンバー限定"
+                          : "無料"}
                       </span>
                     </div>
 

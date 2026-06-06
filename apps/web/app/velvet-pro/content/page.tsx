@@ -57,7 +57,7 @@ type CreatorProfile = {
   themeConfig?: { showNameInHeader?: boolean } | null;
 };
 
-type TabType = "all" | "plans" | "single" | "saved" | "contact";
+type TabType = "all" | "free" | "members" | "saved" | "contact";
 
 const resolveAssetUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -447,26 +447,23 @@ function VelvetProContentPageContent() {
                 : "bg-white/5 text-gray-400 hover:text-white"
                 }`}
             >
-              すべて
-            </button>
+              すべて</button>
             <button
-              onClick={() => setActiveTab("plans")}
-              className={`whitespace-nowrap flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === "plans"
+              onClick={() => setActiveTab("free")}
+              className={`whitespace-nowrap flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === "free"
                 ? "bg-yellow-600 text-black"
                 : "bg-white/5 text-gray-400 hover:text-white"
                 }`}
             >
-              プラン
-            </button>
+              無料</button>
             <button
-              onClick={() => setActiveTab("single")}
-              className={`whitespace-nowrap flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === "single"
+              onClick={() => setActiveTab("members")}
+              className={`whitespace-nowrap flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === "members"
                 ? "bg-yellow-600 text-black"
                 : "bg-white/5 text-gray-400 hover:text-white"
                 }`}
             >
-              単体販売
-            </button>
+              メンバー限定</button>
             <button
               onClick={() => setActiveTab("saved")}
               className={`whitespace-nowrap flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === "saved"
@@ -474,8 +471,7 @@ function VelvetProContentPageContent() {
                 : "bg-white/5 text-gray-400 hover:text-white"
                 }`}
             >
-              保存済み
-            </button>
+              保存済み</button>
           </nav>
         </div>
 
@@ -485,8 +481,8 @@ function VelvetProContentPageContent() {
             const displayCards = activeTab === "saved" ? savedCards : contentCards;
             const filteredCards = displayCards.filter(card => {
               if (activeTab === "all") return true;
-              if (activeTab === "plans") return card.requiredTier;
-              if (activeTab === "single") return card.isLocked && card.price && (card.price > 0) && !card.requiredTier;
+              if (activeTab === "free") return !card.isLocked && !card.requiredTier;
+              if (activeTab === "members") return card.requiredTier;
               if (activeTab === "saved") return true;
               return true;
             });

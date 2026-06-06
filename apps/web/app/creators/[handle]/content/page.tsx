@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getCreatorPlatformUrl } from "@/lib/platform-url";
 
 
 interface Post {
@@ -113,7 +114,7 @@ export default function ContentPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVisibility, setSelectedVisibility] = useState<"all" | "public" | "draft">("all");
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<"all" | "free" | "plan" | "single">("all");
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<"all" | "free" | "plan">("all");
 
   // アコーディオン・スマホメニュー状態
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -375,15 +376,6 @@ export default function ContentPage() {
               >
                 プラン限定
               </button>
-              <button
-                onClick={() => setSelectedTypeFilter("single")}
-                className={`flex-shrink-0 rounded-2xl border px-5 py-2 text-sm font-semibold transition-colors ${selectedTypeFilter === "single"
-                  ? "border-black bg-black text-white"
-                  : "border-black/10 bg-white text-black hover:border-black/40"
-                  }`}
-              >
-                単体販売
-              </button>
             </div>
           </header>
 
@@ -440,7 +432,7 @@ export default function ContentPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const shareUrl = `${window.location.origin}/${handle}/content/${post.id}`;
+                            const shareUrl = getCreatorPlatformUrl(handle, `/content/${post.id}`);
                             navigator.clipboard.writeText(shareUrl).then(() => {
                               setCopiedPostId(post.id);
                               setTimeout(() => setCopiedPostId(null), 2000);
