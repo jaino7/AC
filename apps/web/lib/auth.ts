@@ -8,7 +8,7 @@ import { verify } from "argon2";
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const useSecureAuthCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? process.env.NODE_ENV === "production";
-const googleOAuthChecks = process.env.NODE_ENV === "development" ? ["none" as const] : ["pkce" as const, "state" as const];
+const googleOAuthChecks = process.env.NODE_ENV === "development" ? ["none" as const] : ["pkce" as const];
 
 // Google OAuthは一旦スキップ（オプショナル）
 const useGoogleAuth = googleClientId && googleClientSecret;
