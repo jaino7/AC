@@ -61,14 +61,14 @@ const main = {
     backgroundColor: '#f6f9fc',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 };
-const container = { margin: '0 auto', padding: '20px 0', maxWidth: '600px' };
-const logo = { fontSize: '24px', fontWeight: 'bold', color: '#223C7D', margin: '30px 0 0 0', padding: '0 40px' };
-const h1 = { color: '#1a1a1a', fontSize: '24px', fontWeight: '700', lineHeight: '1.3', margin: '16px 0', padding: '0 40px' };
-const text = { color: '#404040', fontSize: '16px', lineHeight: '26px', margin: '16px 0', padding: '0 40px' };
+const container = { margin: '0 auto', padding: '20px 0', maxWidth: '600px', width: '100%', boxSizing: 'border-box' as const };
+const logo = { fontSize: '24px', fontWeight: 'bold', color: '#223C7D', margin: '30px 0 0 0', padding: '0 20px' };
+const h1 = { color: '#1a1a1a', fontSize: '24px', fontWeight: '700', lineHeight: '1.3', margin: '16px 0', padding: '0 20px' };
+const text = { color: '#404040', fontSize: '16px', lineHeight: '26px', margin: '16px 0', padding: '0 20px' };
 const buttonContainer = { textAlign: 'center' as const, margin: '32px 0' };
-const button = { backgroundColor: '#223C7D', color: '#ffffff', padding: '14px 40px', borderRadius: '6px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' };
-const noteBox = { backgroundColor: '#fff9e6', padding: '20px 40px', margin: '24px 0', borderLeft: '4px solid #ffd54f' };
+const button = { backgroundColor: '#223C7D', color: '#ffffff', padding: '14px 32px', borderRadius: '6px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' };
+const noteBox = { backgroundColor: '#fff9e6', padding: '20px', margin: '24px 0', borderLeft: '4px solid #ffd54f' };
 const noteTitle = { fontSize: '14px', fontWeight: 'bold', color: '#f57f17', margin: '0 0 12px' };
 const noteText = { fontSize: '14px', color: '#404040', margin: '0 0 8px', lineHeight: '20px' };
-const divider = { borderColor: '#e5e5e5', margin: '20px 40px' };
-const footer = { color: '#8898aa', fontSize: '14px', lineHeight: '22px', margin: '16px 0', textAlign: 'center' as const, padding: '0 40px 40px' };
+const divider = { borderColor: '#e5e5e5', margin: '20px' };
+const footer = { color: '#8898aa', fontSize: '14px', lineHeight: '22px', margin: '16px 0', textAlign: 'center' as const, padding: '0 20px 40px' };

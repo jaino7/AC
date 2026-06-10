@@ -69,6 +69,8 @@ const container = {
     margin: '0 auto',
     padding: '20px 0',
     maxWidth: '600px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
 };
 
 const logo = {
@@ -76,7 +78,7 @@ const logo = {
     fontWeight: 'bold',
     color: '#223C7D',
     margin: '30px 0 0 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 const h1 = {
@@ -85,7 +87,7 @@ const h1 = {
     fontWeight: '700',
     lineHeight: '1.3',
     margin: '16px 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 const text = {
@@ -93,7 +95,7 @@ const text = {
     fontSize: '16px',
     lineHeight: '26px',
     margin: '16px 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 
@@ -114,7 +116,7 @@ const button = {
 
 const divider = {
     borderColor: '#e5e5e5',
-    margin: '20px 40px',
+    margin: '20px',
 };
 
 const footer = {
@@ -123,5 +125,5 @@ const footer = {
     lineHeight: '22px',
     margin: '16px 0',
     textAlign: 'center' as const,
-    padding: '0 40px 40px',
+    padding: '0 20px 40px',
 };

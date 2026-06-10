@@ -117,6 +117,8 @@ const container = {
     margin: '0 auto',
     padding: '20px 0',
     maxWidth: '600px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
 };
 
 const logo = {
@@ -124,7 +126,7 @@ const logo = {
     fontWeight: 'bold',
     color: '#223C7D',
     margin: '30px 0 0 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 const h1 = {
@@ -133,7 +135,7 @@ const h1 = {
     fontWeight: '700',
     lineHeight: '1.3',
     margin: '16px 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 const h2 = {
@@ -148,7 +150,7 @@ const text = {
     fontSize: '16px',
     lineHeight: '26px',
     margin: '16px 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 const importantBox = {
@@ -156,7 +158,7 @@ const importantBox = {
     border: '2px solid #223C7D',
     borderRadius: '12px',
     padding: '24px',
-    margin: '24px 40px',
+    margin: '24px 20px',
 };
 
 const infoText = {
@@ -192,14 +194,14 @@ const dueDateText = {
     fontSize: '16px',
     fontWeight: '600',
     margin: '16px 0',
-    padding: '0 40px',
+    padding: '0 20px',
 };
 
 const noteBox = {
     backgroundColor: '#f5f5f5',
     borderRadius: '8px',
     padding: '20px 24px',
-    margin: '24px 40px',
+    margin: '24px 20px',
 };
 
 const noteTitle = {
@@ -238,5 +240,5 @@ const footer = {
     lineHeight: '22px',
     margin: '32px 0 0 0',
     textAlign: 'center' as const,
-    padding: '0 40px 40px',
+    padding: '0 20px 40px',
 };

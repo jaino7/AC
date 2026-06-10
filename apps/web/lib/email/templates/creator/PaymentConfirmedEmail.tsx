@@ -94,6 +94,8 @@ const container = {
     margin: '0 auto',
     padding: '20px 0',
     maxWidth: '600px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
 };
 
 const h1 = {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@creator/shared";
+import { sendEmailSafe } from "@/lib/email/client";
+import { InsufficientCreditsEmail } from "@/lib/email/templates/fan/InsufficientCreditsEmail";
 
 // 月末補正付きの次回請求日（1ヶ月後）計算関数
 function calculateNextBillingDate(fromDate: Date): Date {
@@ -58,6 +60,13 @@ export async function POST(request: NextRequest) {
                         credits: true,
                         userId: true,
                         creatorId: true,
+                        displayName: true,
+                        user: {
+                            select: {
+                                email: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
                 plan: {
@@ -66,6 +75,12 @@ export async function POST(request: NextRequest) {
                         name: true,
                         price: true,
                         creatorId: true,
+                        creator: {
+                            select: {
+                                displayName: true,
+                                handle: true,
+                            },
+                        },
                     },
                 },
             },
@@ -199,7 +214,43 @@ export async function POST(request: NextRequest) {
                         requiredCredits: subscription.plan.price,
                         availableCredits: outcome.availableCredits,
                     });
-                    // TODO: Send notification email to fan about cancellation
+                    const fanEmail = subscription.fan.user?.email;
+                    if (fanEmail) {
+                        try {
+                            const fanName =
+                                subscription.fan.displayName ||
+                                subscription.fan.user?.name ||
+                                "ファン";
+
+                            await sendEmailSafe({
+                                to: fanEmail,
+                                subject: `${subscription.plan.creator.displayName}の${subscription.plan.name}プランを自動更新できませんでした`,
+                                react: InsufficientCreditsEmail({
+                                    fanName,
+                                    creatorName: subscription.plan.creator.displayName,
+                                    creatorHandle: subscription.plan.creator.handle,
+                                    planName: subscription.plan.name,
+                                    requiredCredits: subscription.plan.price,
+                                    availableCredits: outcome.availableCredits,
+                                }),
+                                emailType: "FAN_SUBSCRIPTION_EXPIRED",
+                                recipientId: subscription.fan.userId,
+                                metadata: {
+                                    subscriptionId: subscription.id,
+                                    planId: subscription.plan.id,
+                                    planName: subscription.plan.name,
+                                    requiredCredits: subscription.plan.price,
+                                    availableCredits: outcome.availableCredits,
+                                    reason: "insufficient_credits",
+                                },
+                            });
+                        } catch (emailError) {
+                            console.error(
+                                `Failed to send insufficient credits email for subscription ${subscription.id}:`,
+                                emailError
+                            );
+                        }
+                    }
                 }
                 // skipped の場合はカウントしない（二重実行による正常スキップ）
             } catch (error) {
@@ -232,12 +283,7 @@ export async function POST(request: NextRequest) {
 
 // Allow GET for testing in development
 export async function GET(request: NextRequest) {
-    if (process.env.NODE_ENV !== "development") {
-        return NextResponse.json(
-            { error: "This endpoint is only available in development" },
-            { status: 403 }
-        );
-    }
-
+    // Vercel Cron invokes routes with GET. Delegate to POST so the same
+    // renewal logic and CRON_SECRET authorization are used in every environment.
     return POST(request);
 }

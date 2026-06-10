@@ -90,10 +90,12 @@ const container = {
   margin: '0 auto',
   padding: '20px 0',
   maxWidth: '600px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
 };
 
 const header = {
-  padding: '20px 40px',
+  padding: '20px',
 };
 
 const logo = {
@@ -104,7 +106,7 @@ const logo = {
 };
 
 const content = {
-  padding: '0 40px 40px',
+  padding: '0 20px 40px',
 };
 
 const heading = {
@@ -129,7 +131,7 @@ const buttonContainer = {
 const button = {
   backgroundColor: '#223C7D',
   color: '#ffffff',
-  padding: '14px 40px',
+  padding: '14px 32px',
   borderRadius: '6px',
   textDecoration: 'none',
   display: 'inline-block',
@@ -161,11 +163,11 @@ const noteText = {
 
 const divider = {
   borderColor: '#e5e5e5',
-  margin: '20px 40px',
+  margin: '20px',
 };
 
 const footer = {
-  padding: '0 40px 20px',
+  padding: '0 20px 20px',
 };
 
 const footerText = {
