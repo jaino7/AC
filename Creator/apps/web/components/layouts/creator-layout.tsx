@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { CreatorSidebar } from "./creator-sidebar";
 import { CreatorHeader } from "./creator-header";
+import { CreatorBottomNav } from "./creator-bottom-nav";
 import { cn } from "@/lib/utils";
 
 interface CreatorLayoutProps {
@@ -10,42 +11,37 @@ interface CreatorLayoutProps {
 }
 
 export function CreatorLayout({ children }: CreatorLayoutProps) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const pathname = usePathname();
+
+    const isAuthPage =
+        pathname?.startsWith("/creators/signup") ||
+        pathname?.startsWith("/creators/login") ||
+        pathname?.startsWith("/creators/password-reset") ||
+        pathname?.startsWith("/creators/verify-email");
+
+    if (isAuthPage) {
+        return <div className="min-h-screen bg-white">{children}</div>;
+    }
 
     return (
-        <div className="min-h-screen bg-neutral-50">
+        <div className="min-h-screen bg-white">
             {/* ヘッダー */}
-            <CreatorHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+            <CreatorHeader />
 
-            {/* サイドバー - デスクトップ */}
+            {/* サイドバー - デスクトップのみ */}
             <div className="hidden lg:block">
                 <CreatorSidebar />
             </div>
 
-            {/* サイドバー - モバイル */}
-            {isSidebarOpen && (
-                <>
-                    {/* オーバーレイ */}
-                    <div
-                        className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-                        onClick={() => setIsSidebarOpen(false)}
-                    />
-                    {/* サイドバー */}
-                    <div className="lg:hidden">
-                        <CreatorSidebar />
-                    </div>
-                </>
-            )}
-
             {/* メインコンテンツ */}
-            <main
-                className={cn(
-                    "min-h-screen pt-16 transition-all",
-                    "lg:pl-60" // デスクトップではサイドバー分の左パディング
-                )}
-            >
-                <div className="mx-auto max-w-7xl p-6">{children}</div>
+            {/* モバイル: pt-0（ヘッダー非固定）・pb-16（ボトムナビ分） */}
+            {/* デスクトップ: pt-16（固定ヘッダー分）・pl-60（サイドバー分）・pb-0 */}
+            <main className={cn("min-h-screen pb-16 lg:pb-0 lg:pt-16 lg:pl-60")}>
+                <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">{children}</div>
             </main>
+
+            {/* ボトムナビ - モバイルのみ */}
+            <CreatorBottomNav />
         </div>
     );
 }

@@ -10,23 +10,23 @@ type Plan = {
 const plans: Plan[] = [
   {
     id: "basic",
-    name: "ベ�EシチE��",
+    name: "ベーシック",
     price: "¥980",
-    features: ["コア機�Eへのアクセス", "基本皁E��サポ�EチE, "月間10プロジェクトまで"]
+    features: ["コア機能へのアクセス", "基本的なサポート", "月間10プロジェクトまで"]
   },
   {
     id: "premium",
     name: "プレミアム",
     price: "¥2,980",
-    features: ["スタンダード�Eランの全機�E", "限定コンチE��チE, "専任のサポ�EチE],
+    features: ["スタンダードプランの全機能", "限定コンテンツ", "専任のサポート"],
     highlight: true,
     badge: "おすすめ"
   },
   {
     id: "standard",
-    name: "スタンダーチE,
+    name: "スタンダード",
     price: "¥1,980",
-    features: ["ベ�EシチE��プランの全機�E", "高度な刁E��機�E", "優先サポ�EチE]
+    features: ["ベーシックプランの全機能", "高度な分析機能", "優先サポート"]
   }
 ];
 
@@ -48,10 +48,10 @@ export default function StudioProPlansPage() {
       <div className="w-full max-w-5xl rounded-[32px] border border-white/10 bg-[#0b1426] p-10 shadow-[0_60px_160px_rgba(0,0,0,0.6)]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">プランを選抁E/h1>
-            <p className="mt-2 text-sm text-white/70">あなたに最適なプランを選んで、すべての機�EにアクセスしましょぁE��E/p>
+            <h1 className="text-3xl font-semibold">プランを選択</h1>
+            <p className="mt-2 text-sm text-white/70">あなたに最適なプランを選んで、すべての機能にアクセスしましょう。</p>
           </div>
-          <button className="text-white/60">✁E/button>
+          <button className="text-white/60">&#x2715;</button>
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -72,7 +72,7 @@ export default function StudioProPlansPage() {
               </div>
               <div className="mt-4 text-3xl font-bold">
                 {plan.price}
-                <span className="text-base font-normal text-white/70"> /朁E/span>
+                <span className="text-base font-normal text-white/70"> /月</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm text-white/80">
                 {plan.features.map((feature) => (
@@ -89,7 +89,7 @@ export default function StudioProPlansPage() {
                     : "border-white/20 text-white/80"
                 }`}
               >
-                こ�Eプランを選ぶ
+                このプランを選ぶ
               </button>
             </article>
           ))}
@@ -98,4 +98,3 @@ export default function StudioProPlansPage() {
     </div>
   );
 }
-

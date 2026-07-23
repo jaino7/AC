@@ -3,6 +3,58 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+type MediaInput = {
+    url: string;
+    duration: number | null;
+    size?: number;
+};
+
+const STORAGE_LIMITS: Record<string, bigint> = {
+    FREE: BigInt(15 * 1024 * 1024 * 1024),
+    LITE: BigInt(200 * 1024 * 1024 * 1024),
+    BUSINESS: BigInt(1024 * 1024 * 1024 * 1024),
+};
+
+function normalizeMediaSize(size: unknown): bigint {
+    const value = Number(size);
+    return Number.isSafeInteger(value) && value > 0 ? BigInt(value) : BigInt(0);
+}
+
+function parseByteTotal(total: unknown): bigint {
+    if (typeof total === "bigint") return total;
+    if (typeof total === "number") return BigInt(total);
+    if (typeof total === "string") return BigInt(total || "0");
+    return BigInt(0);
+}
+
+function sumMediaSizes(media: unknown): bigint {
+    if (!Array.isArray(media)) return BigInt(0);
+    return media.reduce((total, item) => total + normalizeMediaSize((item as MediaInput).size), BigInt(0));
+}
+
+async function checkStorageLimit(creatorId: string, incomingBytes: bigint) {
+    const planResult = await prisma.$queryRaw<Array<{ type: string; status: string }>>`
+        SELECT cp."type", cs."status"
+        FROM "CreatorSubscription" cs
+        INNER JOIN "CreatorPlan" cp ON cs."planId" = cp."id"
+        WHERE cs."creatorId" = ${creatorId}
+        LIMIT 1
+    `;
+    const planType = (planResult.length > 0 && planResult[0].status === "ACTIVE")
+        ? planResult[0].type
+        : "FREE";
+    const limitBytes = STORAGE_LIMITS[planType] || STORAGE_LIMITS.FREE;
+    const sizeResult = await prisma.$queryRaw<Array<{ total: bigint | number | string }>>`
+        SELECT COALESCE(SUM(m."size"), 0)::bigint as total
+        FROM "Media" m
+        INNER JOIN "Post" p ON m."postId" = p."id"
+        WHERE p."creatorId" = ${creatorId}
+    `;
+    const usedBytes = parseByteTotal(sizeResult[0]?.total);
+
+    return usedBytes + incomingBytes <= limitBytes;
+}
+
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
 
@@ -15,7 +67,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds } = body;
+        const { title, content, mediaUrl, thumbnailUrl, visibility, isLocked, requiredPlanId, folderId, tagIds, sampleMedia, mainMedia, isAdultContent } = body;
 
         // バリデーション
         if (!title || title.trim() === "") {
@@ -47,13 +99,47 @@ export async function POST(req: Request) {
 
         const creatorProfile = await prisma.creatorProfile.findUnique({
             where: { userId: user.id },
-            select: { id: true }
+            select: {
+                id: true,
+                isAdultContent: true,
+                identityVerification: {
+                    select: { status: true }
+                }
+            }
         });
 
         if (!creatorProfile) {
             return NextResponse.json(
                 { error: "クリエイタープロフィールが見つかりません" },
                 { status: 404 }
+            );
+        }
+
+        // アダルトコンテンツの場合、本人確認済みかチェック
+        const shouldTreatAsAdultContent = Boolean(creatorProfile.isAdultContent || isAdultContent);
+
+        if (shouldTreatAsAdultContent) {
+            const verificationStatus = creatorProfile.identityVerification?.status;
+            if (verificationStatus !== "APPROVED") {
+                return NextResponse.json(
+                    { error: "アダルトコンテンツの投稿には本人確認が必要です。設定ページから本人確認を申請してください。" },
+                    { status: 403 }
+                );
+            }
+
+            if (isAdultContent && !creatorProfile.isAdultContent) {
+                await prisma.creatorProfile.update({
+                    where: { id: creatorProfile.id },
+                    data: { isAdultContent: true }
+                });
+            }
+        }
+
+        const incomingBytes = sumMediaSizes(sampleMedia) + sumMediaSizes(mainMedia);
+        if (!(await checkStorageLimit(creatorProfile.id, incomingBytes))) {
+            return NextResponse.json(
+                { error: "ストレージ容量の上限に達しました。プランをアップグレードしてください。" },
+                { status: 403 }
             );
         }
 
@@ -68,7 +154,9 @@ export async function POST(req: Request) {
                 folderId: folderId || null,
                 visibility: visibility || "PUBLIC",
                 isLocked: isLocked || false,
-                requiredPlanId: requiredPlanId || null
+                requiredPlanId: requiredPlanId || null,
+                price: null,
+                isAdultContent: shouldTreatAsAdultContent
             }
         });
 
@@ -80,6 +168,34 @@ export async function POST(req: Request) {
                     tagId
                 })),
                 skipDuplicates: true
+            });
+        }
+
+        // サンプルメディアを保存
+        if (sampleMedia && Array.isArray(sampleMedia) && sampleMedia.length > 0) {
+            await prisma.media.createMany({
+                data: sampleMedia.map((media: MediaInput) => ({
+                    postId: post.id,
+                    url: media.url,
+                    type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    size: normalizeMediaSize(media.size),
+                    isSample: true,
+                    duration: media.duration
+                }))
+            });
+        }
+
+        // 限定コンテンツメディアを保存
+        if (mainMedia && Array.isArray(mainMedia) && mainMedia.length > 0) {
+            await prisma.media.createMany({
+                data: mainMedia.map((media: MediaInput) => ({
+                    postId: post.id,
+                    url: media.url,
+                    type: media.url.match(/\.(mp4|mov|webm|mkv)$/i) ? "VIDEO" : "IMAGE",
+                    size: normalizeMediaSize(media.size),
+                    isSample: false,
+                    duration: media.duration
+                }))
             });
         }
 
@@ -111,6 +227,7 @@ export async function GET(req: Request) {
         const search = searchParams.get("search");
         const folderId = searchParams.get("folderId");
         const tagId = searchParams.get("tagId");
+        const type = searchParams.get("type"); // "free", "plan"
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
@@ -163,6 +280,21 @@ export async function GET(req: Request) {
                     tagId: tagId
                 }
             };
+        }
+
+        // タイプでフィルター (無料, プラン限定)
+        if (type === "free") {
+            // 無料: サブスクリプション必須ではないもの（isLockedの挙動にも依存するがSchemaを見る限り）
+            where.requiredPlanId = null;
+            // AND price is null or 0 (Prisma doesn't easily support IS NULL OR = 0 without an OR array, but price is Int?)
+            where.OR = [
+                { price: null },
+                { price: 0 }
+            ];
+            where.isLocked = false;
+        } else if (type === "plan") {
+            // プラン限定: requiredPlanId が設定されている
+            where.requiredPlanId = { not: null };
         }
 
         const [posts, total] = await Promise.all([

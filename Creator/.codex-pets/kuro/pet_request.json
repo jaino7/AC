@@ -1,0 +1,244 @@
+{
+  "pet_id": "kuro",
+  "display_name": "Kuro",
+  "description": "A chibi black-and-white dog based on the provided photos, with big brown eyes, a narrow white forehead stripe, white muzzle, fluffy side ears, and white chest.",
+  "created_at": "2026-05-05T07:13:12.148728+00:00",
+  "atlas": {
+    "columns": 8,
+    "rows": 9,
+    "cell_width": 192,
+    "cell_height": 208,
+    "width": 1536,
+    "height": 1872
+  },
+  "rows": [
+    {
+      "state": "idle",
+      "row": 0,
+      "frames": 6,
+      "purpose": "neutral breathing/blinking loop"
+    },
+    {
+      "state": "running-right",
+      "row": 1,
+      "frames": 8,
+      "purpose": "rightward locomotion loop"
+    },
+    {
+      "state": "running-left",
+      "row": 2,
+      "frames": 8,
+      "purpose": "leftward locomotion loop"
+    },
+    {
+      "state": "waving",
+      "row": 3,
+      "frames": 4,
+      "purpose": "greeting gesture with raised wave and return"
+    },
+    {
+      "state": "jumping",
+      "row": 4,
+      "frames": 5,
+      "purpose": "anticipation, lift, peak, descent, settle"
+    },
+    {
+      "state": "failed",
+      "row": 5,
+      "frames": 8,
+      "purpose": "sad, failed, or deflated reaction"
+    },
+    {
+      "state": "waiting",
+      "row": 6,
+      "frames": 6,
+      "purpose": "patient waiting loop with small motion"
+    },
+    {
+      "state": "running",
+      "row": 7,
+      "frames": 6,
+      "purpose": "generic in-place running loop"
+    },
+    {
+      "state": "review",
+      "row": 8,
+      "frames": 6,
+      "purpose": "focused inspecting or review loop"
+    }
+  ],
+  "layout_guides": [
+    {
+      "state": "idle",
+      "path": "references\\layout-guides\\idle.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "running-right",
+      "path": "references\\layout-guides\\running-right.png",
+      "width": 1536,
+      "height": 208,
+      "frames": 8,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "running-left",
+      "path": "references\\layout-guides\\running-left.png",
+      "width": 1536,
+      "height": 208,
+      "frames": 8,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "waving",
+      "path": "references\\layout-guides\\waving.png",
+      "width": 768,
+      "height": 208,
+      "frames": 4,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "jumping",
+      "path": "references\\layout-guides\\jumping.png",
+      "width": 960,
+      "height": 208,
+      "frames": 5,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "failed",
+      "path": "references\\layout-guides\\failed.png",
+      "width": 1536,
+      "height": 208,
+      "frames": 8,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "waiting",
+      "path": "references\\layout-guides\\waiting.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "running",
+      "path": "references\\layout-guides\\running.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "review",
+      "path": "references\\layout-guides\\review.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    }
+  ],
+  "references": [
+    {
+      "path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-01.png",
+      "width": 3024,
+      "height": 4032,
+      "mode": "RGBA",
+      "format": "PNG",
+      "source_path": "C:\\Users\\\u4ed5\u4e8b\u7528\\Desktop\\IMG_2024.png",
+      "copied_path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-01.png"
+    },
+    {
+      "path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-02.jpg",
+      "width": 3024,
+      "height": 4032,
+      "mode": "RGB",
+      "format": "JPEG",
+      "source_path": "C:\\Users\\\u4ed5\u4e8b\u7528\\Desktop\\IMG_4111.jpg",
+      "copied_path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-02.jpg"
+    },
+    {
+      "path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-03.jpg",
+      "width": 4032,
+      "height": 3024,
+      "mode": "RGB",
+      "format": "JPEG",
+      "source_path": "C:\\Users\\\u4ed5\u4e8b\u7528\\Desktop\\IMG_4299.jpg",
+      "copied_path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-03.jpg"
+    },
+    {
+      "path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-04.jpg",
+      "width": 1108,
+      "height": 1478,
+      "mode": "RGB",
+      "format": "JPEG",
+      "source_path": "C:\\Users\\\u4ed5\u4e8b\u7528\\Desktop\\IMG_5251.JPG",
+      "copied_path": "C:\\dev\\ACD\\Creator\\.codex-pets\\kuro\\references\\reference-04.jpg"
+    }
+  ],
+  "chroma_key": {
+    "hex": "#FF00FF",
+    "rgb": [
+      255,
+      0,
+      255
+    ],
+    "name": "magenta",
+    "selection": "auto",
+    "score": 205.7
+  },
+  "pet_notes": "This pet must resemble the specific dog in the references, not a generic breed: mostly black face and body, large round warm brown eyes, narrow irregular white blaze from forehead down the nose, broad white muzzle, black nose, white chest and front paws, long fluffy side ears with wispy tips, cheerful curious expression.",
+  "style_notes": "Codex digital pet style: compact chibi pixel-art-adjacent mascot, thick dark 1-2 px outlines, limited palette, flat cel shading, stepped pixel edges, simple readable face, tiny limbs, no realistic fur texture, no gradients, no shadows.",
+  "house_style": "Codex digital pet sprite style: pixel-art-adjacent low-resolution mascot sprite, compact chibi proportions, chunky whole-body silhouette, thick dark 1-2 px outline, visible stepped/pixel edges, limited palette, flat cel shading with at most one small highlight and one shadow step, simple readable face, tiny limbs, and no detail that disappears at 192x208. Avoid polished illustration, painterly rendering, anime key art, 3D render, vector app-icon polish, glossy lighting, soft gradients, realistic fur or material texture, anti-aliased high-detail edges, and complex tiny accessories.",
+  "primary_generation_skill": "$imagegen",
+  "canonical_identity_reference": {
+    "path": "references\\canonical-base.png",
+    "source_job": "base",
+    "sha256": "61c8b1fd043885b2110ba85cd2a265b58f7b3c360be80085cb05a32c42e08aa4",
+    "metadata": {
+      "width": 1206,
+      "height": 1305,
+      "mode": "RGB",
+      "format": "PNG"
+    }
+  }
+}

@@ -35,16 +35,24 @@ export default function FansTermsPage() {
                     </section>
 
                     <section>
-                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第4条（コンテンツの購入と支払い）</h2>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第4条（クレジットの購入）</h2>
                         <ol className="list-decimal space-y-2 pl-6">
-                            <li>利用者は、本サービス内で提供される有料コンテンツまたはサブスクリプション（以下「有料サービス」）を購入する場合、当運営が定める金額を支払うものとします。</li>
-                            <li>支払方法は銀行振込のみとします。利用者は、購入申し込み後、当運営が指定する期日までに指定口座へ代金を振り込むものとします。なお、振込手数料は利用者の負担とします。</li>
-                            <li>デジタルコンテンツという商品の性質上、<strong>購入完了（振込完了）後の返品、キャンセル、返金は一切お受けできません。</strong>ただし、本サービスの不具合によりコンテンツが閲覧できない等の場合はこの限りではありません。</li>
+                            <li>利用者は、本サービス内の有料コンテンツまたはサブスクリプションを利用するため、本サービス内通貨である「クレジット」を購入するものとします。</li>
+                            <li>クレジットの購入方法は、当運営が指定する仮想口座への銀行振込とします。利用者は、購入申し込み後、当運営が指定する仮想口座へ代金を振り込むものとします。なお、振込手数料は利用者の負担とします。</li>
+                            <li>入金確認後、利用者のアカウントに対応するクレジットが付与されます。</li>
                         </ol>
                     </section>
 
                     <section>
-                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第5条（禁止事項）</h2>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第5条（コンテンツの購入）</h2>
+                        <ol className="list-decimal space-y-2 pl-6">
+                            <li>利用者は、前条により購入したクレジットを使用して、本サービス内で提供される有料コンテンツまたはサブスクリプションを購入できます。</li>
+                            <li>デジタルコンテンツという商品の性質上、<strong>クレジット購入後およびコンテンツ購入後の返品、キャンセル、返金は一切お受けできません。</strong>ただし、本サービスの不具合によりコンテンツが閲覧できない等の場合はこの限りではありません。</li>
+                        </ol>
+                    </section>
+
+                    <section>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第6条（禁止事項）</h2>
                         <p className="mb-3">
                             利用者は、本サービスの利用にあたり、以下の行為をしてはなりません。違反した場合、事前の通知なくアカウントの停止や法的措置を講じることがあります。
                         </p>
@@ -78,14 +86,14 @@ export default function FansTermsPage() {
                     </section>
 
                     <section>
-                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第6条（権利の帰属）</h2>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第7条（権利の帰属）</h2>
                         <p>
                             本サービスに含まれる一切のコンテンツ（画像、動画、テキスト、プログラム等）の著作権およびその他の知的財産権は、当該コンテンツを投稿したクリエイターまたは<strong>当運営</strong>に帰属します。利用者は、個人的な視聴・閲覧の範囲を超えてこれらを利用することはできません。
                         </p>
                     </section>
 
                     <section>
-                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第7条（免責事項）</h2>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第8条（免責事項）</h2>
                         <ol className="list-decimal space-y-2 pl-6">
                             <li>当運営は、各クリエイターが提供するコンテンツの内容の正確性、適法性、道徳性について、完全な保証を行うものではありません。</li>
                             <li>利用者とクリエイター、または利用者同士の間で生じたトラブル（個人的な金銭トラブル、メッセージのやり取り等）について、当運営は一切の責任を負いません。</li>
@@ -94,7 +102,7 @@ export default function FansTermsPage() {
                     </section>
 
                     <section>
-                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第8条（サービスの変更・終了）</h2>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第9条（サービスの変更・終了）</h2>
                         <ol className="list-decimal space-y-2 pl-6">
                             <li><strong>当運営の都合</strong>により、本サービスの内容を変更し、または提供を終了することができます。</li>
                             <li>当運営が本サービスの提供を終了する場合、当運営は利用者に事前に通知するものとします。</li>
@@ -102,14 +110,17 @@ export default function FansTermsPage() {
                     </section>
 
                     <section>
-                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第9条（準拠法・裁判管轄）</h2>
+                        <h2 className="mb-4 text-xl font-semibold text-gray-900">第10条（準拠法・裁判管轄）</h2>
                         <p>
                             本規約の解釈にあたっては日本法を準拠法とします。本サービスに関して紛争が生じた場合には、<strong>当運営の所在地</strong>を管轄する裁判所を専属的合意管轄とします。
                         </p>
                     </section>
 
                     <div className="mt-12 border-t border-gray-200 pt-6">
-                        <p className="text-sm text-gray-500">最終更新日: 2025年12月25日</p>
+                        <p className="text-sm text-gray-500">最終更新日: 2026年2月18日</p>
+                        <p className="mt-2 text-sm text-gray-500">
+                            お問い合わせ: <a href="/contact" className="text-blue-600 hover:underline">お問い合わせフォーム</a> または ownstage3m@gmail.com
+                        </p>
                     </div>
                 </div>
             </div>

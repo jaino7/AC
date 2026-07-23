@@ -8,6 +8,15 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { randomBytes } from "crypto";
 
+interface MulterFile {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    buffer: Buffer;
+    size: number;
+}
+
 @Injectable()
 export class BrandAssetsService {
     private readonly uploadDir = path.join(process.cwd(), "uploads", "brand-assets");
@@ -32,8 +41,8 @@ export class BrandAssetsService {
      */
     async uploadAsset(
         creatorId: string,
-        type: "logo" | "favicon",
-        file: Express.Multer.File
+        type: "avatar" | "logo" | "favicon",
+        file: MulterFile
     ) {
         // クリエイタープロフィールの存在確認
         const creator = await this.prisma.creatorProfile.findUnique({
@@ -68,31 +77,35 @@ export class BrandAssetsService {
         await fs.writeFile(filepath, file.buffer);
 
         // 古いファイルを削除
-        const oldUrl = type === "logo" ? creator.logoUrl : creator.faviconUrl;
+        const oldUrl = type === "avatar" ? creator.avatarUrl : type === "logo" ? creator.logoUrl : creator.faviconUrl;
         if (oldUrl) {
             await this.deleteOldFile(oldUrl);
         }
 
         // データベースを更新
         const assetUrl = `/uploads/brand-assets/${filename}`;
-        const updateData = type === "logo"
-            ? { logoUrl: assetUrl }
-            : { faviconUrl: assetUrl };
+        const updateData = type === "avatar"
+            ? { avatarUrl: assetUrl }
+            : type === "logo"
+                ? { logoUrl: assetUrl }
+                : { faviconUrl: assetUrl };
 
         const updated = await this.prisma.creatorProfile.update({
             where: { id: creatorId },
             data: updateData,
             select: {
                 id: true,
+                avatarUrl: true,
                 logoUrl: true,
                 faviconUrl: true
             }
         });
 
+        const typeLabel = type === "avatar" ? "プロフィール画像" : type === "logo" ? "ロゴ" : "ファビコン";
         return {
             type,
             url: assetUrl,
-            message: `${type === "logo" ? "ロゴ" : "ファビコン"}をアップロードしました`,
+            message: `${typeLabel}をアップロードしました`,
             assets: updated
         };
     }
@@ -100,7 +113,7 @@ export class BrandAssetsService {
     /**
      * ブランドアセットを削除
      */
-    async deleteAsset(creatorId: string, type: "logo" | "favicon") {
+    async deleteAsset(creatorId: string, type: "avatar" | "logo" | "favicon") {
         const creator = await this.prisma.creatorProfile.findUnique({
             where: { id: creatorId }
         });
@@ -109,19 +122,22 @@ export class BrandAssetsService {
             throw new NotFoundException("クリエイターが見つかりません");
         }
 
-        const assetUrl = type === "logo" ? creator.logoUrl : creator.faviconUrl;
+        const assetUrl = type === "avatar" ? creator.avatarUrl : type === "logo" ? creator.logoUrl : creator.faviconUrl;
+        const typeLabel = type === "avatar" ? "プロフィール画像" : type === "logo" ? "ロゴ" : "ファビコン";
 
         if (!assetUrl) {
-            throw new BadRequestException(`${type === "logo" ? "ロゴ" : "ファビコン"}が設定されていません`);
+            throw new BadRequestException(`${typeLabel}が設定されていません`);
         }
 
         // ファイルを削除
         await this.deleteOldFile(assetUrl);
 
         // データベースを更新
-        const updateData = type === "logo"
-            ? { logoUrl: null }
-            : { faviconUrl: null };
+        const updateData = type === "avatar"
+            ? { avatarUrl: null }
+            : type === "logo"
+                ? { logoUrl: null }
+                : { faviconUrl: null };
 
         await this.prisma.creatorProfile.update({
             where: { id: creatorId },
@@ -129,7 +145,7 @@ export class BrandAssetsService {
         });
 
         return {
-            message: `${type === "logo" ? "ロゴ" : "ファビコン"}を削除しました`
+            message: `${typeLabel}を削除しました`
         };
     }
 
@@ -140,6 +156,7 @@ export class BrandAssetsService {
         const creator = await this.prisma.creatorProfile.findUnique({
             where: { id: creatorId },
             select: {
+                avatarUrl: true,
                 logoUrl: true,
                 faviconUrl: true
             }

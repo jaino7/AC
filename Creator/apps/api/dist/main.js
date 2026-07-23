@@ -3,23 +3,34 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
-const shared_1 = require("@creator/shared");
+const path_1 = require("path");
 async function bootstrap() {
-    var _a, _b;
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
-        origin: (_a = process.env.WEB_ORIGIN) !== null && _a !== void 0 ? _a : "http://localhost:3000",
-        credentials: true
+        origin: [
+            process.env.FRONTEND_URL || 'http://localhost:3000',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ],
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        credentials: true,
+        maxAge: 3600,
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
-        transform: true
+        transform: true,
+        transformOptions: {
+            enableImplicitConversion: true,
+        },
     }));
-    const port = (_b = process.env.PORT) !== null && _b !== void 0 ? _b : 3001;
+    app.useStaticAssets((0, path_1.join)(process.cwd(), 'uploads'), {
+        prefix: '/uploads/',
+    });
+    const port = process.env.PORT || 3001;
     await app.listen(port);
-    console.log(`API running on http://localhost:${port}`);
-    console.log(shared_1.SHARED_GREETING);
+    console.log(`🚀 API server running on http://localhost:${port}`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

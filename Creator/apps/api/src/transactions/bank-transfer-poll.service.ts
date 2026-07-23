@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import * as Imap from 'imap';
+import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMatchingService } from './payment-matching.service';
@@ -8,19 +8,16 @@ import { PaymentMatchingService } from './payment-matching.service';
 @Injectable()
 export class BankTransferPollService {
     private readonly logger = new Logger(BankTransferPollService.name);
-    private imap: Imap;
 
     constructor(
         private prisma: PrismaService,
         private paymentMatching: PaymentMatchingService,
-    ) {
-        this.initializeImap();
-    }
+    ) {}
 
-    private initializeImap() {
-        this.imap = new Imap({
-            user: process.env.GMAIL_USER,
-            password: process.env.GMAIL_APP_PASSWORD,
+    private createImap(): Imap {
+        return new Imap({
+            user: process.env.GMAIL_USER || '',
+            password: process.env.GMAIL_APP_PASSWORD || '',
             host: 'imap.gmail.com',
             port: 993,
             tls: true,
@@ -30,18 +27,24 @@ export class BankTransferPollService {
 
     @Cron(CronExpression.EVERY_MINUTE)
     async pollBankEmails() {
+        if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+            this.logger.warn('GMAIL_USER or GMAIL_APP_PASSWORD is not set. Skipping.');
+            return;
+        }
+
         this.logger.log('Polling bank transfer emails...');
+        const imap = this.createImap();
 
         return new Promise((resolve, reject) => {
-            this.imap.once('ready', () => {
-                this.imap.openBox('INBOX', false, (err, box) => {
+            imap.once('ready', () => {
+                imap.openBox('INBOX', false, (err, box) => {
                     if (err) {
                         this.logger.error('Failed to open inbox', err);
                         return reject(err);
                     }
 
                     // 住信SBIネット銀行からの未読メールを検索
-                    this.imap.search(
+                    imap.search(
                         [
                             'UNSEEN',
                             ['FROM', 'netbk@netbk.co.jp'], // 住信SBI
@@ -55,24 +58,24 @@ export class BankTransferPollService {
 
                             if (results.length === 0) {
                                 this.logger.log('No new emails found');
-                                this.imap.end();
+                                imap.end();
                                 return resolve(null);
                             }
 
                             this.logger.log(`Found ${results.length} new emails`);
 
-                            const fetch = this.imap.fetch(results, { bodies: '' });
+                            const fetch = imap.fetch(results, { bodies: '' });
 
                             fetch.on('message', (msg, seqno) => {
                                 msg.on('body', async (stream, info) => {
-                                    const parsed = await simpleParser(stream);
+                                    const parsed = await simpleParser(stream as any);
                                     await this.processEmail(parsed, seqno);
                                 });
 
                                 msg.once('attributes', (attrs) => {
                                     const uid = attrs.uid;
                                     // 既読にマーク
-                                    this.imap.addFlags(uid, ['\\Seen'], (err) => {
+                                    imap.addFlags(uid, ['\\Seen'], (err) => {
                                         if (err) this.logger.error('Failed to mark as read', err);
                                     });
                                 });
@@ -80,7 +83,7 @@ export class BankTransferPollService {
 
                             fetch.once('end', () => {
                                 this.logger.log('Email processing complete');
-                                this.imap.end();
+                                imap.end();
                                 resolve(null);
                             });
                         },
@@ -88,12 +91,12 @@ export class BankTransferPollService {
                 });
             });
 
-            this.imap.once('error', (err) => {
+            imap.once('error', (err: Error) => {
                 this.logger.error('IMAP error', err);
                 reject(err);
             });
 
-            this.imap.connect();
+            imap.connect();
         });
     }
 
@@ -144,7 +147,6 @@ export class BankTransferPollService {
     private parseTransferEmail(body: string): {
         amount: number;
         transferorName: string;
-        identifierCode: string;
         transferDate: Date;
     } | null {
         try {
@@ -161,10 +163,6 @@ export class BankTransferPollService {
             const transferorMatch = body.match(/振込人|ご依頼人[：:]\s*([^\n]+)/);
             const transferorName = transferorMatch ? transferorMatch[1].trim() : null;
 
-            // 識別コード抽出（名義人の先頭8桁の数字）
-            const codeMatch = transferorName?.match(/^(\d{8})/);
-            const identifierCode = codeMatch ? codeMatch[1] : null;
-
             // 振込日時抽出
             const dateMatch = body.match(
                 /入金日|振込日[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日/,
@@ -177,14 +175,13 @@ export class BankTransferPollService {
                 )
                 : new Date();
 
-            if (!amount || !identifierCode) {
+            if (!amount) {
                 return null;
             }
 
             return {
                 amount,
                 transferorName: transferorName || '',
-                identifierCode,
                 transferDate,
             };
         } catch (error) {

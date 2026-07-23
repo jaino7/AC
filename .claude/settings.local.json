@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose:*)",
+      "Bash(node node_modules/prisma/build/index.js:*)",
+      "Bash(npx prisma format:*)",
+      "WebSearch",
+      "Bash(npx prisma generate)"
+    ]
+  }
+}

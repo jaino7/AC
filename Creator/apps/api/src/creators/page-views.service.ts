@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
-interface PageViewData {
+export interface PageViewData {
     date: string;
     views: number;
 }

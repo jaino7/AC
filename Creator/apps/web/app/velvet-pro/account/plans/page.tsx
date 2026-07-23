@@ -58,7 +58,7 @@ export default function VelvetProPlansPage() {
               Select the perfect plan that fits your needs and unlock premium features to elevate your experience.
             </p>
           </div>
-          <button className="text-white/50">✁E/button>
+          <button className="text-white/50">&#x2715;</button>
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -107,4 +107,3 @@ export default function VelvetProPlansPage() {
     </div>
   );
 }
-

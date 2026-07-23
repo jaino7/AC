@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { PlusIcon, BellIcon, MenuIcon } from "./icons";
+import { PlusIcon, BellIcon } from "./icons";
 import { useState, useEffect } from "react";
 
 interface CreatorHeaderProps {
@@ -28,23 +28,44 @@ interface Notification {
 
 export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const { data: session } = useSession();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notificationCount, setNotificationCount] = useState(0);
-    const [creatorHandle, setCreatorHandle] = useState<string | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
-    // 通知とクリエイターハンドルを取得
+    // URLから handleを取得
+    const creatorHandle = pathname?.split('/')[2] || null;
+
+    // 通知とプロフィールを取得
     useEffect(() => {
         fetchNotifications();
-        if (session?.user?.email) {
-            fetchCreatorHandle();
+        fetchProfile();
+    }, [session, profileRefreshKey]);
+
+    // アバター更新イベントを受け取る
+    useEffect(() => {
+        const handleAvatarUpdated = () => setProfileRefreshKey(k => k + 1);
+        window.addEventListener("avatar-updated", handleAvatarUpdated);
+        return () => window.removeEventListener("avatar-updated", handleAvatarUpdated);
+    }, []);
+
+    const fetchProfile = async () => {
+        try {
+            const response = await fetch(`/api/creators/profile?t=${Date.now()}`, { cache: "no-store" });
+            if (response.ok) {
+                const data = await response.json();
+                setAvatarUrl(data.profile.avatarUrl || null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch profile:", error);
         }
-    }, [session]);
+    };
 
     const fetchNotifications = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-            const response = await fetch(`${apiUrl}/creators/notifications?limit=5`);
+            const response = await fetch("/api/creators/notifications?limit=5");
             if (response.ok) {
                 const data = await response.json();
                 setNotifications(data);
@@ -55,33 +76,18 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
         }
     };
 
-    const fetchCreatorHandle = async () => {
-        try {
-            const res = await fetch('/api/creators/profile');
-            if (res.ok) {
-                const data = await res.json();
-                setCreatorHandle(data.handle);
-            }
-        } catch (error) {
-            console.error('Failed to fetch creator handle:', error);
-        }
-    };
-
     const handleLogout = async () => {
         await signOut({ redirect: false });
         router.push("/creators/login");
     };
 
     const handlePreview = () => {
-        // TODO: クリエイターのハンドルを取得してプレビューページに遷移
-        // 現在はプレースホルダー
         window.open("/creators/preview", "_blank");
     };
 
     const markAsRead = async (notificationId: string) => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-            await fetch(`${apiUrl}/creators/notifications/${notificationId}/read`, {
+            await fetch(`/api/creators/notifications/${notificationId}/read`, {
                 method: "PUT"
             });
             await fetchNotifications();
@@ -91,16 +97,10 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
     };
 
     return (
-        <header className="fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-4">
-            {/* 左側: メニューボタン + ロゴ */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={onMenuClick}
-                    className="rounded-lg p-2 hover:bg-neutral-100 lg:hidden"
-                    aria-label="メニューを開く"
-                >
-                    <MenuIcon className="h-6 w-6" />
-                </button>
+        // モバイル: 固定なし（スクロールで流れる）/ デスクトップ: 固定
+        <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-4 lg:fixed lg:left-0 lg:right-0 lg:top-0 lg:z-50">
+            {/* 左側: ロゴ */}
+            <div className="flex items-center">
                 <Link href={creatorHandle ? `/creators/${creatorHandle}/dashboard` : "/creators/dashboard"} className="flex items-center">
                     <img src="/logo.png" alt="Creator Logo" className="h-8 w-auto" />
                 </Link>
@@ -166,7 +166,7 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
                 <DropdownMenu
                     trigger={
                         <button className="rounded-full" aria-label="プロフィールメニュー">
-                            <Avatar fallback="C" />
+                            <Avatar fallback="C" src={avatarUrl || undefined} />
                         </button>
                     }
                 >
@@ -175,6 +175,18 @@ export function CreatorHeader({ onMenuClick }: CreatorHeaderProps) {
                             設定
                         </Link>
                     </DropdownMenuItem>
+                    <div className="lg:hidden">
+                        <DropdownMenuItem>
+                            <Link href={creatorHandle ? `/creators/${creatorHandle}/inquiries` : "/creators/inquiries"} className="block w-full">
+                                お問い合わせ
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                            <Link href={creatorHandle ? `/creators/${creatorHandle}/feedback` : "/creators/feedback"} className="block w-full">
+                                フィードバック
+                            </Link>
+                        </DropdownMenuItem>
+                    </div>
                     <DropdownMenuItem>
                         <button onClick={handlePreview} className="w-full text-left">
                             サイトをプレビュー

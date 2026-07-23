@@ -62,7 +62,7 @@ export default function CreatorsTermsPage() {
                             </div>
                             <div>
                                 <h3 className="mb-2 font-semibold text-gray-900">2. 支払方法</h3>
-                                <p>前項の支払方法は銀行振込のみとします。利用者は、当運営が指定する銀行口座へ、当運営が定める期日までに入金を行うものとします。なお、振込手数料は利用者の負担とします。</p>
+                                <p>前項の支払方法は、当運営が指定する仮想口座への銀行振込とします。利用者は、当運営が定める期日までに指定の仮想口座へ入金を行うものとします。なお、振込手数料は利用者の負担とします。</p>
                             </div>
                             <div>
                                 <h3 className="mb-2 font-semibold text-gray-900">3. 売上の回収代行</h3>
@@ -111,7 +111,10 @@ export default function CreatorsTermsPage() {
                     </section>
 
                     <div className="mt-12 border-t border-gray-200 pt-6">
-                        <p className="text-sm text-gray-500">最終更新日: 2025年12月25日</p>
+                        <p className="text-sm text-gray-500">最終更新日: 2026年2月18日</p>
+                        <p className="mt-2 text-sm text-gray-500">
+                            お問い合わせ: <a href="/contact" className="text-blue-600 hover:underline">お問い合わせフォーム</a> または ownstage3m@gmail.com
+                        </p>
                     </div>
                 </div>
             </div>

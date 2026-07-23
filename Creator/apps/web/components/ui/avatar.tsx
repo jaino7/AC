@@ -1,4 +1,5 @@
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -10,6 +11,10 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Avatar({ src, alt, fallback, className, ...props }: AvatarProps) {
     const [imageError, setImageError] = React.useState(false);
 
+    React.useEffect(() => {
+        setImageError(false);
+    }, [src]);
+
     return (
         <div
             className={cn(
@@ -19,10 +24,11 @@ export function Avatar({ src, alt, fallback, className, ...props }: AvatarProps)
             {...props}
         >
             {src && !imageError ? (
-                <img
+                <Image
                     src={src}
                     alt={alt || "Avatar"}
-                    className="aspect-square h-full w-full object-cover"
+                    fill
+                    className="object-cover"
                     onError={() => setImageError(true)}
                 />
             ) : (

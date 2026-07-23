@@ -5,6 +5,7 @@ import { SHARED_GREETING } from "@creator/shared";
 
 console.log(SHARED_GREETING);
 import { Providers } from "./providers";
+import { ClarityScript } from "./components/clarity-script";
 
 const notoSans = Noto_Sans_JP({
   subsets: ["latin"],
@@ -12,9 +13,15 @@ const notoSans = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "クリエイター登録 | Micro Funding",
+  title: "Cocoba　ココバ",
   description:
-    "独自ドメインとアダルト対応決済で、クリエイターが安全に収益化できるプラットフォーム。"
+    "クリエイターの利益を最大化する独立型プラットフォーム「CocoBa（ココバ）」。業界最安水準の手数料2.8%〜を実現。既存サイトの厳しい規制やルールに縛られず、自由な表現と高い還元率であなたの創作活動を加速させます。自分だけのファンコミュニティを今すぐ。",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -23,8 +30,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body className={notoSans.className}>
+    <html lang="ja" suppressHydrationWarning>
+      <body className={notoSans.className} suppressHydrationWarning>
+        <ClarityScript />
         <Providers>{children}</Providers>
       </body>
     </html>

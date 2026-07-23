@@ -1,0 +1,138 @@
+
+<style>
+.faq-wrap { padding: 1rem 0; }
+.faq-section { margin-bottom: 2rem; }
+.faq-section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.faq-item { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); margin-bottom: 8px; overflow: hidden; background: var(--color-background-primary); }
+.faq-q { width: 100%; text-align: left; background: none; border: none; padding: 14px 16px; font-size: 14px; font-weight: 500; color: var(--color-text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.faq-q:hover { background: var(--color-background-secondary); }
+.faq-arrow { font-size: 12px; color: var(--color-text-secondary); transition: transform 0.2s; flex-shrink: 0; }
+.faq-a { display: none; padding: 0 16px 14px; font-size: 14px; color: var(--color-text-secondary); line-height: 1.7; border-top: 0.5px solid var(--color-border-tertiary); }
+.faq-item.open .faq-a { display: block; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-item.open .faq-q { background: var(--color-background-secondary); }
+.tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); margin-right: 6px; }
+.tag-pay { background: var(--color-background-info); color: var(--color-text-info); }
+.tag-fee { background: var(--color-background-success); color: var(--color-text-success); }
+.tag-kyc { background: var(--color-background-warning); color: var(--color-text-warning); }
+.tag-start { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+</style>
+
+<div class="faq-wrap">
+
+<div class="faq-section">
+<div class="faq-section-title">決済・お支払い</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>ファンはどうやって支払いをするのですか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">ファンは銀行振込でクレジット（残高）をチャージし、そのクレジットでサブスクリプションや単品コンテンツを購入します。一度チャージすれば都度振込の手間なく使えます。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>なぜクレジットカード決済に対応していないのですか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">一般的なクレジットカード決済プロバイダーはアダルトコンテンツを取り扱えないか、高い手数料が発生します。銀行振込専用にすることで、アダルトコンテンツに対応しながら業界最安水準の手数料（2.8%〜）を実現しています。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>売上はいつ振り込まれますか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">月次精算で、登録いただいた銀行口座へ自動振込します。残高が振込手数料を下回る場合は翌月に繰り越しとなります。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>プランの月額費用はどう支払うのですか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">プランの月額費用も銀行振込でのお支払いとなります。</div>
+</div>
+
+</div>
+
+<div class="faq-section">
+<div class="faq-section-title">手数料・プラン</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>手数料はどのように計算されますか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">売上金額にプランの手数料率を掛けた金額がプラットフォーム手数料として差し引かれます。例えばLITEプラン（5%）で¥10,000の売上があった場合、手数料¥500を引いた¥9,500がクリエイターの受取額です。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>どのプランが自分に合っていますか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">月売上が¥10万円以下ならFREE、¥10万〜76万円ならLITE、¥76万円超ならBUSINESSがお得になります。まずはFREEで始めて、売上に応じてアップグレードするのがおすすめです。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>途中でプランを変更できますか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">はい、いつでもプランの変更が可能です。</div>
+</div>
+
+</div>
+
+<div class="faq-section">
+<div class="faq-section-title">本人確認・登録</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>本人確認は必須ですか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">アダルトコンテンツを投稿するクリエイターには本人確認（KYC）が必要です。運転免許証・パスポート・マイナンバーカードのいずれかで確認できます。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>登録から収益化まで何日かかりますか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">アカウント登録自体はすぐに完了します。本人確認の審査が完了次第、コンテンツの販売を開始できます。</div>
+</div>
+
+</div>
+
+<div class="faq-section">
+<div class="faq-section-title">サイト・カスタマイズ</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>独自ドメインは必須ですか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">必須ではありません。CocoBaのサブドメイン（yourname.getcocoba.com）でも運営できます。独自ドメインはLITE以上のプランでご利用いただけます。</div>
+</div>
+
+<div class="faq-item">
+<button class="faq-q" onclick="toggle(this)">
+<span>デザインはどこまでカスタマイズできますか？</span>
+<span class="faq-arrow">▼</span>
+</button>
+<div class="faq-a">6種類のテーマテンプレートから選択でき、アバター・ヘッダー・ロゴ・カラーなどを管理画面から設定できます。カスタマイズ機能は今後さらに拡充予定です。</div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+function toggle(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+</script>

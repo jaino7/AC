@@ -11,6 +11,15 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { BrandAssetsService } from "./brand-assets.service";
 
+interface MulterFile {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    buffer: Buffer;
+    size: number;
+}
+
 @Controller("creators/brand-assets")
 export class BrandAssetsController {
     constructor(private readonly brandAssetsService: BrandAssetsService) { }
@@ -22,9 +31,9 @@ export class BrandAssetsController {
     @Post("upload")
     @UseInterceptors(FileInterceptor("file"))
     async uploadAsset(
-        @UploadedFile() file: Express.Multer.File,
+        @UploadedFile() file: MulterFile,
         @Query("creatorId") creatorId: string,
-        @Query("type") type: "logo" | "favicon"
+        @Query("type") type: "avatar" | "logo" | "favicon"
     ) {
         if (!file) {
             throw new BadRequestException("ファイルが選択されていません");
@@ -34,8 +43,8 @@ export class BrandAssetsController {
             throw new BadRequestException("クリエイターIDとタイプは必須です");
         }
 
-        if (type !== "logo" && type !== "favicon") {
-            throw new BadRequestException("タイプはlogoまたはfaviconである必要があります");
+        if (type !== "avatar" && type !== "logo" && type !== "favicon") {
+            throw new BadRequestException("タイプはavatar、logo、またはfaviconである必要があります");
         }
 
         return this.brandAssetsService.uploadAsset(creatorId, type, file);
@@ -61,14 +70,14 @@ export class BrandAssetsController {
     @Delete()
     async deleteAsset(
         @Query("creatorId") creatorId: string,
-        @Query("type") type: "logo" | "favicon"
+        @Query("type") type: "avatar" | "logo" | "favicon"
     ) {
         if (!creatorId || !type) {
             throw new BadRequestException("クリエイターIDとタイプは必須です");
         }
 
-        if (type !== "logo" && type !== "favicon") {
-            throw new BadRequestException("タイプはlogoまたはfaviconである必要があります");
+        if (type !== "avatar" && type !== "logo" && type !== "favicon") {
+            throw new BadRequestException("タイプはavatar、logo、またはfaviconである必要があります");
         }
 
         return this.brandAssetsService.deleteAsset(creatorId, type);

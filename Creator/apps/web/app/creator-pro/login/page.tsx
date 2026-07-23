@@ -1,6 +1,20 @@
+"use client";
+
+import { Suspense } from "react";
+
+
+import { usePathname, useSearchParams } from "next/navigation";
 import { CreatorProLoginForm } from "./login-form";
 
-export default function CreatorProLoginPage() {
+function CreatorProLoginPageContent() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const THEME_PREFIXES = ['creator-pro', 'neon-pro', 'studio-pro', 'velvet-pro', 'pure-lite', 'zine-lite'];
+  const pathSegment = pathname.split('/')[1] || '';
+  const handle = THEME_PREFIXES.includes(pathSegment)
+    ? (searchParams.get("handle") || undefined)
+    : (pathSegment || undefined);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#02070e] text-white">
       <div className="pointer-events-none absolute inset-0">
@@ -12,18 +26,23 @@ export default function CreatorProLoginPage() {
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center px-4 py-16">
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-semibold text-white/90">ログインまたは登録</h1>
+          <h1 className="text-4xl font-semibold text-white/90">
+            ログインまたは登録
+          </h1>
         </div>
 
         <section className="w-full max-w-sm rounded-[26px] border border-white/10 bg-[#070f1b]/80 px-8 py-9 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur">
-
-
-          <CreatorProLoginForm />
-
-
+          <CreatorProLoginForm handle={handle} />
         </section>
       </main>
     </div>
   );
 }
 
+export default function CreatorProLoginPage() {
+  return (
+    <Suspense>
+      <CreatorProLoginPageContent />
+    </Suspense>
+  );
+}

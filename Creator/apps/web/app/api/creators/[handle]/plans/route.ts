@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // GET /api/creators/[handle]/plans - プラン一覧取得
 export async function GET(
@@ -53,7 +51,7 @@ export async function GET(
         });
 
         // レスポンスの整形
-        const formattedPlans = plans.map(plan => ({
+        const formattedPlans = plans.map((plan: any) => ({
             id: plan.id,
             name: plan.name,
             description: plan.description,

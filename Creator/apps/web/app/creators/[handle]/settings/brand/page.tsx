@@ -1,7 +1,7 @@
 import BrandAssetsSettings from "@/components/BrandAssetsSettings";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@creator/shared";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export default async function BrandSettingsPage() {
@@ -15,9 +15,11 @@ export default async function BrandSettingsPage() {
         where: { user: { email: session.user.email } },
         select: {
             id: true,
+            displayName: true,
+            themeConfig: true,
             logoUrl: true,
-            faviconUrl: true
-        }
+            faviconUrl: true,
+        },
     });
 
     if (!creator) {
@@ -27,16 +29,19 @@ export default async function BrandSettingsPage() {
     return (
         <div className="mx-auto max-w-4xl px-6 py-10">
             <header className="mb-8">
-                <h1 className="text-3xl font-semibold">ブランドアセット設定</h1>
+                <h1 className="text-3xl font-semibold">ブランド基本設定</h1>
                 <p className="mt-2 text-gray-600">
-                    ロゴとファビコンを設定して、ブランドをカスタマイズしましょう
+                    サイト名、ロゴ、ファビコンを設定してブランドを整えます。
                 </p>
             </header>
 
             <BrandAssetsSettings
                 creatorId={creator.id}
+                initialDisplayName={creator.displayName}
                 initialLogoUrl={creator.logoUrl}
                 initialFaviconUrl={creator.faviconUrl}
+                initialShowNameInHeader={(creator.themeConfig as any)?.showNameInHeader !== false}
+                showAvatar={false}
             />
         </div>
     );

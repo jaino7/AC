@@ -1,0 +1,48 @@
+### 支払いフローテスト
+### REST Client拡張機能で実行可能なHTTPリクエスト集
+
+@baseUrl = http://localhost:3000
+@creatorId = YOUR_CREATOR_ID_HERE
+
+###############################################
+# ステップ1: ChargeRequestを作成
+###############################################
+
+POST {{baseUrl}}/api/payments/charge
+Content-Type: application/json
+
+{
+  "amount": 1000,
+  "creatorId": "{{creatorId}}"
+}
+
+###############################################
+# ステップ2: バーチャル口座在庫確認
+###############################################
+
+GET {{baseUrl}}/webhooks/virtual-accounts/inventory
+
+###############################################
+# ステップ3: Webhookシミュレーション（Automation版）
+# ※ 先にChargeRequestのレスポンスから口座番号を取得すること
+###############################################
+
+@accountNumber = 1234567
+@automationSecret = your-automation-webhook-secret
+
+POST {{baseUrl}}/webhooks/automation/bank-transfer
+Content-Type: application/json
+X-Webhook-Secret: {{automationSecret}}
+
+{
+  "accountNumber": "{{accountNumber}}",
+  "amount": 1000,
+  "transferorName": "ヤマダタロウ",
+  "transferDate": "2026-02-01T10:00:00.000Z"
+}
+
+###############################################
+# ステップ4: 期限切れ口座の解放テスト
+###############################################
+
+POST {{baseUrl}}/webhooks/virtual-accounts/release-expired

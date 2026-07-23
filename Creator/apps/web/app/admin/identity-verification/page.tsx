@@ -10,6 +10,8 @@ type Verification = {
     creatorId: string;
     creatorName: string;
     documentType: string;
+    frontImageKey: string;
+    backImageKey?: string;
     status: VerificationStatus;
     submittedAt: string;
     reviewedAt?: string;
@@ -29,6 +31,8 @@ export default function IdentityVerificationAdminPage() {
     const [rejectionReason, setRejectionReason] = useState<RejectionReason>("blurry");
     const [customReason, setCustomReason] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [legalName, setLegalName] = useState("");
+    const [dateOfBirth, setDateOfBirth] = useState("");
 
     const rejectionReasons = [
         { id: "blurry" as RejectionReason, label: "画像がぼやけている" },
@@ -76,28 +80,38 @@ export default function IdentityVerificationAdminPage() {
 
     const loadImages = async (verification: Verification) => {
         try {
+            setSelectedVerification(verification);
+            setShowImageModal(true);
+
             // 表面画像の署名付きURL取得
             const frontResponse = await fetch(
-                `/api/admin/identity-verification/${verification.id}/image?type=front`
+                "/api/admin/identity-verification/presigned-url",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: verification.frontImageKey }),
+                }
             );
             if (frontResponse.ok) {
                 const frontData = await frontResponse.json();
-                setFrontImageUrl(frontData.signedUrl);
+                setFrontImageUrl(frontData.url);
             }
 
             // 裏面画像の署名付きURL取得（運転免許証の場合のみ）
-            if (verification.documentType === "DRIVERS_LICENSE") {
+            if (verification.documentType === "DRIVERS_LICENSE" && verification.backImageKey) {
                 const backResponse = await fetch(
-                    `/api/admin/identity-verification/${verification.id}/image?type=back`
+                    "/api/admin/identity-verification/presigned-url",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ key: verification.backImageKey }),
+                    }
                 );
                 if (backResponse.ok) {
                     const backData = await backResponse.json();
-                    setBackImageUrl(backData.signedUrl);
+                    setBackImageUrl(backData.url);
                 }
             }
-
-            setSelectedVerification(verification);
-            setShowImageModal(true);
         } catch (error) {
             console.error(error);
             alert("画像の取得に失敗しました");
@@ -105,18 +119,26 @@ export default function IdentityVerificationAdminPage() {
     };
 
     const handleApprove = async (verificationId: string) => {
+        if (!legalName.trim() || !dateOfBirth) {
+            alert("氏名と生年月日を入力してください");
+            return;
+        }
         if (!confirm("この申請を承認しますか？")) return;
 
         setIsProcessing(true);
         try {
             const response = await fetch(`/api/admin/identity-verification/${verificationId}/approve`, {
-                method: "POST"
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ legalName: legalName.trim(), dateOfBirth }),
             });
 
             if (!response.ok) throw new Error("Approval failed");
 
             alert("承認しました。クリエイターにメールを送信しました。");
             setShowImageModal(false);
+            setLegalName("");
+            setDateOfBirth("");
             loadVerifications();
         } catch (error) {
             console.error(error);
@@ -211,7 +233,7 @@ export default function IdentityVerificationAdminPage() {
                                                 {documentTypeLabels[verification.documentType] || verification.documentType}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-600">
-                                                {new Date(verification.submittedAt).toLocaleString("ja-JP")}
+                                                {new Date(verification.submittedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
@@ -268,7 +290,7 @@ export default function IdentityVerificationAdminPage() {
 
                             <div className="mb-4 text-sm text-gray-600">
                                 <p>書類タイプ: {documentTypeLabels[selectedVerification.documentType]}</p>
-                                <p>提出日時: {new Date(selectedVerification.submittedAt).toLocaleString("ja-JP")}</p>
+                                <p>提出日時: {new Date(selectedVerification.submittedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
                                 <p className="mt-2 rounded-lg bg-yellow-50 p-3 text-yellow-800">
                                     ⚠️ この画像URLは5分間のみ有効です。ページを離れると再度生成が必要です。
                                 </p>
@@ -304,10 +326,34 @@ export default function IdentityVerificationAdminPage() {
                                 )}
                             </div>
 
+                            {/* 本人情報入力（承認時に必須） */}
+                            <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 space-y-4">
+                                <p className="text-sm font-semibold text-blue-900">書類から確認した本人情報を入力してください（承認に必須）</p>
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-gray-700">氏名（本名）</label>
+                                    <input
+                                        type="text"
+                                        value={legalName}
+                                        onChange={(e) => setLegalName(e.target.value)}
+                                        placeholder="例: 山田 太郎"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-gray-700">生年月日</label>
+                                    <input
+                                        type="date"
+                                        value={dateOfBirth}
+                                        onChange={(e) => setDateOfBirth(e.target.value)}
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="flex gap-4">
                                 <Button
                                     onClick={() => handleApprove(selectedVerification.id)}
-                                    disabled={isProcessing}
+                                    disabled={isProcessing || !legalName.trim() || !dateOfBirth}
                                     className="flex-1 bg-green-600 hover:bg-green-700"
                                 >
                                     {isProcessing ? "処理中..." : "承認"}

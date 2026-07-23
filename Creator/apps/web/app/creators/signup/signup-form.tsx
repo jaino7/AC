@@ -15,6 +15,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import { startGoogleOAuthLogin } from "@/lib/oauth-login";
 
 export const SignupForm = () => {
   const router = useRouter();
@@ -39,9 +40,7 @@ export const SignupForm = () => {
   });
 
   const handleGoogleAuth = () => {
-    signIn("google", {
-      callbackUrl: "/creators/dashboard"
-    });
+    startGoogleOAuthLogin({ callbackUrl: "/creators/dashboard" });
   };
 
   const mutation = useMutation({
@@ -56,20 +55,18 @@ export const SignupForm = () => {
     onSuccess: async (data, variables) => {
       reset();
 
-      // サインアップ後に自動ログインしてセッションを取得
+      // サインアップ後に自動ログイン
       await signIn("credentials", {
         email: variables.email,
         password: variables.password,
         redirect: false
       });
 
-      // セッションからhandleを取得してリダイレクト
-      const { getSession } = await import("next-auth/react");
-      const session = await getSession();
-      const handle = (session?.user as any)?.handle;
+      router.refresh(); // セッション更新後にサーバーコンポーネントを最新化
 
-      if (handle) {
-        router.push(`/creators/${handle}/dashboard`);
+      // APIレスポンスからhandleを取得してリダイレクト
+      if (data.handle) {
+        router.push(`/creators/${data.handle}/dashboard`);
       } else {
         router.push("/creators/dashboard");
       }
@@ -87,11 +84,8 @@ export const SignupForm = () => {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-      <div className="space-y-2 text-center">
+      <div className="space-y-2 text-center pb-2">
         <h2 className="text-2xl font-semibold">アカウントを作成</h2>
-        <p className="text-sm text-neutral-500">
-          Googleで登録するか、メールアドレスで登録するとすぐにダッシュボードへ移動します。
-        </p>
       </div>
 
       <Button

@@ -31,6 +31,11 @@ export default function FansCommercialTransactionPage() {
                     </section>
 
                     <section>
+                        <h2 className="mb-2 text-lg font-semibold text-gray-900">お問い合わせフォーム</h2>
+                        <p><a href="/contact" className="text-blue-600 hover:underline">/contact</a></p>
+                    </section>
+
+                    <section>
                         <h2 className="mb-2 text-lg font-semibold text-gray-900">販売価格</h2>
                         <p>各クリエイターのコンテンツ販売ページに記載</p>
                     </section>
@@ -45,7 +50,7 @@ export default function FansCommercialTransactionPage() {
 
                     <section>
                         <h2 className="mb-2 text-lg font-semibold text-gray-900">支払方法</h2>
-                        <p>銀行振込</p>
+                        <p>銀行振込（当運営が指定する仮想口座への入金によるクレジット購入）</p>
                     </section>
 
                     <section>
@@ -59,7 +64,7 @@ export default function FansCommercialTransactionPage() {
                     </section>
 
                     <div className="mt-12 border-t border-gray-200 pt-6">
-                        <p className="text-sm text-gray-500">最終更新日: 2025年12月25日</p>
+                        <p className="text-sm text-gray-500">最終更新日: 2026年2月18日</p>
                     </div>
                 </div>
             </div>

@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
-interface RevenueData {
+export interface RevenueData {
     date: string;
     amount: number;
     count: number;
 }
 
-interface SubscriberData {
+export interface SubscriberData {
     date: string;
     count: number;
     new: number;

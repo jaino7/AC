@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テーマプレースホルダー生成</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .theme-card {
+      width: 800px;
+      height: 600px;
+      margin: 20px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="instructions">
+    <h1>テーマプレースホルダー生成ツール</h1>
+    <p>各テーマを右クリックして「名前を付けて画像を保存」を選択し、対応する名前で保存してください。</p>
+    <p>保存先: <code>apps/web/public/themes/</code></p>
+  </div>
+
+  <!-- Creator Pro -->
+  <h2>Creator Pro (creator-pro.jpg)</h2>
+  <svg class="theme-card" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#581c87;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#grad1)"/>
+    <text x="400" y="280" text-anchor="middle" fill="white" font-size="48" font-weight="bold">Creator Pro</text>
+    <text x="400" y="340" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="20">プロフェッショナルなクリエイター向けテーマ</text>
+  </svg>
+
+  <!-- Neon Pro -->
+  <h2>Neon Pro (neon-pro.jpg)</h2>
+  <svg class="theme-card" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#grad2)"/>
+    <text x="400" y="280" text-anchor="middle" fill="white" font-size="48" font-weight="bold">Neon Pro</text>
+    <text x="400" y="340" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="20">鮮やかでモダンなネオンスタイル</text>
+  </svg>
+
+  <!-- Studio Pro -->
+  <h2>Studio Pro (studio-pro.jpg)</h2>
+  <svg class="theme-card" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#475569;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#grad3)"/>
+    <text x="400" y="280" text-anchor="middle" fill="white" font-size="48" font-weight="bold">Studio Pro</text>
+    <text x="400" y="340" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="20">シンプルでエレガントなスタジオスタイル</text>
+  </svg>
+
+  <!-- Velvet Pro -->
+  <h2>Velvet Pro (velvet-pro.jpg)</h2>
+  <svg class="theme-card" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#e11d48;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#4c0519;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#grad4)"/>
+    <text x="400" y="280" text-anchor="middle" fill="white" font-size="48" font-weight="bold">Velvet Pro</text>
+    <text x="400" y="340" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="20">高級感のあるベルベットスタイル</text>
+  </svg>
+
+  <!-- Pure Lite -->
+  <h2>Pure Lite (pure-lite.jpg)</h2>
+  <svg class="theme-card" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#f3f4f6;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#grad5)"/>
+    <text x="400" y="280" text-anchor="middle" fill="#1f2937" font-size="48" font-weight="bold">Pure Lite</text>
+    <text x="400" y="340" text-anchor="middle" fill="rgba(31,41,55,0.7)" font-size="20">ミニマルで清潔感のあるライトテーマ</text>
+  </svg>
+
+  <!-- Zine Lite -->
+  <h2>Zine Lite (zine-lite.jpg)</h2>
+  <svg class="theme-card" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad6" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#grad6)"/>
+    <text x="400" y="280" text-anchor="middle" fill="white" font-size="48" font-weight="bold">Zine Lite</text>
+    <text x="400" y="340" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="20">温かみのあるマガジンスタイル</text>
+  </svg>
+
+  <script>
+    // SVGを画像として保存可能にする
+    document.querySelectorAll('.theme-card').forEach(svg => {
+      svg.style.cursor = 'pointer';
+      svg.addEventListener('click', function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        const ctx = canvas.getContext('2d');
+        const data = new XMLSerializer().serializeToString(this);
+        const img = new Image();
+        img.onload = function() {
+          ctx.drawImage(img, 0, 0);
+          const link = document.createElement('a');
+          link.download = this.parentElement.querySelector('h2').textContent.match(/\((.+)\)/)[1];
+          link.href = canvas.toDataURL('image/jpeg', 0.9);
+          link.click();
+        }.bind(svg);
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+      });
+    });
+  </script>
+</body>
+</html>

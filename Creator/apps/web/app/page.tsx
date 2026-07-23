@@ -1,29 +1,897 @@
-import Link from 'next/link';
+"use client";
 
-export default function Home() {
-    return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-24">
-            <h1 className="text-4xl font-bold mb-8">Creator Platform</h1>
-            <div className="grid gap-4 text-center">
-                <Link
-                    href="/creators/login"
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    Login
-                </Link>
-                <Link
-                    href="/creators/signup"
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                    Sign Up
-                </Link>
-                <Link
-                    href="/creators/dashboard"
-                    className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                    Dashboard
-                </Link>
-            </div>
-        </div>
+import Link from "next/link";
+import Image from "next/image";
+import { useState, useEffect, useRef } from "react";
+import { Shield, TrendingUp, Crown, Globe, Palette, ChevronRight, Check, ChevronDown } from "lucide-react";
+
+// --- Data ---
+
+const catchphrases = [
+  <>
+    <span className="sm:hidden">
+      <span className="block whitespace-nowrap">月額ファンサイトで、</span>
+      <span className="mt-3 block whitespace-nowrap">ファンリストとブランドを、</span>
+      <span className="mt-3 block whitespace-nowrap">あなたの手元に。</span>
+    </span>
+    <span className="hidden sm:block">
+      <span className="block whitespace-nowrap">月額ファンサイトで、</span>
+      <span className="mt-5 block whitespace-nowrap">ファンリストとブランドを、</span>
+      <span className="mt-5 block whitespace-nowrap">あなたの手元に。</span>
+    </span>
+  </>,
+  <>
+    <span className="sm:hidden">
+      <span className="block whitespace-nowrap">独自ドメインで、</span>
+      <span className="mt-3 block whitespace-nowrap">ファンサイトを</span>
+      <span className="mt-3 block whitespace-nowrap">自分の資産に。</span>
+    </span>
+    <span className="hidden sm:block">
+      <span className="block whitespace-nowrap">独自ドメインで、</span>
+      <span className="mt-5 block whitespace-nowrap">ファンサイトを自分の資産に。</span>
+    </span>
+  </>,
+  <>
+    <span className="block whitespace-nowrap">プラットフォーム都合に、</span>
+    <span className="mt-3 block whitespace-nowrap sm:mt-5">もう振り回されない。</span>
+  </>,
+];
+
+type BillingCycle = "monthly" | "yearly";
+
+type Plan = {
+  id: string;
+  name: string;
+  price: { monthly: number; yearly: number };
+  description: string;
+  features: string[];
+  highlighted?: boolean;
+  cta: string;
+  feeRate: string;
+};
+
+const plans: Plan[] = [
+  {
+    id: "free",
+    name: "Free",
+    price: { monthly: 0, yearly: 0 },
+    description: "まずは無料で体験",
+    features: ["15GB ストレージ", "販売手数料 8.0%", "標準テーマ"],
+    feeRate: "8.0%",
+    cta: "無料で始める",
+  },
+  {
+    id: "lite",
+    name: "Lite",
+    price: { monthly: 2980, yearly: 29800 },
+    description: "成長中のクリエイターに最適",
+    features: ["新規登録後 2ヶ月間無料", "200GB ストレージ", "販売手数料 5.0%", "独自ドメイン & 追加テーマ"],
+    highlighted: true,
+    feeRate: "5.0%",
+    cta: "2ヶ月無料で試す",
+  },
+  {
+    id: "business",
+    name: "Business",
+    price: { monthly: 19800, yearly: 198000 },
+    description: "本気で稼ぐクリエイターのための最上位プラン",
+    features: ["1TB ストレージ", "業界最低水準 販売手数料 2.8%", "独自ドメイン & フルカスタマイズ", "最優先サポート対応"],
+    feeRate: "2.8%",
+    cta: "Businessを選択",
+  },
+];
+
+const comparisonFeatures = [
+  { name: "月額料金", free: "0円", lite: "2,980円", business: "19,800円" },
+  { name: "無料トライアル", free: "—", lite: "初回 2ヶ月間無料", business: "—" },
+  { name: "販売手数料", free: "8%", lite: "5%", business: "2.8%" },
+  { name: "ストレージ", free: "15GB", lite: "200GB", business: "1TB" },
+  { name: "独自ドメイン", free: "×", lite: "○", business: "○" },
+  { name: "カスタム設定", free: "標準のみ", lite: "追加テーマ", business: "カスタマイズOK" },
+  { name: "サポート対応", free: "通常", lite: "優先", business: "最優先" },
+];
+
+type FaqItem = { q: string; a: string };
+type FaqSection = { title: string; items: FaqItem[] };
+
+const faqSections: FaqSection[] = [
+  {
+    title: "決済・お支払い",
+    items: [
+      { q: "ファンはどうやって支払いをするのですか？", a: "ファンは銀行振込でクレジット（残高）をチャージし、そのクレジットでサブスクリプションに加入します。一度チャージすれば都度振込の手間なく使えます。" },
+      { q: "なぜ単体販売に対応していないのですか？", a: "CocoBaは、コンテンツをその都度販売するサービスではなく、ファンとの継続的なつながりをつくる月額制ファンサイトを目的としているためです。継続課金を中心にすることで、クリエイターが安定した収益を得やすい仕組みを目指しています。" },
+      { q: "なぜクレジットカード決済に対応していないのですか？", a: "一般的なクレジットカード決済プロバイダーはアダルトコンテンツを取り扱えないか、高い手数料が発生します。銀行振込専用にすることで、アダルトコンテンツに対応しながら業界最安水準の手数料（2.8%〜）を実現しています。" },
+      { q: "売上はいつ振り込まれますか？", a: "月次精算で、登録いただいた銀行口座へ自動振込します。残高が振込手数料を下回る場合は翌月に繰り越しとなります。" },
+      { q: "プランの月額費用はどう支払うのですか？", a: "プランの月額費用も銀行振込でのお支払いとなります。" },
+    ],
+  },
+  {
+    title: "手数料・プラン",
+    items: [
+      { q: "手数料はどのように計算されますか？", a: "売上金額にプランの手数料率を掛けた金額がプラットフォーム手数料として差し引かれます。例えばLITEプラン（5%）で¥10,000の売上があった場合、手数料¥500を引いた¥9,500がクリエイターの受取額です。" },
+      { q: "どのプランが自分に合っていますか？", a: "月売上が¥10万円以下ならFREE、¥10万〜76万円ならLITE、¥76万円超ならBUSINESSがお得になります。まずはFREEで始めて、売上に応じてアップグレードするのがおすすめです。" },
+      { q: "途中でプランを変更できますか？", a: "はい、いつでもプランの変更が可能です。" },
+    ],
+  },
+  {
+    title: "本人確認・登録",
+    items: [
+      { q: "本人確認は必須ですか？", a: "アダルトコンテンツを投稿するクリエイターには本人確認（KYC）が必要です。運転免許証・パスポート・マイナンバーカードのいずれかで確認できます。" },
+      { q: "登録から収益化まで何日かかりますか？", a: "アカウント登録自体はすぐに完了します。本人確認の審査が完了次第、コンテンツの販売を開始できます。" },
+    ],
+  },
+  {
+    title: "法令・届出",
+    items: [
+      { q: "アダルトコンテンツを取り扱う場合、届出は必要ですか？", a: "実写の成人向け画像・動画などを有料で配信・販売する場合、映像送信型性風俗特殊営業の届出が必要になる場合があります。届出の要否や必要書類は運用形態や管轄警察署によって異なるため、事前に管轄警察署または行政書士へ確認することをおすすめします。" },
+    ],
+  },
+  {
+    title: "サイト・カスタマイズ",
+    items: [
+      { q: "独自ドメインは必須ですか？", a: "必須ではありません。CocoBaのサブドメイン（yourname.getcocoba.com）でも運営できます。独自ドメインはLITE以上のプランでご利用いただけます。" },
+      { q: "デザインはどこまでカスタマイズできますか？", a: "6種類のテーマテンプレートから選択でき、アバター・ヘッダー・ロゴ・カラーなどを管理画面から設定できます。カスタマイズ機能は今後さらに拡充予定です。" },
+    ],
+  },
+];
+
+const themes = [
+  {
+    name: "Creator Pro",
+    gradient: "from-violet-600 to-purple-900",
+    accent: "bg-violet-400",
+    image: "/themes/creator-pro.png",
+    slug: "creator-pro"
+  },
+  {
+    name: "Neon Pro",
+    gradient: "from-cyan-500 to-blue-900",
+    accent: "bg-cyan-400",
+    image: "/themes/neon-pro.png",
+    slug: "neon-pro"
+  },
+  {
+    name: "Studio Pro",
+    gradient: "from-slate-600 to-slate-900",
+    accent: "bg-slate-300",
+    image: "/themes/studio-pro.png",
+    slug: "studio-pro"
+  },
+  {
+    name: "Velvet Pro",
+    gradient: "from-rose-600 to-rose-950",
+    accent: "bg-rose-400",
+    image: "/themes/velvet-pro.png",
+    slug: "velvet-pro"
+  },
+  {
+    name: "Pure Lite",
+    gradient: "from-gray-100 to-white",
+    accent: "bg-gray-800",
+    light: true,
+    image: "/themes/pure-lite.png",
+    slug: "pure-lite"
+  },
+  {
+    name: "Zine Lite",
+    gradient: "from-amber-400 to-orange-600",
+    accent: "bg-amber-200",
+    image: "/themes/zine-lite.png",
+    slug: "zine-lite"
+  },
+];
+
+// --- Hooks ---
+
+function useScrollAnimation() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.15 }
     );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, isVisible };
+}
+
+// --- Components ---
+
+type ParticleStyle = {
+  left: string;
+  bottom: string;
+  animationDuration: string;
+  animationDelay: string;
+  opacity: number;
+  width: string;
+  height: string;
+};
+
+function Particles() {
+  const [particles, setParticles] = useState<ParticleStyle[]>([]);
+
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 20 }).map(() => ({
+        left: `${Math.random() * 100}%`,
+        bottom: `-${Math.random() * 20}%`,
+        animationDuration: `${6 + Math.random() * 8}s`,
+        animationDelay: `${Math.random() * 8}s`,
+        opacity: 0.3 + Math.random() * 0.5,
+        width: `${2 + Math.random() * 3}px`,
+        height: `${2 + Math.random() * 3}px`,
+      }))
+    );
+  }, []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((style, i) => (
+        <div
+          key={i}
+          className="particle"
+          style={style}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FaqAccordion({ sections }: { sections: FaqSection[] }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const toggle = (key: string) => setOpenKey((prev) => (prev === key ? null : key));
+
+  return (
+    <div className="space-y-5 sm:space-y-8">
+      {sections.map((section) => (
+        <div key={section.title}>
+          <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider sm:tracking-widest text-white/30 mb-2 sm:mb-4 pb-2 sm:pb-3 border-b border-white/5">
+            {section.title}
+          </p>
+          <div className="space-y-2 sm:space-y-3">
+            {section.items.map((item, i) => {
+              const key = `${section.title}-${i}`;
+              const isOpen = openKey === key;
+              return (
+                <div
+                  key={key}
+                  className={`rounded-xl border transition-all duration-200 overflow-hidden ${isOpen ? "border-white/20 bg-white/[0.08]" : "border-white/10 bg-white/5"}`}
+                >
+                  <button
+                    className="w-full flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-3.5 sm:py-5 text-left"
+                    onClick={() => toggle(key)}
+                  >
+                    <span className="text-sm sm:text-lg font-medium text-white leading-snug">{item.q}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      style={{ color: isOpen ? "#C5A059" : "rgba(255,255,255,0.4)" }}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-5 text-sm sm:text-base text-white/55 leading-relaxed border-t border-white/10 pt-3 sm:pt-4">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnimatedSection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const { ref, isVisible } = useScrollAnimation();
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+// --- Main Page ---
+
+export default function LandingPage() {
+  const [currentPhrase, setCurrentPhrase] = useState(0);
+  const [isFading, setIsFading] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const planCtaHref = (_planId: string) => "/creators/signup";
+
+  // Catchphrase rotation
+  useEffect(() => {
+    setMounted(true);
+    const interval = setInterval(() => {
+      setIsFading(true);
+      setTimeout(() => {
+        setCurrentPhrase((prev) => (prev + 1) % catchphrases.length);
+        setIsFading(false);
+      }, 500);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Scroll detection for header
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #040B1A 0%, #0A1628 100%)" }}>
+      {/* ===== Navigation ===== */}
+      <nav
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-[#040B1A]/80 backdrop-blur-xl shadow-lg shadow-black/20" : "bg-transparent"
+          }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Left navigation */}
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center">
+              <img src="/logo-top.png" alt="CocoBa Logo" className="h-8 w-auto" />
+            </Link>
+            <a
+              href="#pricing"
+              className="hidden sm:block text-sm text-white/70 hover:text-white transition-colors"
+            >
+              プラン
+            </a>
+            <Link
+              href="/contact"
+              className="hidden sm:block text-sm text-white/70 hover:text-white transition-colors"
+            >
+              お問い合わせ
+            </Link>
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/creators/login"
+              className="text-sm text-white/80 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+            >
+              ログイン
+            </Link>
+            <Link
+              href="/creators/signup"
+              className="text-sm font-semibold px-5 py-2 rounded-lg transition-all hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
+            >
+              無料で始める
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* ===== Hero Section ===== */}
+      <section className="relative min-h-[88svh] sm:min-h-screen flex items-center justify-center pt-16 pb-10 sm:pb-0 overflow-hidden">
+        <Particles />
+
+        {/* Radial glow */}
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl pointer-events-none"
+          style={{ background: "radial-gradient(circle, #002366 0%, transparent 70%)" }}
+        />
+
+        <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
+          <div className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#C5A059]/30 bg-[#C5A059]/10 px-4 py-2 text-xs font-semibold text-[#E8D39A] mb-5">
+            アダルトクリエイター向け独自ファンサイト
+          </div>
+
+          {/* Rotating catchphrase */}
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-none mb-4 sm:mb-6">
+            <span
+              className={`inline-block sm:whitespace-nowrap transition-all duration-500 ${!mounted || isFading ? "opacity-0 translate-y-[-10px]" : "opacity-100 translate-y-0"
+                }`}
+              style={{
+                background: "linear-gradient(135deg, #FFFFFF 30%, #C5A059 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {catchphrases[currentPhrase]}
+            </span>
+          </h1>
+
+          <p className="hidden sm:block text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
+            業界最安水準 <span className="text-white font-semibold">2.8%</span> の手数料。
+            <br />
+            独自ドメイン・完全自立型で、<br />あなたのブランドを守りながら<br className="sm:hidden" />収益を最大化。
+          </p>
+
+          <p className="sm:hidden text-sm text-white/70 max-w-sm mx-auto mb-5 leading-relaxed">
+            独自ドメインで運営できる、アダルトクリエイター向けファンサイトSaaS。
+            凍結リスクに縛られず、ファンリストとブランドを自分の資産にできます。
+          </p>
+
+          <div className="sm:hidden grid grid-cols-3 gap-2 max-w-sm mx-auto mb-7">
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-3">
+              <p className="text-xs text-white/45">決済</p>
+              <p className="mt-1 text-xs font-semibold text-white">停止リスク対策</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-3">
+              <p className="text-xs text-white/45">資産</p>
+              <p className="mt-1 text-xs font-semibold text-white">ファンリスト</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-3">
+              <p className="text-xs text-white/45">運営</p>
+              <p className="mt-1 text-xs font-semibold text-white">独自ドメイン</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <Link
+              href="/creators/signup"
+              className="group flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 text-sm sm:text-lg font-bold px-8 sm:px-10 py-4 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
+              style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
+            >
+              無料で始める
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/creator-pro/content"
+              className="sm:hidden flex w-full max-w-sm items-center justify-center rounded-xl border border-white/15 bg-white/5 px-8 py-4 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              サンプルサイトを見る
+            </Link>
+            <a
+              href="#pricing"
+              className="text-sm text-white/50 hover:text-white/80 transition-colors underline underline-offset-4"
+            >
+              料金プランを見る
+            </a>
+          </div>
+        </div>
+
+        {/* Bottom gradient fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0A1628] to-transparent" />
+      </section>
+
+      {/* ===== Section 2: Value Proposition ===== */}
+      <section className="relative py-12 sm:py-32 px-4">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-white leading-snug sm:leading-snug">
+              <span className="sm:hidden">
+                <span className="block whitespace-nowrap">もう、プラットフォームの</span>
+                <span className="block whitespace-nowrap">都合に振り回されない。</span>
+              </span>
+              <span className="hidden sm:block">
+                もう、プラットフォームの都合に
+                <br />
+                振り回されない。
+              </span>
+            </h2>
+            <p className="text-center text-sm sm:text-base text-white/50 mb-10 sm:mb-16 max-w-2xl mx-auto">
+              CocoBaは、クリエイターが本当に必要とする<br className="sm:hidden" />自由と安全を提供します。
+            </p>
+          </AnimatedSection>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Card 1: Shield */}
+            <AnimatedSection>
+              <div className="group relative rounded-2xl p-8 border border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/[0.08] transition-all duration-300 h-full">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-6"
+                  style={{ background: "linear-gradient(135deg, #002366, #003399)" }}
+                >
+                  <Shield className="w-7 h-7 text-blue-300" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
+                  凍結リスク・規約変更からの解放
+                </h3>
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
+                  突然のアカウント凍結や一方的な規約変更に怯える必要はもうありません。あなたのコンテンツとファンとの関係を、あなた自身がコントロールできます。
+                </p>
+                {/* Glow effect */}
+                <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(0,35,102,0.3), transparent)" }} />
+              </div>
+            </AnimatedSection>
+
+            {/* Card 2: TrendingUp */}
+            <AnimatedSection>
+              <div className="group relative rounded-2xl p-8 border border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/[0.08] transition-all duration-300 h-full">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-6"
+                  style={{ background: "linear-gradient(135deg, #002366, #6B4F1D)" }}
+                >
+                  <TrendingUp className="w-7 h-7 text-blue-200" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
+                  安全かつ長期的な収益最大化
+                </h3>
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
+                  業界最安水準の手数料2.8%で、あなたの手残りを最大化。安定した決済基盤と透明な料金体系で、長期的な成長をサポートします。
+                </p>
+                <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(0,35,102,0.2), rgba(197,160,89,0.2))" }} />
+              </div>
+            </AnimatedSection>
+
+            {/* Card 3: Crown */}
+            <AnimatedSection>
+              <div className="group relative rounded-2xl p-8 border border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/[0.08] transition-all duration-300 h-full">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-6"
+                  style={{ background: "linear-gradient(135deg, #8B6914, #C5A059)" }}
+                >
+                  <Crown className="w-7 h-7 text-yellow-200" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
+                  完全自立型のブランディング
+                </h3>
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
+                  独自ドメインで、あなただけのブランドを構築。プラットフォームの看板ではなく、あなた自身の名前でファンとつながれます。
+                </p>
+                <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(197,160,89,0.3), transparent)" }} />
+              </div>
+            </AnimatedSection>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Section 3: FAQ ===== */}
+      <section id="faq" className="relative py-10 sm:py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-2 sm:mb-4 text-white">
+              よくある質問
+            </h2>
+            <p className="text-center text-sm sm:text-base text-white/50 mb-8 sm:mb-16">
+              ご不明な点はお気軽にお問い合わせください。
+            </p>
+          </AnimatedSection>
+          <AnimatedSection>
+            <div className="space-y-6 sm:space-y-10">
+              {faqSections.map((section) => (
+                <FaqAccordion key={section.title} sections={[section]} />
+              ))}
+
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ===== Section 4: Pricing ===== */}
+      <section id="pricing" className="relative py-12 sm:py-32 px-4 scroll-mt-16">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-white">
+              シンプルで透明な<br className="sm:hidden" />料金体系
+            </h2>
+            <p className="text-center text-sm sm:text-base text-white/50 mb-4 max-w-2xl mx-auto">
+              あなたの成長に合わせて選べる3つのプラン。<br className="sm:hidden" />すべてのプランに基本機能が含まれています。
+            </p>
+          </AnimatedSection>
+
+          {/* Billing toggle */}
+          <AnimatedSection className="flex justify-center mb-10 sm:mb-12">
+            <div className="inline-flex rounded-full p-1 border border-white/10 bg-white/5">
+              <button
+                onClick={() => setBillingCycle("monthly")}
+                className={`rounded-full px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${billingCycle === "monthly"
+                  ? "bg-white text-[#040B1A]"
+                  : "text-white/60 hover:text-white"
+                  }`}
+              >
+                月払い
+              </button>
+              <button
+                onClick={() => setBillingCycle("yearly")}
+                className={`rounded-full px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${billingCycle === "yearly"
+                  ? "bg-white text-[#040B1A]"
+                  : "text-white/60 hover:text-white"
+                  }`}
+              >
+                年払い（2ヶ月分お得）
+              </button>
+            </div>
+          </AnimatedSection>
+
+          {/* Plan cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
+            {plans.map((plan) => {
+              const price = plan.price[billingCycle];
+              const monthlyPrice = billingCycle === "yearly" && price > 0 ? Math.floor(price / 12) : price;
+              const isHighlighted = plan.highlighted;
+
+              return (
+                <AnimatedSection key={plan.id}>
+                  <div
+                    className={`relative rounded-2xl p-8 border transition-all duration-300 h-full flex flex-col ${isHighlighted
+                      ? "border-[#C5A059]/50 bg-white/[0.08] backdrop-blur-sm scale-[1.02]"
+                      : "border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/[0.08]"
+                      }`}
+                  >
+                    {isHighlighted && (
+                      <>
+                        <div
+                          className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap"
+                          style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
+                        >
+                          人気No.1
+                        </div>
+                        <div className="absolute -top-3 right-4 rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-bold text-white">
+                          2ヶ月無料
+                        </div>
+                      </>
+                    )}
+
+                    <div className="text-center mb-3 sm:mb-6">
+                      <h3 className="text-xl sm:text-2xl font-bold text-white">{plan.name}</h3>
+                      <p className="text-xs sm:text-sm text-white/50 mt-1">{plan.description}</p>
+                    </div>
+
+                    <div className="text-center mb-8">
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-base sm:text-lg text-white/60">¥</span>
+                        <span className="text-4xl sm:text-5xl font-bold text-white">
+                          {monthlyPrice.toLocaleString("ja-JP")}
+                        </span>
+                        <span className="text-xs sm:text-sm text-white/60">/月</span>
+                      </div>
+                      {billingCycle === "yearly" && price > 0 && (
+                        <p className="mt-1 text-xs text-white/40">
+                          年間 ¥{price.toLocaleString("ja-JP")}
+                        </p>
+                      )}
+                      {price === 0 && (
+                        <p className="mt-1 text-xs text-white/40">永久無料</p>
+                      )}
+                    </div>
+
+                    <ul className="space-y-3 mb-8 flex-grow">
+                      {plan.features.map((feature, i) => {
+                        const isTrial = feature.includes("無料");
+                        return (
+                          <li key={i} className={`flex items-start gap-3 text-xs sm:text-sm ${isTrial ? "rounded-lg bg-emerald-500/10 px-3 py-2 -mx-3" : ""}`}>
+                            <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isTrial ? "text-emerald-400" : ""}`} style={isTrial ? undefined : { color: "#C5A059" }} />
+                            <span className={isTrial ? "text-emerald-300 font-semibold" : "text-white/70"}>{feature}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    <Link
+                      href={planCtaHref(plan.id)}
+                      className={`block w-full text-center py-3.5 rounded-xl font-semibold transition-all hover:scale-[1.02] ${isHighlighted
+                        ? "text-[#040B1A]"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
+                      style={isHighlighted ? { background: "linear-gradient(135deg, #C5A059, #D4AF6A)" } : undefined}
+                    >
+                      {plan.cta}
+                    </Link>
+                  </div>
+                </AnimatedSection>
+              );
+            })}
+          </div>
+
+          {/* Comparison table */}
+          <AnimatedSection>
+            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
+              <h3 className="text-lg sm:text-xl font-bold text-white text-center py-4 sm:py-6 border-b border-white/10">
+                プラン比較
+              </h3>
+              <p className="sm:hidden px-4 py-2 text-center text-xs text-white/40 border-b border-white/5">
+                横にスクロールして各プランを比較できます。
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px]">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-white/60">機能</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-white/60">Free</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-white">Lite</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold text-white/60">Business</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonFeatures.map((feature, i) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-white/80">{feature.name}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-center text-white/50">{feature.free}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-center text-white font-medium">{feature.lite}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-center text-white/70">{feature.business}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ===== Section 5: Branding & Features (The Weapon) ===== */}
+      <section className="relative py-24 sm:py-32 px-4">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-white">
+              あなたの価値を、正しく表現するための武器。
+            </h2>
+            <p className="text-center text-sm sm:text-base text-white/50 mb-10 sm:mb-16 max-w-2xl mx-auto">
+              独自ドメインと洗練されたテーマで、<br className="sm:hidden" />プロフェッショナルなブランドを構築。
+            </p>
+          </AnimatedSection>
+
+          {/* Custom domain card */}
+          <AnimatedSection className="mb-16">
+            <div className="rounded-2xl p-8 sm:p-12 border border-white/10 bg-white/5 backdrop-blur-sm">
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="flex-shrink-0">
+                  <div
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg, #002366, #003399)" }}
+                  >
+                    <Globe className="w-10 h-10 text-blue-300" />
+                  </div>
+                </div>
+                <div className="text-center md:text-left">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
+                    独自ドメインで、<br className="sm:hidden" />あなただけの世界を。
+                  </h3>
+                  <p className="text-sm sm:text-base text-white/50 leading-relaxed max-w-xl">
+                    <span className="font-semibold text-white/70">yourbrand.com</span> であなたのページを公開。
+                    プラットフォームの URL ではなく、あなた自身のブランドでファンを迎えましょう。
+                    設定は簡単、プログラミングの知識は一切不要です。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </AnimatedSection>
+
+          {/* Theme grid */}
+          <AnimatedSection>
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-white/50 mb-2">
+                <Palette className="w-4 h-4" />
+                プログラミング不要
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-white">
+                6つの洗練されたテーマから選択
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {themes.map((theme) => (
+                <div
+                  key={theme.name}
+                  className="group relative rounded-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02]"
+                >
+                  {/* Theme preview image */}
+                  <div className="relative h-48 sm:h-56 bg-gradient-to-br from-white/5 to-white/10">
+                    <Image
+                      src={theme.image}
+                      alt={`${theme.name} テーマプレビュー`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                    />
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                  </div>
+                  {/* Theme name */}
+                  <div className="bg-white/5 px-4 py-3 backdrop-blur-sm">
+                    <p className="text-xs sm:text-sm font-medium text-white/80">{theme.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ===== Section 6: Closing CTA ===== */}
+      <section className="relative py-24 sm:py-32 px-4 overflow-hidden">
+        {/* Background glow */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full opacity-10 blur-3xl pointer-events-none"
+          style={{ background: "radial-gradient(circle, #C5A059 0%, transparent 70%)" }}
+        />
+
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
+          <AnimatedSection>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-8 sm:mb-16 leading-tight">
+              さあ、真の自由と、
+              <br />
+              最大の手残りを<br className="sm:hidden" />手に入れよう。
+            </h2>
+
+            <Link
+              href="/creators/signup"
+              className="group inline-flex items-center gap-2 text-base sm:text-lg font-bold px-10 sm:px-12 py-4 sm:py-5 rounded-xl transition-all hover:scale-105 animate-pulse-glow"
+              style={{ background: "linear-gradient(135deg, #C5A059, #D4AF6A)", color: "#040B1A" }}
+            >
+              無料で始める
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ===== Footer ===== */}
+      <footer className="border-t border-white/5 py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            {/* Column 1: About */}
+            <div>
+              <img src="/logo-top.png" alt="CocoBa Logo" className="h-8 w-auto mb-4" />
+              <p className="text-xs sm:text-sm text-white/50 leading-relaxed">
+                業界最安水準の手数料で、クリエイターの収益を最大化するプラットフォーム。
+              </p>
+            </div>
+
+            {/* Column 2: Legal */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">法的情報</h3>
+              <ul className="space-y-2 text-xs sm:text-sm">
+                <li>
+                  <Link href="/terms/creators" className="text-white/50 hover:text-white transition-colors">
+                    利用規約
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="text-white/50 hover:text-white transition-colors">
+                    プライバシーポリシー
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/commercial-transaction/creators" className="text-white/50 hover:text-white transition-colors">
+                    特定商取引法
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Support */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">サポート</h3>
+              <ul className="space-y-2 text-xs sm:text-sm">
+                <li>
+                  <Link href="/contact" className="text-white/50 hover:text-white transition-colors">
+                    お問い合わせ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/creators/login" className="text-white/50 hover:text-white transition-colors">
+                    ログイン
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/creators/signup" className="text-white/50 hover:text-white transition-colors">
+                    新規登録
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5 pt-6 text-center">
+            <p className="text-xs sm:text-sm text-white/30">
+              &copy; 2025 CocoBa. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
 }

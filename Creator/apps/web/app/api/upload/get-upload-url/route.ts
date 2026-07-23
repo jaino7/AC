@@ -2,6 +2,22 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generatePresignedUrl } from "@/lib/r2";
+import { generatePresignedUrlMock } from "@/lib/r2-mock";
+import { prisma } from "@creator/shared";
+
+// プランごとのストレージ上限（バイト）
+const STORAGE_LIMITS: Record<string, number> = {
+    FREE: 15 * 1024 * 1024 * 1024,           // 15 GB
+    LITE: 200 * 1024 * 1024 * 1024,          // 200 GB
+    BUSINESS: 1 * 1024 * 1024 * 1024 * 1024, // 1 TB
+};
+
+function parseByteTotal(total: unknown): number {
+    if (typeof total === "bigint") return Number(total);
+    if (typeof total === "number") return total;
+    if (typeof total === "string") return Number(total);
+    return 0;
+}
 
 export async function POST(request: Request) {
     // 認証チェック（セッションの存在確認のみ）
@@ -15,7 +31,55 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { filename, contentType } = body;
+        const { filename, contentType, fileSize } = body;
+        const uploadSize = Number(fileSize);
+
+        if (!Number.isSafeInteger(uploadSize) || uploadSize <= 0) {
+            return NextResponse.json(
+                { error: "fileSize is required and must be a positive integer." },
+                { status: 400 }
+            );
+        }
+
+        // ストレージ容量チェック
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+        });
+
+        if (user) {
+            const creatorProfile = await prisma.creatorProfile.findUnique({
+                where: { userId: user.id },
+            });
+
+            if (creatorProfile) {
+                const sizeResult = await prisma.$queryRaw<Array<{ total: bigint | number | string }>>`
+                    SELECT COALESCE(SUM(m."size"), 0)::bigint as total
+                    FROM "Media" m
+                    INNER JOIN "Post" p ON m."postId" = p."id"
+                    WHERE p."creatorId" = ${creatorProfile.id}
+                `;
+                const planResult = await prisma.$queryRaw<Array<{ type: string; status: string }>>`
+                    SELECT cp."type", cs."status"
+                    FROM "CreatorSubscription" cs
+                    INNER JOIN "CreatorPlan" cp ON cs."planId" = cp."id"
+                    WHERE cs."creatorId" = ${creatorProfile.id}
+                    LIMIT 1
+                `;
+
+                const usedBytes = parseByteTotal(sizeResult[0]?.total);
+                const plan = (planResult.length > 0 && planResult[0].status === "ACTIVE")
+                    ? planResult[0].type
+                    : "FREE";
+                const limitBytes = STORAGE_LIMITS[plan] || STORAGE_LIMITS.FREE;
+
+                if (usedBytes + uploadSize > limitBytes) {
+                    return NextResponse.json(
+                        { error: "ストレージ容量の上限に達しました。プランをアップグレードしてください。" },
+                        { status: 403 }
+                    );
+                }
+            }
+        }
 
         // バリデーション
         if (!filename || !contentType) {
@@ -34,6 +98,8 @@ export async function POST(request: Request) {
             "image/webp",
             "video/mp4",
             "video/webm",
+            "video/quicktime",      // MOV
+            "video/x-matroska",     // MKV
         ];
 
         if (!allowedTypes.includes(contentType)) {
@@ -43,11 +109,34 @@ export async function POST(request: Request) {
             );
         }
 
-        // 署名付きURL生成
-        const result = await generatePresignedUrl({
-            filename,
-            contentType,
-        });
+        // R2環境変数の確認
+        const hasR2Config =
+            process.env.R2_ACCOUNT_ID &&
+            process.env.R2_ACCESS_KEY_ID &&
+            process.env.R2_SECRET_ACCESS_KEY &&
+            process.env.R2_CONTENT_BUCKET_NAME &&
+            process.env.R2_CONTENT_PUBLIC_URL;
+
+        let result;
+
+        if (hasR2Config) {
+            // 本番環境: 実際のR2を使用
+            result = await generatePresignedUrl({
+                filename,
+                contentType,
+            });
+            console.log("[R2 UPLOAD] R2_CONTENT_PUBLIC_URL =", JSON.stringify(process.env.R2_CONTENT_PUBLIC_URL));
+            console.log("[R2 UPLOAD] Generated fileUrl =", result.fileUrl);
+        } else {
+            // 開発環境: モック実装を使用
+            console.warn("[DEV MODE] R2 credentials not configured, using mock upload");
+            console.warn("[DEV MODE] R2_CONTENT_PUBLIC_URL =", JSON.stringify(process.env.R2_CONTENT_PUBLIC_URL));
+            console.warn("[DEV MODE] R2_CONTENT_BUCKET_NAME =", JSON.stringify(process.env.R2_CONTENT_BUCKET_NAME));
+            result = await generatePresignedUrlMock({
+                filename,
+                contentType,
+            });
+        }
 
         return NextResponse.json(result);
     } catch (error) {

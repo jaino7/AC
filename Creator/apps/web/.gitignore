@@ -1,0 +1,5 @@
+/public/uploads
+
+# Environment variables
+.env.local
+.env*.local
